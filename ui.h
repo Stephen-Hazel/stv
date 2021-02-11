@@ -64,7 +64,7 @@ inline void WinSave (QMainWindow *w, char const *gr, char const *fn)
 { QSettings s (gr, fn);
    s.setValue ("size", w->size ());
    s.setValue ("pos",  w->pos ());
-   s.setValue ("scr",  w->screen ()->name ());
+   s.setValue ("scr",  w->windowHandle ()->screen ()->name ());
 }
 
 
