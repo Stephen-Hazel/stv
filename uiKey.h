@@ -5,7 +5,7 @@
 #include "os.h"
 #include <QKeyEvent>
 
-typedef uword key;
+typedef ubyt2 key;
 
 #define SHF      SC(key,0x8000)
 #define CTL      SC(key,0x4000)
@@ -47,6 +47,7 @@ public:
    KeyMap ()  {}
    key   Map (Qt::KeyboardModifiers mo, int ky);
    char *Str (key);
+   QKeySequence UnStr (char *s);
 };
 
 #endif

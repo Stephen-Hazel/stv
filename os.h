@@ -1,9 +1,11 @@
 //      os.h - os stuph like machine specific types, os base, filesys, etc
+//             straight linux - no Qt
 #ifndef OS_H
 #define OS_H
 
 #include <stdio.h>                     // just gimme em all shoish
 #include <string.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -15,35 +17,38 @@
 #include <sys/types.h>
 #include <sys/sendfile.h>
 
-#define MAX_PATH     (240)
+#define MAX_PATH     (240)             // 4k is just too big :(
 #define BITS(a)      (sizeof(a)/sizeof(a[0]))
 #define RECOFS(s,f)  ((ubyte *)(& s.f) - (ubyte *)(& s))
 #define SC(t,x)      (static_cast<t>(x))
 #define CC(s)        (const_cast<char *>(s))
 
+
 // jist mah types_______________________________________________________________
-typedef char            sbyte;         // our usual ints by signed/un, #bytes
-typedef unsigned char   ubyte;
-typedef short           sword;
-typedef unsigned short  uword;
-typedef long            slong;
-typedef unsigned long   ulong;
+typedef char           sbyte;          // our usual ints by signed/un, #bytes
+typedef unsigned char  ubyte;          // ...my apologies      why bits c++ ??
+typedef   int16_t      sbyt2;
+typedef u_int16_t      ubyt2;
+typedef   int32_t      sbyt4;
+typedef u_int32_t      ubyt4;
+typedef   int64_t      sbyt8;
+typedef u_int64_t      ubyt8;
 typedef double          real;          // float is worthless
-ulong const FIX1  = 10000;             // fixed int holding 99999.9999
-ulong const MAXUL = 0xFFFFFFFF;
-                                       // char shall be utf-8
-typedef char     WStr [32];            // ascii word str - 31 chars max
-typedef char     TStr [MAX_PATH];      // utf8 temp str
-typedef char     PStr [10*1024];       // bigger than one line, a page-ISH
-ulong const MAXTSTR = sizeof(TStr)-1;
-ulong const MAXWSTR = sizeof(WStr)-1;
+ubyt4 const FIX1  = 10000;             // fixed int holding 99999.9999
+ubyt4 const MAXUL = 0xFFFFFFFF;
+                                       // char shall be utf-8 !!  always !!
+typedef char WStr [32];                // ascii word str - 31 chars max
+typedef char TStr [MAX_PATH+1];        // utf8 temp str
+typedef char BStr [10*1024];           // bigger than one line, a page-ISH
+ubyt4 const MAXTSTR = sizeof(TStr)-1;
+ubyt4 const MAXWSTR = sizeof(WStr)-1;
 
 typedef void  (*pfunc)();
-typedef char *(*FDoTextFunc)(char *buf, uword len, ulong pos, void *ptr);
+typedef char *(*FDoTextFunc)(char *buf, ubyt2 len, ubyt4 pos, void *ptr);
 typedef bool  (*FDoDirFunc )(void *ptr, char dfx, char *fn);
 
-inline ulong ABSL (slong i)  {if (i < 0)  return SC(ulong,-i);
-                              return SC(ulong, i);}
+inline ubyt4 ABSL (sbyt4 i)  {if (i < 0)  return SC(ubyt4,-i);
+                              return SC(ubyt4, i);}
 inline bool  CHNUM(char  c)  {return ((c>='0') && (c<='9')) ? true : false;}
 inline char  CHUP (char  c)  {if ((c >= 'a') && (c <= 'z'))  return c-'a'+'A';
                               return c;}
@@ -51,60 +56,222 @@ inline char  CHDN (char  c)  {if ((c >= 'A') && (c <= 'Z'))  return c-'A'+'a';
                               return c;}
 
 // mem stuff
-void  MemSet  (void *dst, ubyte c, ulong len);
-void  MemCp   (void *dst, void *src, ulong len);
-void *MemCh   (void *mem, ubyte c, ulong len);
-char *MemSt   (void *big, char *sm, ulong len, char x = '\0');
-slong MemCm   (char *s1,  char *s2, ulong len, char x = '\0');
+void  MemSet  (void *dst, ubyte c,   ubyt4 len);
+void  MemCp   (void *dst, void *src, ubyt4 len);
+void *MemCh   (void *mem, ubyte c,   ubyt4 len);
+char *MemSt   (void *big, char *sm,  ubyt4 len, char x = '\0');
+sbyt4 MemCm   (char *s1,  char *s2,  ubyt4 len, char x = '\0');
 
 // str stuff
-ulong StrLn   (char *str);
-char *StrCp   (char *dst, char *src);
-char *StrAp   (char *dst, char *src, ulong ofs = 0);
+ubyt4 StrLn   (char *str);
+char *StrCp   (char *dst, char *src, char ul = '\0');     // up/lo case?
+char *StrAp   (char *dst, char *src, ubyt4 ofs = 0);
 char *StrCh   (char *str, char c);
-char *StrSt   (char *big, char *sm, char x = '\0');
-slong StrCm   (char *s1,  char *s2, char x = '\0');
+char *StrSt   (char *big, char *sm,    char x = '\0');    // exact? or caseless
+sbyt4 StrCm   (char *s1,  char *sbyt2, char x = '\0');
 int   StrCm2  (void *p1, void *p2);
 
 // str formattin stuff
-char *Int2Str (slong Int, char *buf12, char base = 'd');   // 'x' for hex
-slong Str2Int (char *Str, char **p = nullptr);
-char *StrFmt  (char *s, char const *fmt, ...);    // my sprintf replacement
+char *Int2Str (sbyt4 Int, char *buf12, char base = 'd');   // 'x' for hex
+sbyt4 Str2Int (char *Str, char **p = nullptr);
+char *StrFmt  (char *s, char const *fmt, ...);   // my sprintf replacement
 void  DBG     (char const *fmt, ...);
+#define TRC(...)  if(App.trc)DBG(__VA_ARGS__)    // DBG but only if tracing on
 
 // str array/file-ish stuff
-ulong LinePos (char *s, ulong ln);     // pos of start of line ln in \n sep'd s
-ulong NextLn  (char *str, char *buf, ulong len, ulong p);
+ubyt4 LinePos (char *s, ubyt4 ln);     // pos of start of line ln in \n sep'd s
+ubyt4 NextLn  (char *str, char *buf, ubyt4 len, ubyt4 p);
 char *Chomp   (char *str, char end = 'b');  // default to killin 1st, else end
 char *ReplCh  (char *str, char fr, char to);
-ulong PosInZZ (char *t, char *s,                   char x = '\0');
-ulong PosInWZ (char *t, char *s, uword w,          char x = '\0');
-ulong PosInWH (char *t, char *s, uword w, ulong h, char x = '\0');
+ubyt4 PosInZZ (char *t, char *s,                   char x = '\0');
+ubyt4 PosInWZ (char *t, char *s, ubyt2 w,          char x = '\0');
+ubyt4 PosInWH (char *t, char *s, ubyt2 w, ubyt4 h, char x = '\0');
 
 // fn stuff
-slong PathCmp (char *f1, char *f2);    // can't just StrCm fns cuzu dir depths
+sbyt4 PathCmp (char *f1, char *f2);    // can't just StrCm fns cuzu dir depths
 char *Fn2Name (char *fn);              // strip .ext leaving path/name
 char *Fn2Path (char *fn);              // strip name.ext leaving path
 char *FnExt   (char *ext, char *fn);   // return just ext
 char *FnName  (char *nm,  char *fn);   // return just name.ext
 char *FnFix   (char *fn);              // remove special chars
 
+const ubyt2 RANDMAX = 0x7FFF;
+void  RandInit ();                     // seed w current millisec
+ubyt2 Rand ();                         // return pseudo-random num 0-32767
+ubyt2 Rnd  (ubyt2 n);                  // return 0..n-1
+
 void  Sort (void *ptr, size_t num, size_t siz, int (*cmp)(void *, void *) );
+
+// array of record stuff - be careful with len during RecIns,RecDel !!
+inline void  RecClr (void *p, ubyt4 siz, ubyt4 r = 0, ubyt4 nr = 1)
+{  MemSet ((ubyte *)p + r*siz, 0, nr*siz);  }
+
+inline void  RecCp  (void *p, ubyt4 siz, ubyt4 d, ubyt4 s, ubyt4 nr = 1)
+{  MemCp ((ubyte *)p + d*siz, (ubyte *)p + s*siz, nr*siz);  }
+
+inline ubyt4 RecMv  (void *p, ubyt4 len, ubyt4 siz, ubyt4 r, char to = 'd')
+{ BStr  tmp;
+  ubyt4 t;
+   if ((to == 'u') || (to == 't'))
+        {if (r == 0    )  return r;
+         t = (to == 'u') ? r-1 : 0;}
+   else {if (r == len-1)  return r;
+         t = (to == 'd') ? r+1 : len-1;}
+   MemCp (& tmp, (ubyte *)p + r*siz, siz);   RecCp (p, siz, r, t);
+   MemCp ((ubyte *)p + t*siz, & tmp, siz);
+   return t;
+}
+
+inline void  RecIns (void *p, ubyt4 len, ubyt4 siz, ubyt4 r = 0, ubyt4 nr = 1)
+// len should be NEW LENGTH (not old len)
+{  if (r < len)  RecCp  (p, siz, r+nr, r, len-r-nr);  }
+
+inline void  RecDel (void *p, ubyt4 len, ubyt4 siz, ubyt4 r = 0, ubyt4 nr = 1)
+// len should be OLD LENGTH (not new len)
+{  if (r < len)  RecCp  (p, siz, r, r+nr, len-r-nr);  }
 
 
 //______________________________________________________________________________
+template<typename RO, ubyt4 MX = 256 > class Arr {
+// tame those arrays of structs (Row Array, Raggy)
+public:
+   static const ubyt4 Mx = MX;
+   ubyt4              Ln;
+
+   Arr ()  {         _row = new RO [MX];   _siz = sizeof (RO);   Ln = 0;}
+  ~Arr ()  {delete[] _row;}
+
+   void Dump (char *nm)  {DBG("`s `08x[`d/`d] siz=`d", nm, _row, Ln, Mx, _siz);}
+   RO& el0 ()   {return _row [0];}
+
+   RO& operator[] (int i)
+   {  if ((ubyt4)i > Ln) {             // allow &arr[Ln] even tho not there yet
+        TStr err;
+         StrFmt (err, "Arr[`d] wanted but len=`d  (Mx=`d,siz=`d)",
+                 i, Ln, Mx, _siz);
+      }
+      return _row [i];
+   }
+
+   ubyte *Ptr ()  {return (ubyte *)_row;}
+   ubyt4  Siz ()  {return          _siz;}
+
+   void Clr (ubyt4 r, ubyt4 nr = 1)
+   {  MemSet ((ubyte *)& _row [r], 0,  nr * _siz);  }
+
+   void Cp  (ubyt4 d, ubyt4 s, ubyt4 nr = 1)
+   {  MemCp  ((ubyte *)& _row [d], (ubyte *)& _row [s], nr * _siz);  }
+
+   bool Full (ubyt4 nr = 1)  {return (Ln + nr > Mx) ? true : false;}
+
+   ubyt4 Ins (ubyt4 r = MAXUL, ubyt4 nr = 1)
+   {  if (Full (nr)) {
+        TStr err, db;
+         StrFmt (err, "FULL in Arr.Ins(r=`d,nr=`d)  Ln=`d Mx=`d siz=`d)",
+                 r, nr,  Ln, Mx, _siz);
+         return (r == MAXUL) ? Ln : r;
+      }
+      if (r == MAXUL)  r = Ln;
+      if (r < Ln)  Cp (r + nr, r, Ln - r);
+      Clr (r, nr);
+      Ln += nr;
+      return r;
+   }
+
+   void Del (ubyt4 r, ubyt4 nr = 1)
+   {  if (r < Ln)  Cp (r, r + nr, Ln - r - nr);
+      Ln -= nr;
+   }
+
+   void MvUp (ubyt4 r)
+   { RO t;
+      if (r == 0)  return;
+      MemCp (& t,   & _row [r], _siz);    Del (r);   Ins (r-1);
+      MemCp (& _row [r-1], & t, _siz);
+   }
+
+   void MvBgn (ubyt4 r)
+   { RO t;
+      if (r == 0)  return;
+      MemCp (& t, & _row [r], _siz);      Del (r);   Ins (0);
+      MemCp (& _row [0], & t, _siz);
+   }
+
+   void MvDn (ubyt4 r)
+   { RO t;
+      if (r >= Ln-1)  return;
+      MemCp (& t, &   _row [r], _siz);    Del (r);   Ins (r+1);
+      MemCp (& _row [r+1], & t, _siz);
+   }
+
+   void MvEnd (ubyt4 r)
+   { RO t;
+      if (r >= Ln-1)  return;
+      MemCp (& t,    & _row [r], _siz);   Del (r);   Ins (Ln);
+      MemCp (& _row [Ln-1], & t, _siz);
+   }
+private:
+   ubyt4 _siz;
+   RO   *_row;
+};
+
+
+//______________________________________________________________________________
+// parses a record with columns separated by (usually) spaces - handy for files
+class ColSep {
+public:
+   char *Col [40];
+   ColSep (char *Rec, ubyte Pre, char Sp = ' ')
+   { ubyt2 p, c;
+      if (Pre >= BITS (Col))  Pre = BITS (Col) - 1;  // just to be sorta safe
+   // skip any leading spaces
+      for (p = 0;  Rec [p] && (Rec [p] == Sp);  p++)  ;
+   // parse out the "pre" space sep'd columns
+      for (c = 0;  Pre;  Pre--) {
+      // point at it
+         Col [c++] = & Rec [p];
+      // find end of it
+         while (Rec [p] && (Rec [p] != Sp))  p++;
+      // if needed, \0 terminate it and skip any trailing Sp
+         if (Rec [p]) {
+            Rec [p] = '\0';
+            for (p++;  Rec [p] && (Rec [p] == Sp);  p++)  ;
+         }
+      }
+   // leftover goes into next Col, rest of Cols point at the last \0
+      Col [c++] = & Rec [p];
+      while (c < BITS (Col))  Col [c++] = & Rec [StrLn (Rec)];
+   }
+};
+
+
+//______________________________________________________________________________
+extern char *Now   (char *s);          // current time as yyyymmdd.hhmmss.Day
+extern char *NowMS (char *s);          // current time in msec for debuggin
+
+
 class FDir {
 public:
    FDir ()  {_d = nullptr;}
 
-   char Open (char *fn, char *dir)
+   bool Got (char *dir)
+   // Open won't distinguish btw missing n empty so that's what WE do
    {  if (StrLn (dir) >= sizeof (TStr)) {
-DBG("FDir.Open dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
-         return *fn = '\0';
+DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
+         return false;
       }
+      if ((_d = opendir (dir)) == nullptr)  return false;
+      Shut ();                              return true;
+   }
+
+   char Open (char *fn, char *dir)
+   { char df;
+      if (! Got (dir))  return *fn = '\0';
       _dir = dir;
-      if ((_d = opendir (_dir)) == nullptr)  return *fn = '\0';
-      return Next (fn);
+      _d = opendir (_dir);             // Got() made sure it won't be null
+      df = Next (fn);
+      if (! df)  Shut ();              // sigh - make it ez on user
+      return df;
    }
 
    char Next (char *fn)
@@ -113,7 +280,7 @@ DBG("FDir.Open dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
       if ((_e = readdir (_d)) == nullptr)  return *fn = '\0';
       StrCp (s, _e->d_name);
       if ((StrLn (_dir) + 1 + StrLn (s)) >= sizeof (TStr)) {
-DBG("FDir.Next filename TOO LONG len=`d dir=`s fn=`s",
+DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
 1+StrLn(_dir)+StrLn(s), _dir, s);
          return Next (fn);
       }
@@ -121,17 +288,25 @@ DBG("FDir.Next filename TOO LONG len=`d dir=`s fn=`s",
       if (StrCm (s, CC(".")) && StrCm (s, CC("..")) && StrCm (s, CC(".git"))) {
          if (_e->d_type == DT_REG)  return 'f';
          if (_e->d_type == DT_DIR)  return 'd';
-// IGNORE FIFO,SOCK,CHR,BLK,LNK !!
       }
-      return Next (fn);
+      return Next (fn);                // IGNORE FIFO,SOCK,CHR,BLK,LNK !!
    }
 
    void Shut ()
    {  if (_d) {closedir (_d);   _d = nullptr;}  }
 
-   uword FLst (char *dir, TStr *lst, uword max)
+   bool Empty (char *dir)
+   // exists AND empty - kinda tricky :(
+   { TStr fn;
+      if (! Got (dir))  return false;  // can't be empty if it ain't there
+      if (Open (fn, dir))  {Shut ();   return false;}
+      return true;
+   }
+
+// ez-er than Open/Next/Shut
+   ubyt2 FLst (char *dir, TStr *lst, ubyt2 max)
    // get (just) files (nonrecursively) in dir matching pat
-   { uword len = 0;
+   { ubyt2 len = 0;
      char  df;
      TStr  fn;
       if ((df = Open (fn, dir))) {
@@ -146,9 +321,9 @@ DBG("FDir.Next filename TOO LONG len=`d dir=`s fn=`s",
       return len;
    }
 
-   uword DLst (char *dir, TStr *lst, uword max)
+   ubyt2 DLst (char *dir, TStr *lst, ubyt2 max)
    // get subdirs of dir
-   { uword len = 0;
+   { ubyt2 len = 0;
      char  df;
      TStr  fn;
       if ((df = Open (fn, dir))) {
@@ -162,49 +337,29 @@ DBG("FDir.Next filename TOO LONG len=`d dir=`s fn=`s",
       }
       return len;
    }
+
+// path level "dos" ops
+   bool Make (char *dir, ubyt2 perm = 0755);
+   bool Kill (char *dir);
+   bool Copy (char *from, char *to);
+
+private:
    char   *_dir;
    DIR    *_d;
    dirent *_e;
 };
 
 
-//______________________________________________________________________________
-inline char *Now (char *s)
-{ time_t t = time (nullptr);
-   strftime (s, 20, "%Y%m%d.%H%M%S.%a", localtime (& t));
-   return s;
-}
-
-
 class File {
 public:
-// path level "dos" ops
-   bool PathGot (char *fn)
-   { FDir d;
-     TStr tfn;
-      if (d.Open (tfn, fn))  {d.Shut ();  return false;}
-      return true;
-   }
-   bool PathEmpty (char *fn)        // see if any files or dirs inside it
-   { FDir d;
-     char df;
-     TStr tfn;
-      if (! PathGot (fn))  return false;    // can't be empty if not there
-      df = d.Open (tfn, fn);   d.Shut ();
-      return df ? false : true;
-   }
-   bool PathMake  (char *fn);
-   bool PathKill  (char *fn);
-   bool PathCopy  (char *from, char *to);
-
 // file level "dos" ops
-   bool Kill (char *fn);               // kill (delete) fn
-   bool ReNm (char *from, char *to);   // rename from to to
    bool Copy (char *from, char *to);   // copy from to to
+   bool ReNm (char *from, char *to);   // rename from to to
+   bool Kill (char *fn);               // kill (delete) fn
 
-   ulong Size (char *fn)
+   ubyt4 Size (char *fn)
    { struct stat s;
-      if (! stat (fn, & s))  return SC(ulong,s.st_size);
+      if (! stat (fn, & s))  return SC(ubyt4,s.st_size);
       return 0;
    }
 
@@ -216,17 +371,17 @@ public:
       return ts;
    }
 
-   ulong HrsOld (char *fn)
+   ubyt4 HrsOld (char *fn)
    { struct stat s;
       if (stat (fn, & s))  return 0;
-      return SC(ulong,(time (nullptr) - s.st_mtime) / (60*60));
+      return SC(ubyt4,(time (nullptr) - s.st_mtime) / (60*60));
    }
 
 // read/write stuff
-   bool  Open (char *name, char const *mode)
-   {  StrCp (_fn, name);   *_bkFn = '\0';
+   bool Open (char *name, char const *mode, ubyt2 perm = 0644)
+   {  StrCp (_fn, name);   //*_bkFn = '\0';
       if      (*mode == 'r') {
-         if ((_f = fopen (_fn, mode)) != nullptr)  return true;
+         if (0 <= (_f = open (_fn, O_RDONLY)))  return true;
       }
       else if (*mode == 'w') {
         File tf;
@@ -235,60 +390,55 @@ public:
             StrCp (dir, _fn);   Fn2Path (dir);   FnExt (ext, _fn);
             StrFmt  (fn, "`s/`s.`s", dir, Now (s), ext);
             tf.Copy (name, fn);        // copy to back up
-            StrCp (_bkFn, fn);
+            StrCp   (name, fn);        // return it
+//          StrCp (_bkFn, fn);
          }
-         if ((_f = fopen (_fn, "w")) != nullptr)  return true;
-         else                           DBG("File::Open('`s','w') failed", _fn);
+        TStr dir;
+        FDir d;
+         StrCp (dir, _fn);   Fn2Path (dir);   if (*dir)  d.Make (dir);
+         if (0 <= (_f = open (_fn, O_WRONLY | O_CREAT | O_TRUNC, perm)))
+            return true;
       }
-      else if (*mode == 'a')
-         if ((_f = fopen (_fn, mode)) != nullptr)  return true;
-      _f = nullptr;
+DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
+      _f = -1;
       return false;
    }
 
-   void  Shut (void)
-   {  fclose (_f);   _f = nullptr;   if (! *_bkFn)  return;
-//   TStr c;
-//    App.Path (c);   StrAp (c, "\\_DelSame");   BOOT (c, _bkFn);
+   void Shut (void)
+   { TStr s;
+      if (_f >= 0)  close (_f);
+      _f = -1;
+//    if (*_bkFn)  {StrFmt (s, "delsame `s", _bkFn);   App.Run (s);}
    }
 
-   bool  IsOpen ()  {return ((_f == nullptr) ? false : true);}
+   bool IsOpen ()  {return (_f >= 0) ? true : false;}
 
-   ulong Get (void *buf, ulong len)  {return fread  (buf, 1, len, _f);}
-   ulong Put (void *buf, ulong len)  {return fwrite (buf, 1, len, _f);}
-   ulong Put (char *buf)  {return Put (buf, SC(ulong,StrLn (buf)));}
+   ubyt4 Get (void *buf, ubyt4 len)  {return read  (_f, buf, len);}
+   ubyt4 Put (void *buf, ubyt4 len)  {return write (_f, buf, len);}
+   ubyt4 Put (char *buf)             {return Put       (buf, StrLn (buf));}
 
-   ulong Seek (slong amt, char *src)
-   {  if (src && amt)  return 0;
-      return 0;
-/*
-     DWORD mode;
-      mode =  (*src == '.') ? FILE_CURRENT :
-             ((*src == '>') ? FILE_END : FILE_BEGIN);
-      return ::SetFilePointer (_hand, amt, NULL, mode);
-*/
+   sbyt4 Seek (sbyt4 amt, char *src)
+   { int mode = (*src == '.') ? SEEK_CUR :
+               ((*src == '>') ? SEEK_SET : SEEK_END);
+      return lseek (_f, amt, mode);
    }
 
 // open/read|write/close funcs
-   ulong Load (char *name, void *buf, ulong len)
-   { ulong l = 0;
-      if (Open (name, "r"))  {l = Get (buf, len);   Shut ();}
-      return l;
+   ubyt4 Load (char *name, void *buf, ubyt4 len)
+   { ubyt4 l = 0;
+      if (Open (name, "r"))  {l = Get (buf, len);   Shut ();}   return l;
    }
 
-   ulong Save (char *name, void *buf, ulong len)
-   { ulong l = 0;
-     TStr  dir;
-      StrCp (dir, name);   Fn2Path (dir);   PathMake (dir);
-      if (Open (name, "w"))  {l = Put (buf, len);   Shut ();}
-      return l;
+   ubyt4 Save (char *name, void *buf, ubyt4 len)
+   { ubyt4 l = 0;
+      if (Open (name, "w"))  {l = Put (buf, len);   Shut ();}   return l;
    }
 
    void  DoDir  (char *dir,  void *ptr, FDoDirFunc  func, char *skip = nullptr);
-   char *DoText (char *name, void *ptr, FDoTextFunc func, ulong maxlen = 500);
+   char *DoText (char *name, void *ptr, FDoTextFunc func, ubyt4 maxlen = 500);
 private:
-   FILE *_f;
-   TStr  _bkFn, _fn;
+   int  _f;
+   TStr _fn;  //, _bkFn;
 };
 
 
@@ -299,8 +449,8 @@ inline int StrArrCmp (void *p1, void *p2)
 class StrArr {                         // big str arr that's quick to app,sort
 public:
    TStr   nm, x, y, z;
-   char **str;   ulong maxs, num;
-   char  *buf;   ulong maxb, siz;
+   char **str;   ubyt4 maxs, num;
+   char  *buf;   ubyt4 maxb, siz;
    char  *skip, *quit;
 
    void Wipe ()
@@ -309,7 +459,7 @@ public:
       nm [0] = '\0';   num = maxs = siz = maxb = 0;
    }
 
-   void Init (char *inm, ulong imaxs, ulong imaxb)
+   void Init (char *inm, ubyt4 imaxs, ubyt4 imaxb)
    {  Wipe ();
       StrCp (nm, inm);
       maxs = imaxs;   maxb = imaxb;   num = siz = 0;
@@ -318,21 +468,21 @@ public:
 
    void Clr ()  {num = siz = 0;}
 
-   void Init (char *inm, ulong imaxs = 1024)
+   void Init (char *inm, ubyt4 imaxs = 1024)
    {  Init (inm, imaxs, imaxs*MAX_PATH);  }
 
    StrArr ()    {str = NULL;   buf = NULL;   Wipe ();}
-   StrArr (char *inm, ulong imaxs)               {str = NULL;   buf = NULL;
+   StrArr (char *inm, ubyt4 imaxs)               {str = NULL;   buf = NULL;
                                                   Init (inm, imaxs);}
-   StrArr (char *inm, ulong imaxs, ulong imaxb)  {str = NULL;   buf = NULL;
+   StrArr (char *inm, ubyt4 imaxs, ubyt4 imaxb)  {str = NULL;   buf = NULL;
                                                   Init (inm, imaxs, imaxb);}
   ~StrArr ()  {Wipe ();}
 
    char *Name ()    {return nm;}
-   ulong MaxRow ()  {return maxs;}
-   ulong NRow ()    {return num;}
+   ubyt4 MaxRow ()  {return maxs;}
+   ubyt4 NRow ()    {return num;}
 
-   char *Get (ulong r)
+   char *Get (ubyt4 r)
    {  if (r >= num) {
          DBG ("StrArr::Get  arr=`s row=`d past end=`d", nm, r, num);
          return nullptr;
@@ -341,17 +491,17 @@ public:
    }
 
    void Dump ()
-   {  DBG(nm);   for (ulong r = 0; r < num; r++)  DBG("`d: `s", r, str[r]);  }
+   {  DBG(nm);   for (ubyt4 r = 0; r < num; r++)  DBG("`d: `s", r, str[r]);  }
 
-   ulong Got (char *s)
-   {  for (ulong r = 0; r < num; r++)  if (! StrCm (Get (r), s))  return 1+r;
+   ubyt4 Got (char *s)
+   {  for (ubyt4 r = 0; r < num; r++)  if (! StrCm (Get (r), s))  return 1+r;
       return 0;
    }
 
    bool Full ()  {return (bool)(num >= maxs);}
 
    void Add (char *s, char *rc = nullptr)
-   { ulong ln = StrLn (s) + 1;
+   { ubyt4 ln = StrLn (s) + 1;
       if (rc)  *rc = '\0';
       if ((siz + ln) > maxb)  {if (rc) *rc = 'b';
                                else    DBG ("StrArr::Add  outa buf");
@@ -363,14 +513,14 @@ public:
       MemCp (& buf [siz], s, ln);   siz += ln;
    }
 
-   void Ins (char *s, ulong r = 0)     // kinda backwards, but this is how i go
+   void Ins (char *s, ubyt4 r = 0)     // kinda backwards, but this is how i go
    {  Add (s);
      char *t = str [NRow ()-1];
       MemCp (& str [r+1], & str [r], sizeof (char *) * (NRow ()-r-1));
       str [r] = t;
    }
 
-   static char *DoRec (char *ibuf, uword len, ulong pos, void *ptr)
+   static char *DoRec (char *ibuf, ubyt2 len, ubyt4 pos, void *ptr)
    { StrArr *t = (StrArr *)ptr;
       (void)pos;   (void)len;          // modern DUMB standards
       if (t->quit && (! MemCm (ibuf, t->quit, StrLn (t->quit))))
@@ -388,7 +538,7 @@ public:
    void Sort (int (*cmp)(void *, void *) = StrArrCmp)
    {  ::Sort (str, NRow (), sizeof (str[0]),     cmp);  }
 
-   void GetDir (char *dir, char fd = 'd', ulong max = 1024, char ext = '\0')
+   void GetDir (char *dir, char fd = 'd', ubyt4 max = 1024, char ext = '\0')
    // put dirs or files of a source dir into me
    { TStr fn, t;
      FDir d;
@@ -405,6 +555,221 @@ public:
       Sort ();
    }
 };
+
+
+//______________________________________________________________________________
+// load a text file into an array of Strs...
+#ifndef STABLE_MAXROW
+#define STABLE_MAXROW  8192
+#endif
+
+class STable {                         // ...give StrArr 2 dimensions
+private:
+   StrArr _sa;                         // of maxRow*nCol entries
+   ubyte  _nCol;
+   ubyt4  _nRow, _maxRow;
+   char  *_skip;  // param for DoRec
+public:
+   void Wipe ()
+   {  _nCol = 0;   _nRow = _maxRow = 0;   _sa.Wipe ();}
+
+   STable ()  {Wipe ();}
+
+   void Init (char *nm, ubyte nc = 1, ubyt4 maxRow = STABLE_MAXROW)
+   {  Wipe ();
+      _nCol = nc;   _maxRow = maxRow;   _sa.Init (nm, _nCol*_maxRow);
+   }
+
+   void Cp (STable *src)
+   {  Init (src->Name (), src->NCol (), src->MaxRow ());
+      for (ubyt4 r = 0;  r < src->NRow ();  r++)
+         for (ubyte c = 0;  c < src->NCol ();  c++)  Add (src->Get (r, c));
+   }
+
+   void Clr ()  {_sa.Clr ();   _nRow = 0;}
+
+   bool  Initd  ()  {return _nCol ? true : false;}
+   char *Name   ()  {return _sa.Name ();}
+   ubyte NCol   ()  {return _nCol;}
+   ubyt4 NRow   ()  {return _nRow;}
+   ubyt4 MaxRow ()  {return _maxRow;};
+
+   char *Get (ubyt4 r, ubyte c)
+   {  if (r >= _maxRow)
+          DBG("STable::Get `s row `d >= max `d", Name (), r, _maxRow);
+      if (c >= _nCol)
+          DBG("STable::Get `s col `d >= max `d", Name (), c, _nCol);
+      return _sa.Get (r*_nCol + c);
+   }
+
+   sbyt4 GetI (ubyt4 r, ubyte c)  {return Str2Int (Get (r, c));}
+
+   ubyt4 Got (char *s, ubyte c = 0)
+   {  for (ubyt4 r = 0; r < _nRow; r++)
+         if (! StrCm (Get (r, c), s))  return 1+r;
+      return 0;
+   }
+
+   void Add (char *s)
+   {  if ( ((_sa.NRow () % _nCol) == 0) &&
+           ((_sa.NRow () / _nCol) >= _nRow) )  _nRow++;
+      _sa.Add (s);
+   }
+
+   void Ins (ubyt4 r, char **s)
+   {  if ((_nRow + 1) > _maxRow) return;    // can't
+      r *= _nCol;
+     ubyte c = _nCol;
+      while (c--)  _sa.Ins (*s++, r++);
+      _nRow++;
+   }
+
+   void Upd (ubyt4 r, ubyte c, char *s)
+   // argh - this is pretttttty ugly, hopefully it werks fer ya...
+   {  if (StrLn (Get (r, c)) >= StrLn (s))  StrCp (_sa.str [r*_nCol+c], s);
+      else  {_sa.Add (s);   _sa.str [r*_nCol+c] = _sa.str [--_sa.num];}
+   }
+
+   static char *DoRec (char *buf, ubyt2 len, ubyt4 pos, void *ptr)
+   { STable *t = (STable *)ptr;
+     ColSep  ss (buf, t->_nCol-1);
+     ubyte   c = t->_nCol;
+      if (t->_skip && (MemCm (ss.Col [0], t->_skip, StrLn (t->_skip)) == 0))
+         return NULL;
+      for (ubyte c = 0; c < t->_nCol; c++)  t->Add (ss.Col [c]);
+      return NULL;
+   }
+
+   void Load (char *fn, char *skip = NULL,
+                        ubyte nc = 1, ubyt4 maxRow = STABLE_MAXROW)
+   { TStr nm;
+     File f;
+      FnName (nm, fn);   Fn2Name (nm);   Init (nm, nc, maxRow);
+      _skip = skip;   f.DoText (fn, this, DoRec);
+   }
+
+   void FPut (File *f)
+   { char rc [8000];
+      for (ubyt4 r = 0;  r < NRow ();  r++) {
+         *rc = '\0';
+         for (ubyte c = 0;  c < NCol ();  c++)  {if (c)  StrAp (rc, CC(" "));
+                                                 StrAp (rc, Get (r, c));}
+         StrAp (rc, CC("\n"));
+         f->Put (rc);
+      }
+   }
+
+   void Dump ()
+   { ubyt4 r;
+     ubyte c;
+     BStr  d;
+      DBG("table=`s", Name ());
+      for (r = 0; r < _nRow; r++) {
+         StrFmt (d, " `04d: ", r);
+         for (c = 0; c < _nCol; c++)  StrFmt (& d [StrLn (d)], "`s`s",
+                                              c ? "," : "", Get (r, c));
+         DBG(d);
+      }
+   }
+};
+
+
+//______________________________________________________________________________
+struct AppBase {
+public:
+   void Init (char *g, char *a, char *t)
+   {  StrCp (grp, g);   StrCp (app, a);   StrCp (ttl, t);
+     TStr s;   CfgGet (CC("trc"), s);   trc = (*s == 'y') ? true : false;
+   }
+
+   char *Path (char *s, char typ = 'a')     // [a]ppPath, [c]fgPath
+   { char *p;                               // else read [c]/s.cfg
+     TStr  t;
+      if (typ == 'a')  return StrFmt (s, "/opt/app/`s", grp);
+                                            // /opt/app/pcheetah
+      if (! (p = getenv ("HOME")))
+         {DBG("getenv HOME failed");   *s = '\0';   return s;}
+      StrFmt (s, "`s/.config/`s", p, grp);  // /home/sh/.config/pcheetah
+      if (typ != 'c')  {t [0] = typ;   t [1] = '\0';   CfgGet (t, s);}
+   // typ of [d]ata - get /home/sh/.config/pcheetah/d.cfg  (set in install)
+      return s;
+   }
+
+   void CfgGet (char *fn, char *s, ubyt4 max = 0)
+   { TStr  p, q;
+     File  f;
+     ubyt4 l;
+      StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
+      l = f.Load (p, s, max ? max : MAX_PATH);
+      if (l == 0)  DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
+      if (max == 0) {
+         s [l] = '\0';
+         if (l && (s [l-1] == '\n'))  s [--l] = '\0';      // no \n at end !!
+      }
+   }
+
+   void CfgPut (char *fn, char *s, ubyt4 len = 0)
+   { TStr p, q;
+     File f;
+      StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
+      f.Save (p, s, len ? len : StrLn (s));
+   }
+
+   void TrcPut (bool tf)
+   {  trc = tf;   CfgPut (CC("trc"), CC(tf?"y":"n"));  }
+/*
+   void Run (char *cmd, ubyte narg)
+   { pid_t p;
+      p = fork ();
+      if (p <  0) {DBG("fork error for `s", cmd);   return;}
+      if (p == 0) {
+        BStr a;
+         Path (a);
+        ColSep cs (cmd, narg);
+         cs.Col [narg] = nullptr;
+         execv (a, cs.Col);
+      }
+      return;
+   }
+*/
+   void Run (char *cmd)
+   // run n wait for cmd
+   { BStr a, t;
+     int  rc;
+      StrFmt (a, "`s/`s", Path (t), cmd);
+      if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
+   }
+   
+   void Spinoff (char *cmd)
+   // spin it off in another session totally in parallel
+   { BStr a, t;
+     int  rc;
+      StrFmt (a, "setsid `s/`s </dev/null >/dev/null 2>/dev/null &", 
+              Path (t), cmd);
+      if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
+   }
+
+   bool trc;
+   TStr grp, app, ttl;
+};
+
+extern AppBase App;
+
+
+inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
+// come on linux, where's my InternetOpenUrl ??  don't want no curl deps :(
+{ ubyt4 i = 0;
+  TStr  fn, c;
+  int   rc;
+  File  f;
+   do StrFmt (fn, "/tmp/wget.`d", ++i);   while (f.Size (fn));  // find tmp fn
+   StrFmt (c, "wget -q -O `s `s", fn, url);                     // wget it
+   if ((rc = system (c)))  
+         {DBG("system `s died rc=`d", c, rc);   i = 0;}
+   else  {i = f.Load (fn, buf, siz);   f.Kill (fn);}            // load n kill
+   buf [i] = '\0';                     // term string
+   return i;
+}
 
 
 #endif

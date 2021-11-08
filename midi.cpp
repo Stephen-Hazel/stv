@@ -1,8 +1,8 @@
 // midi.cpp
 
-
-#include <midi.h>
-#include <midiDrum.cpp>                // eh, just always...
+#include "midi.h"
+#include "midiProg.cpp"                // eh, just always...
+#include "midiDrum.cpp"
 
 char MKeyStr  [12][3] =
         {"c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"},
@@ -20,73 +20,181 @@ char MFing [31][3] = {
 };
 
 
-// MidiDevLst ------------------------------------------------------------------
+//______________________________________________________________________________
 MidiDevLst Midi;
 
-char *MidiDevLst::DoRec (char *buf, uword len, ulong pos, void *ptr)
+char *MidiDevLst::DoRec (char *buf, ubyt2 len, ubyt4 pos, void *ptr)
 { static char spot;
   static TStr err;
-  MidiDevLst *md = (MidiDevLst *)ptr;
-  ubyte       nCo;
+  MidiDevLst *m = (MidiDevLst *)ptr;
+   (void)len;
 // find initial, MidiIn: n MidiOut: spots
    if (pos == 0)                          spot = ' ';
-   if (MemCm (buf, "MidiIn:",  7) == 0)  {spot = 'i';  return NULL;}
-   if (MemCm (buf, "MidiOut:", 8) == 0)  {spot = 'o';  return NULL;}
+   if (MemCm (buf, CC("MidiIn:"),  7) == 0)  {spot = 'i';   return NULL;}
+   if (MemCm (buf, CC("MidiOut:"), 8) == 0)  {spot = 'o';   return NULL;}
 // skip comments n blank lines
-   if ((spot == ' ') || (buf [0] == '\0') || (buf [0] == '#'))  return NULL;
-   if (md->_len >= MAX_DEV)  return "tooo many devices in device.txt :(";
-  SpaceSep ss (buf, nCo = 2);
+   if ((spot == ' ') || (*buf == '\0') || (*buf == '#'))    return NULL;
+  ColSep ss (buf, 2);
    *err = '\0';
-   if (StrLn (ss.Col [0])   > MAXTSTR)  StrCp (err, "name too long");
-   if (StrLn (ss.Col [1])   > MAXTSTR)  StrCp (err, "type too long");
-   if (StrLn (ss.Col [nCo]) > MAXTSTR)  StrCp (err, "description too long");
-   if (*err)  {StrFmt (& err [StrLn (err)], " in device.txt line `d", pos+1);
-               return err;}
-          md->_lst [md->_len].io =   spot;    // fill in stuff
-   StrCp (md->_lst [md->_len].name,  ss.Col [0]);
-   StrCp (md->_lst [md->_len].type,  ss.Col [1]);
-   StrCp (md->_lst [md->_len].desc,  ss.Col [nCo]);
-// if ya can't open it, it ain't there - turn it to OFF
-
-   md->_len++;
+   if (StrLn (ss.Col [0]) > MAXTSTR)  StrCp (err, CC("name too long"));
+   if (StrLn (ss.Col [1]) > MAXTSTR)  StrCp (err, CC("type too long"));
+   if (StrLn (ss.Col [2]) > MAXTSTR)  StrCp (err, CC("description too long"));
+   if (m->_len >= MAX_DEV)            StrCp (err, CC("too many devices"));
+   if (*err) {
+      StrFmt (& err [StrLn (err)], " in device.txt line `d", pos+1);
+      DBG (err);   return err;
+   }
+          m->_lst [m->_len].io =   spot;    // fill in stuff
+   StrCp (m->_lst [m->_len].name,  ss.Col [0]);
+   StrCp (m->_lst [m->_len].type,  ss.Col [1]);
+   StrCp (m->_lst [m->_len].desc,  ss.Col [2]);
+   StrCp (m->_lst [m->_len].dev,   CC("?"));
+   m->_len++;
    return NULL;
 }
 
 
-void MidiDevLst::Load ()
-{ TStr  fn;
-  File  f;
-   _len = 0;
-TRC("{ MidiDevLst::Load");
-   App.Path (fn, 'd');   StrAp (fn, "\\Device\\device.txt");
-// gotta ignore errors here...:/  cuzu SETUP=>MidiConfig use me :/
-   f.DoText (fn, this, DoRec);
-TRC("} MidiDevLst::Load");
+void MidiDevLst::InsDev (char io, char *desc, char *dev)
+// update/insert dev into _lst matching on desc
+{ ubyte p, q, no;
+  TStr  nm;
+  bool  got, dup;
+   for (got = false, p = 0;  p < _len;  p++)
+      if ( (! StrCm (_lst [p].desc, desc)) && (_lst [p].io == io) &&
+                                              (_lst [p].dev [0] == '?') )
+         {StrCp (_lst [p].dev, dev);   got = true;   break;}
+   if (! got) {                        // dagnabitt - gotta insert
+      if (_len >= MAX_DEV)  {DBG("too many midi devices");   return;}
+      if (io == 'i') {                 // gotta find ins spot
+         for (p = 0;  p < _len;  p++)  if (_lst [p].io != 'i')  break;
+         RecIns (_lst, _len+1, sizeof (_lst [0]), p);
+      }
+      else  p = _len;                  // ez - tack it onto end
+      dup = true;                      // got i with same desc?  use name
+      if (io == 'o')  for (q = 0;  q < _len;  q++)
+         if ((_lst [q].io == 'i') && (! StrCm (_lst [q].desc, desc)))
+            {StrCp (nm, _lst [q].name);   dup = false;   break;}
+      for (no = 1;  dup;  no++) {      // need new name thing1, thing2, etc
+         dup = false;   StrFmt (nm, "thing`d", no);
+         for (q = 0;  q < _len;  q++)  if (! StrCm (nm, _lst [q].name))
+                                          {dup = true;   break;}
+      }
+             _lst [p].io =  io;
+      StrCp (_lst [p].name, nm);
+      StrCp (_lst [p].type, CC("DEFAULT"));
+      StrCp (_lst [p].desc, desc);
+      StrCp (_lst [p].dev,  dev);
+      _len++;
+   }
 }
 
 
-bool MidiDevLst::Get    (char io,            char *name, char *type, char *desc)
+void MidiDevLst::Dump ()               // test Load()
+{  for (ubyte i = 0;  i < _len;  i++)  DBG("`d: `c `s `s `s `s",
+     i, _lst [i].io, _lst [i].name, _lst [i].type, _lst [i].desc, _lst [i].dev);
+}
+
+
+void MidiDevLst::Load ()
+{ TStr  fn, name, sdev;
+  File  f;
+  int   card, dev, sub, nsub, isub, osub, err;
+  snd_ctl_t          *ctl;
+  snd_rawmidi_info_t *info;
+  const char         *desc, *desc2;
+TRC("Midi Load");
+   _len = 0;
+   App.Path (fn, 'd');   StrAp (fn, CC("/device/device.txt"));
+   f.DoText (fn, this, DoRec);
+
+// map desc to alsa's "rawmidi" hw:9,9[,9] names (a bitt painful) - into .dev
+   snd_rawmidi_info_alloca (& info);        // sheesh :/
+   for (card = -1;;) {
+      if ((err = ::snd_card_next (& card))) {
+         DBG ("snd_card_next error: `s", ::snd_strerror (err));
+         break;
+      }
+      if (card < 0)  break;
+
+//DBG("card#=`d", card);
+      StrFmt (name, "hw:`d", card);
+      if ((err = ::snd_ctl_open (& ctl, name, 0)) < 0) {
+         DBG ("snd_ctl_open error for card `d: `s", card, ::snd_strerror (err));
+         break;
+      }
+      for (dev = -1;;) {
+         if ((err = ::snd_ctl_rawmidi_next_device (ctl, & dev)) < 0) {
+            DBG ("snd_ctl_rm_next_device error: `s", ::snd_strerror (err));
+            break;
+         }
+         if (dev < 0)  break;
+
+//DBG(" dev=`d", dev);
+         isub = osub = 0;
+         ::snd_rawmidi_info_set_device (info, dev);
+         ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_INPUT);
+         if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
+            isub = ::snd_rawmidi_info_get_subdevices_count (info);
+         ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_OUTPUT);
+         if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
+            osub = ::snd_rawmidi_info_get_subdevices_count (info);
+         nsub = isub > osub ? isub : osub;
+//DBG("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
+         for (sub = 0;  sub < nsub;  sub++) {
+            ::snd_rawmidi_info_set_stream (
+               info, sub < isub ? SND_RAWMIDI_STREAM_INPUT
+                                : SND_RAWMIDI_STREAM_OUTPUT);
+            ::snd_rawmidi_info_set_subdevice (info, sub);
+            if ((err = ::snd_ctl_rawmidi_info (ctl, info))) {
+               DBG ("snd_rm_info_set_subdevice error: `s\n",
+                    ::snd_strerror (err));
+               break;
+            }
+            desc  = ::snd_rawmidi_info_get_name           (info);
+            desc2 = ::snd_rawmidi_info_get_subdevice_name (info);
+            if (nsub == 1) {           // use hw:9,9   and desc
+               StrFmt (sdev, "hw:`d,`d", card, sub);
+               if (sub < isub)  InsDev ('i', CC(desc), sdev);
+               if (sub < osub)  InsDev ('o', CC(desc), sdev);
+            }
+            else {                     // use hw:9,9,9 and desc2
+               StrFmt (sdev, "hw:`d,`d,`d", card, dev, sub);
+               if (sub < isub)  InsDev ('i', CC(desc2), sdev);
+               if (sub < osub)  InsDev ('o', CC(desc2), sdev);
+            }
+         }
+      }
+      ::snd_ctl_close (ctl);
+   }
+// Dump ();
+}
+
+
+bool MidiDevLst::Get    (char io, char *name, char *type, char *desc, char *dev)
 // find io n name w type!=OFF,  fill in other stuff
-{  for (ubyte         i = 0;  i < _len;  i++)
+{  for (ubyte        i = 0;  i < _len;  i++)
       if ( (io == _lst [i].io) && (! StrCm (name, _lst [i].name)) &&
-                                     StrCm (_lst [i].type, "OFF") ) {
+                                     StrCm (_lst [i].type, CC("OFF")) ) {
             StrCp (type, _lst [i].type);
             StrCp (desc, _lst [i].desc);
+            StrCp (dev,  _lst [i].dev);
             return true;
       }
    return false;                       // ...nope, not therez :(
 }
 
 
-bool MidiDevLst::GetPos (char io, ubyte pos, char *name, char *type, char *desc)
+bool MidiDevLst::GetPos (char io, ubyte pos,
+                                  char *name, char *type, char *desc, char *dev)
 // find io n num, fill in other stuff
-{  for (ubyte n = 0,  i = 0;  i < _len;  i++)
+{  for (ubyte n = 0, i = 0;  i < _len;  i++)
       if (io == _lst [i].io) {
          if (n != pos)  n++;
          else {
             StrCp (name, _lst [i].name);
             StrCp (type, _lst [i].type);
             StrCp (desc, _lst [i].desc);
+            StrCp (dev,  _lst [i].dev);
             return true;
          }
       }
@@ -94,7 +202,7 @@ bool MidiDevLst::GetPos (char io, ubyte pos, char *name, char *type, char *desc)
 }
 
 
-// MCC -------------------------------------------------------------------------
+//______________________________________________________________________________
 MCCRow MCC [] = { // types are u=0-127(default)
                             // o=0,127(split at 64)
                             // s=0-127=>-64-63
@@ -141,27 +249,16 @@ ubyte NMCC = BITS (MCC);
 
 void MCCDump ()
 { TStr s;
-   for (ulong i = 0;  i < NMCC;  i++)  DBG("s=`<8s typ=`c dflt=`3d raw=`s",
+   for (ubyt4 i = 0;  i < NMCC;  i++)  DBG("s=`<8s typ=`c dflt=`3d raw=`s",
 MCC [i].s, MCC [i].typ, MCC [i].dflt, MCtl2Str (s, MCC [i].raw));
 }
 
 
-// util funcs ------------------------------------------------------------------
-
-char *TmS (char *st, ulong t)
-// convert absolute time int to str (ignoring any timesig stuff)
-{ ulong b, q, s;
-   b = t /  M_WHOLE + 1;       t %=  M_WHOLE;    // 1 based :/
-   q = t / (M_WHOLE/4) + 1;    t %= (M_WHOLE/4);
-   s = t / (M_WHOLE/16) + 1;   t %= (M_WHOLE/16);
-   if (b > 99999)  return "SKIP";
-   return StrFmt (st, "`04d.`d`d.`02d", b, q, s, t);
-}
-
-ulong TmI (char *st)
-// convert absolute time str 2 int (ignoring any timesig stuff)
+// utils _______________________________________________________________________
+ubyt4 Tm (char *st)
+// convert 2 int - absolute time (no timesig stuff)
 { char *p;
-  ulong b, q = 0, s = 0, t = 0;
+  ubyt4 b, q = 0, s = 0, t = 0;
    b = Str2Int (st, & p);   if (b)  --b;
    if (*p == '.') {
       p++;   q = (*p - '0');  if (q)  --q;
@@ -172,65 +269,76 @@ ulong TmI (char *st)
    return b*M_WHOLE + q*(M_WHOLE/4) + s*(M_WHOLE/16) + t;
 }
 
-ubyte MNt2Int (char *s)
+char *TmS (char *st, ubyt4 t)
+// convert 2 str - absolute time (no timesig stuff)
+{ ubyt4 b, q, s;
+   b = t /  M_WHOLE + 1;       t %=  M_WHOLE;    // 1 based :/
+   q = t / (M_WHOLE/4) + 1;    t %= (M_WHOLE/4);
+   s = t / (M_WHOLE/16) + 1;   t %= (M_WHOLE/16);
+   if (b > 99999)  return CC("SKIP");
+   return StrFmt (st, "`04d.`d`d.`02d", b, q, s, t);
+}
+
+ubyte MNt (char *s)
 { TStr  t;
   ubyte n;
-   StrCp (t, s);   if (StrLn (t) && (t [StrLn (t)-1] == 'm'))  StrAp (t, "", 1);
-   for (n = 0;    n < 12; n++)  if (! StrCm (t, MKeyStr  [n]))  break;
+   StrCp (t, s);
+   if (StrLn (t) && (t [StrLn (t)-1] == 'm'))  StrAp (t, CC(""), 1);
+   for (n = 0;     n < 12;  n++)  if (! StrCm (t, MKeyStr  [n]))  break;
    if (n >= 12)
-      for (n = 0; n < 12; n++)  if (! StrCm (t, MKeyStrB [n]))  break;
-   if (! StrCm (s, "Cb"))  return 11;  // handlin dumb ksigs sigh
+      for (n = 0;  n < 12;  n++)  if (! StrCm (t, MKeyStrB [n]))  break;
+   if (! StrCm (s, CC("Cb")))  return 11;   // handlin dumb ksigs sigh
    return n;
 }
 
-ubyte MKey2Int (char *s, char **news)
+ubyte MKey (char *s, char **news)
 { ubyte n;
-  sbyte f = 0;
-   if (news) *news = s;
+  sbyte a = 0;
+   if (news)  *news = s;
    if ((*s < '0') || (*s > '9'))          return (ubyte)0;
-   for (n = 0; n < 12; n++)  if (CHDN (s [1]) == MKeyStr [n][0])  break;
+   for (n = 0;  n < 12;  n++)  if (CHDN (s [1]) == MKeyStr [n][0])  break;
    if (n >= 12)  {if (news) *news += 1;   return (ubyte)0;}
-   if (CHDN (s [2]) == 'b')  f = -1;
-   if (      s [2]  == '#')  f =  1;
-   if (news) *news += (f ? 3 : 2);
-   return (ubyte)((*s-'0'+1)*12  +  n  +  f);
+   if (CHDN (s [2]) == 'b')  a = -1;
+   if (      s [2]  == '#')  a =  1;
+   if (news)  *news += (a ? 3 : 2);
+   return (ubyte)((*s-'0'+1)*12 + n + a);
 }
 
 char *MKey2Str (char *s, ubyte b, char fl)
-{  if (b < M_NT(M_C,0))  b = M_NT(M_C,0);
+{  if (b < MKey (CC("0C")))  b = MKey (CC("0C"));
    if (fl == 'b')  StrFmt (s, "`d`s", b/12-1, MKeyStrB [b%12]);
    else            StrFmt (s, "`d`s", b/12-1, MKeyStr  [b%12]);
    return s;
 }
 
-uword MCtl2Int (char *s)              // cc raw str to uword
-{ uword rc;
+ubyt2 MCtl (char *s)                   // cc raw str to ubyt2
+{ ubyt2 rc;
   char *s2;
-   if      (! StrCm (s, "prog"))   return MC_PROG;
-   else if (! StrCm (s, "prss"))   return MC_PRSS;
-   else if (! StrCm (s, "pbnd"))   return MC_PBND;
-   else if (! StrCm (s, "tmpo"))   return MC_TMPO;
-   else if (! StrCm (s, "tsig"))   return MC_TSIG;
-   else if (! StrCm (s, "ksig"))   return MC_KSIG;
-   else if (! MemCm (s, "cc", 2))  return MC_CC + (uword)Str2Int (s+2);
-   else if (! MemCm (s, "us", 2))  return MC_US + (uword)Str2Int (s+2);
-   else if (! MemCm (s, "rp", 2))  rc = MC_RP;
-   else if (! MemCm (s, "np", 2))  rc = MC_NP;
-   else                            return 0;
-   rc += (uword)(Str2Int (s+2, & s2) * 2);
-   return rc + (uword)((CHUP (*s2) == 'L') ? 1 : 0);
+   if      (! StrCm (s, CC("prog")))   return MC_PROG;
+   else if (! StrCm (s, CC("prss")))   return MC_PRSS;
+   else if (! StrCm (s, CC("pbnd")))   return MC_PBND;
+   else if (! StrCm (s, CC("tmpo")))   return MC_TMPO;
+   else if (! StrCm (s, CC("tsig")))   return MC_TSIG;
+   else if (! StrCm (s, CC("ksig")))   return MC_KSIG;
+   else if (! MemCm (s, CC("cc"), 2))  return MC_CC + (ubyt2)Str2Int (s+2);
+   else if (! MemCm (s, CC("us"), 2))  return MC_US + (ubyt2)Str2Int (s+2);
+   else if (! MemCm (s, CC("rp"), 2))  rc = MC_RP;
+   else if (! MemCm (s, CC("np"), 2))  rc = MC_NP;
+   else                                return 0;
+   rc += (ubyt2)(Str2Int (s+2, & s2) * 2);
+   return rc + (ubyt2)((CHUP (*s2) == 'L') ? 1 : 0);
 }
 
-char *MCtl2Str (char *s, uword c, char raw)      // cc uword to raw str
+char *MCtl2Str (char *s, ubyt2 c, char raw)      // cc ubyt2 to raw str
 {  *s = '\0';
    if (c < 128)  return MKey2Str (s, (ubyte)c);
    if (c < MC_CC) {
-      if      (c == MC_PROG)  StrCp (s, "Prog");
-      else if (c == MC_PRSS)  StrCp (s, "Prss");
-      else if (c == MC_PBND)  StrCp (s, "PBnd");
-      else if (c == MC_TMPO)  StrCp (s, "Tmpo");
-      else if (c == MC_TSIG)  StrCp (s, "TSig");
-      else if (c == MC_KSIG)  StrCp (s, "KSig");
+      if      (c == MC_PROG)  StrCp (s, CC("Prog"));
+      else if (c == MC_PRSS)  StrCp (s, CC("Prss"));
+      else if (c == MC_PBND)  StrCp (s, CC("PBnd"));
+      else if (c == MC_TMPO)  StrCp (s, CC("Tmpo"));
+      else if (c == MC_TSIG)  StrCp (s, CC("TSig"));
+      else if (c == MC_KSIG)  StrCp (s, CC("KSig"));
    }
    else if (c < MC_US) {
       StrFmt (s, "cc`d", c - MC_CC);
@@ -263,453 +371,93 @@ char *CtlX2Str (char *s, char *cs, TrkEv *in)
    if (in)  MemCp (& e, in, sizeof (TrkEv));
    else {
       for (r = 0;  r < NMCC;  r++)  if (! StrCm (cs, MCC [r].s))  break;
-      if (r >= NMCC)  Die ("CtlX2Str not an x ctl");
-      e.valu = MCC [r].dflt & 0x7F;
-      e.val2 = MCC [r].dflt >> 7;
+      if (r >= NMCC)  {e.valu = e.val2 = 0;   DBG ("CtlX2Str not an x ctl");}
+      else            {e.valu = MCC [r].dflt & 0x7F;
+                       e.val2 = MCC [r].dflt >> 7;}
    }
-   if      (! StrCm (cs, "tmpo"))
+   if      (! StrCm (cs, CC("tmpo")))
       StrFmt (s, "`d",  e.valu + (e.val2 << 8));
-   else if (! StrCm (cs, "tsig"))
+   else if (! StrCm (cs, CC("tsig")))
       if (e.val2 >> 4)
             StrFmt (s, "`d/`d/`d", e.valu, 1 << (e.val2 & 0x0F),
                                            1 +  (e.val2 >> 4)  );
       else  StrFmt (s, "`d/`d",    e.valu, 1 << (e.val2 & 0x0F));
-   else if (! StrCm (cs, "ksig")) {
+   else if (! StrCm (cs, CC("ksig"))) {
       if   (! (e.val2 & 0x80))  StrCp (s, MKeyStr  [e.valu]);
       else if (e.valu != 11)    StrCp (s, MKeyStrB [e.valu]);
-      else                      StrCp (s, "Cb");
-      if (e.val2 & 0x01)  StrAp (s, "m");
+      else                      StrCp (s, CC("Cb"));
+      if (e.val2 & 0x01)  StrAp (s, CC("m"));
       *s = CHUP (*s);
    }             // else "prog"
    else
-      StrCp (s, "*");
+      StrCp (s, CC("*"));
    return s;
 }
 
 void CtlX2Val (TrkEv *e, char *cs, char *s)
 { ubyte r;
-  uword w;
+  ubyt2 w;
    if (*s == '\0') {
       for (r = 0;  r < NMCC;  r++)  if (! StrCm (cs, MCC [r].s))  break;
-      if (r >= NMCC)  Die ("CtlX2Val not an x ctl");
-      e->valu = MCC [r].dflt & 0x7F;
-      e->val2 = MCC [r].dflt >> 7;
+      if (r >= NMCC)  {e->valu = e->val2 = 0;   DBG ("CtlX2Val not an x ctl");}
+      else            {e->valu = MCC [r].dflt & 0x7F;
+                       e->val2 = MCC [r].dflt >> 7;}
    }
-   else if (! StrCm (cs, "tmpo")) {
-      w = (uword)Str2Int (s);   e->valu = (ubyte)(w & 0xFF);
+   else if (! StrCm (cs, CC("tmpo"))) {
+      w = (ubyt2)Str2Int (s);   e->valu = (ubyte)(w & 0xFF);
                                 e->val2 = (ubyte)(w >> 8);
    }
-   else if (! StrCm (cs, "tsig")) {
+   else if (! StrCm (cs, CC("tsig"))) {
       e->valu = (ubyte)Str2Int (s, & s);   if (*s == '/')  s++;
-      w       = (uword)Str2Int (s, & s);
+      w       = (ubyt2)Str2Int (s, & s);
       for (r = 0;  r < 16;  r++)  if ((1 << r) == w)  {e->val2 = r;   break;}
-      if (*s == '/')  {w = (uword)Str2Int (++s);   e->val2 |= ((w-1) << 4);}
+      if (*s == '/')  {w = (ubyt2)Str2Int (++s);   e->val2 |= ((w-1) << 4);}
    }
-   else if (! StrCm (cs, "ksig")) {
+   else if (! StrCm (cs, CC("ksig"))) {
       e->val2 = (s [StrLn (s)-1] == 'm') ? 1 : 0;
-      e->valu = MNt2Int (s);
+      e->valu = MNt (s);
       if (s [1] == 'b')  e->val2 |= 0x80;
-   }             // else "prog"
-   else
+   }
+   else                  // "prog"
       e->valu = e->val2 = 0;
 }
 
 
-// MidiI -----------------------------------------------------------------------
-void MidiI::Chk (UINT err, char *f, char x)
-{ static char buf [161];
-  TSt2 b2;
-   if (err != MMSYSERR_NOERROR) {
-      ::midiInGetErrorText (err, b2, MAX_PATH);
-      if (x)  {TRC ("`s `s", f, StrCvt (buf, b2));}
-      else    Die (StrCvt (buf, b2), f);
-   }
-}
-
-
-MidiI::MidiI (char *name, Timer *tmr, HWND wnd, char raw)
-// timer needed to stamp MidiEv.time
-: _hnd (NULL), _timer (tmr),   _bAdd (0), _bRmv (0), _bErr (false),
-  _hdrUsed (false), _hdrDone (false), _numB (0), _raw (raw)
-{ UINT rc;
-  TStr p;
-TRC("{ MidiI `s", name);
-   MemSet (_buf, 0, sizeof (_buf));   _syX = 'n';   _tmX = 0;
-   StrCp (_name, name);
-   if (wnd) {_sigThrd = NULL;  _sigWndo = wnd;}
-   else     {_sigWndo = NULL;  _sigThrd = ::GetCurrentThreadId ();}
-   if (! Midi.Get ('i', _name, _type, _desc))
-      Die ("MidiI::MidiI  unknown device name", _name);
-  ubyte max = ::midiInGetNumDevs ();
-   for (_mmId = 0;  _mmId < max;  _mmId++) {
-      Chk (::midiInGetDevCaps (_mmId, & _cap, sizeof (_cap)),
-            "midiInGetDevCaps");
-      if (StrCm (StrCvt (p, _cap.szPname), _desc) == 0)  break;
-   }
-   if (_mmId >= max) {
-      _hnd = NULL;
-TRC("} MidiIn device `s not connected", _name);
-      return;
-   }
-   rc = ::midiInOpen (& _hnd, _mmId, (DWORD_PTR)Handler, (DWORD_PTR)this,
-                      CALLBACK_FUNCTION);
-   if (rc != MMSYSERR_NOERROR) {
-      _hnd = NULL;
-TRC("} MidiIn device `s ALREADY grabbed by another app", _name);
-      return;
-   }
-   Chk (::midiInStart (_hnd),  "midiInStart");
-   if (_raw == 's')  _timer->SetTempo (1);
-TRC("} MidiI");
-}
-
-
-MidiI::~MidiI (void)
-{
-TRC("{ ~MidiI `s", (*_name) ? _name : "?");
-   _timer = NULL;   _name [0] = '\0';
-   if (_hnd == NULL)  {TRC ("} ~MidiI");   return;}
-   if (_hdrUsed) {
-      if (! _hdrDone)  Chk (::midiInReset(_hnd), "midiInResetX");
-      Chk (::midiInUnprepareHeader (_hnd, & _hdr, sizeof (_hdr)),
-            "midiInUnprepareHeader");
-   }
-   if (_numB) {
-      Chk (::midiInReset (_hnd), "midiInResetX");
-      for (ubyte i = 0; i < _numB; i++)
-      Chk (::midiInUnprepareHeader (_hnd, & _hdrB [i], sizeof (_hdrB [0])),
-            "midiInUnprepareHeader");
-   }
-   Chk (::midiInStop  (_hnd), "midiInStop", '-');
-   Chk (::midiInReset (_hnd), "midiInReset");
-   Chk (::midiInClose (_hnd), "midiInClose");
-   _hnd = NULL;
-TRC("} ~MidiI");
-}
-
-
-bool MidiI::Get (MidiEv *ev)
-{  if (_hnd == NULL)    return false;
-//TRC("{ MidiI::Get");
-   if (_bRmv == _bAdd)  {
-//TRC("} MidiI::Get - empty");
-      return false;  // nothin there
-   }
-   MemCp (ev, & _buf [_bRmv], sizeof (MidiEv));
-  ubyte p = _bRmv;
-   if (++p == BITS (_buf))  p = 0;
-   _bRmv = p;
-//TRC("} MidiI::Get");
-   return true;
-}
-
-
-void MidiI::BufAdj (slong tm)
-{ slong t;
-   if (_hnd)  for (ubyte p = _bRmv;  p != _bAdd;)
-                  {t = (slong)_buf [p].time + tm;   _buf [p].time = (ulong)t;
-                   if (++p == BITS (_buf))  p = 0;}
-}
-
-
-void MidiI::GetSx (ubyte *strm, DWORD len)
-{  if (_hnd == NULL)  return;
-   if (_hdrUsed) {
-      if (! _hdrDone)  Chk (::midiInReset (_hnd), "MidiI::GetSx  midiInReset");
-      _hdrUsed = _hdrDone = false;
-      Chk (::midiInUnprepareHeader (_hnd, & _hdr, sizeof (_hdr)),
-           "MidiI::GetSx  midiInUnprepareHeader");
-   }
-   _hdr.lpData = (char *)strm;  _hdr.dwBufferLength = len;  _hdr.dwFlags = 0;
-   Chk (::midiInPrepareHeader (_hnd, & _hdr, sizeof (_hdr)),
-        "MidiI::GetSx  midiInPrepareHeader");
-   _hdrUsed = true;
-   Chk (::midiInAddBuffer (_hnd, & _hdr, sizeof (_hdr)),
-        "MidiI::GetSx  midiInAddBuffer");
-}
-
-
-void MidiI::SxBuf (ubyte num, ulong siz, ubyte *p)
-{  if (_hnd == NULL)  return;
-   _numB = num;  _sizB = siz;
-   for (ubyte i = 0; i < num; i++) {
-      MemSet (& _hdrB [i], 0, sizeof (_hdrB [0]));
-      _hdrB [i].lpData = (char *)(& p [i*siz]);
-      _hdrB [i].dwBufferLength = siz;
-      Chk (::midiInPrepareHeader (_hnd, & _hdrB [i], sizeof (_hdrB [0])),
-           "MidiI::SxSet  midiInPrepareHeader");
-      Chk (::midiInAddBuffer (_hnd, & _hdrB [i], sizeof (_hdrB [0])),
-           "MidiI::GetSx  midiInAddBuffer");
-   }
-}
-
-
-void MidiI::SxRet (ubyte *p)
-{  if (_hnd == NULL)  return;
-   for (ubyte i = 0; i < _numB; i++)  if ((char *)p == _hdrB [i].lpData) {
-      _hdrB [i].dwBytesRecorded = 0;  _hdrB [i].dwFlags &= ~MHDR_DONE;
-      Chk (::midiInAddBuffer (_hnd, & _hdrB [i], sizeof (_hdrB [0])),
-           "MidiI::SxRet  midiInAddBuffer");
-      return;
-   }
-}
-
-
-void CALLBACK MidiI::Handler
-   (HMIDIIN h, UINT msg, DWORD user, DWORD l1, DWORD l2)
-{ MidiI *m = (MidiI *)user;
-  ubyte  p, pnew,   s, v, v2 = 0,   t;
-  uword                c;
-  bool              ok = false;
-   if (msg == MIM_CLOSE) {
-//DBG("MidiI::Handler  MIM_CLOSE on `s", m?m->_name:"?");
-      return;      // he's dead, Jim...
-   }
-   if ((m == NULL) || (! m->_name [0])) {
-//DBG("MidiI::Handler  m=`08x _name=`s", m, m?m->_name:"?");
-      return;      // ...he's also dead, Jim
-   }
-   switch (msg) {
-   case MIM_LONGERROR: m->_bErr    = true;
-//DBG("MidiI::Handler  MIM_LONGERROR on `s", m?m->_name:"?");
-   case MIM_LONGDATA:  m->_hdrDone = true;
-      break;
-   case MIM_ERROR:     m->_bErr    = true;
-//DBG("MidiI::Handler  MIM_ERROR on `s", m?m->_name:"?");
-   case MIM_DATA:
-      pnew = p = m->_bAdd;  if (++pnew == BITS (m->_buf))  pnew = 0;
-      if (pnew == m->_bRmv)  m->_bErr = true;
-      else {
-         s = (ubyte) l1 & 0x0FF;   c = (uword)(l1 >>  8) & 0x0FF;
-                                   v = (ubyte)(l1 >> 16) & 0x0FF;
-         if ( (! m->_raw) && ((s == M_CLOCK) || (s == M_SENSE)) )  return;
-
-         if (m->_timer) {m->_buf [p].time = m->_timer->Get ();
-                         m->_buf [p].msec = m->_timer->GetMS ();}
-         else            m->_buf [p].time = m->_buf [p].msec = l2;
-//if ((s != M_CLOCK) && (s != M_SENSE)) DBG("`02x `02x `02x\n",s,c,v);
-         if (m->_raw != 'y')  switch (s & 0xF0) {
-         case M_NPRS: v2 = 0x80;
-         case M_NOTE: if (v)  v |= 0x80;
-         case M_NOFF: if ((c >= M_NT(M_C,0)) && (c <= M_NT(M_B,8)))  ok = true;
-                                                                 break;
-         case M_PROG: v = (ubyte)c;   c = MC_PROG;   ok = true;  break;
-         case M_PRSS: v = (ubyte)c;   c = MC_PRSS;   ok = true;  break;
-         case M_PBND: v2 = (ubyte)c;  c = MC_PBND;   ok = true;  break;
-         case M_CTRL:
-            switch (c) {
-            case M_NRPNL:
-               m->_rpn = 0x8000 | (m->_rpn & 0x7F00) | (v<<1);     break;
-            case M_NRPNH:
-               m->_rpn = 0x8000 | (v << 8) | (m->_rpn & 0x00FF);   break;
-            case M_RPNL:
-               m->_rpn =          (m->_rpn & 0x7F00) | (v<<1);     break;
-            case M_RPNH:
-               m->_rpn =          (v << 8) | (m->_rpn & 0x00FF);   break;
-            case M_DATL:
-            case M_DATH:
-               t = (ubyte)c;   c = m->_rpn;
-               if (c & 0x8000) {if (c < 65534)               ok = true; }
-               else            {if (c < 16384) {c += MC_NP;  ok = true;}}
-               if (t == M_DATH)  c++;
-               break;
-            default:
-               c |= MC_CC;  ok = true;
-            }
-            ok = true;  break;
-         default: /*0xF0:*/            // filter M_CLOCK and M_SENSE
-            if (! m->_raw)
-                 {if ((s != M_CLOCK) && (s != M_SENSE))  ok = true;}
-            else {
-            // _raw == 's' means sync timer to clock/start/stop/cont/songpos
-               switch (s) {
-               case M_START:   m->_tmX = 0;
-               case M_CONT:    m->_syX = 'y';                  break;
-               case M_STOP:    m->_syX = 'n';                  break;
-               case M_SONGPOS: m->_tmX = 6*8 * (c << 7 | v);   break;
-               case M_CLOCK:   m->_timer->Set (m->_tmX);   m->_syX = 'y';
-                               m->_tmX +=  8;                  break;
-               case M_SENSE:   break;
-               default:        ok = true;
-               }
-               if (! ok)  return;
-            }
-         }
-      // _raw == 'y' means store all minus M_SENSE in buffer
-         if      (m->_raw == 'y') {
-            if (s == M_SENSE)  return;
-            m->_buf [p].chan = 0;
-            m->_buf [p].ctrl = s;
-            m->_buf [p].valu = (ubyte)c;
-            m->_buf [p].val2 = v;
-            m->_bAdd = pnew;
-         }
-         else if (ok) {
-            m->_buf [p].chan = s & 0x0F;
-            m->_buf [p].ctrl = c;
-            m->_buf [p].valu = v;
-            m->_buf [p].val2 = v2;
-//DBG("dev=`s chan=`02x ctrl=`02x valu=`02x val2=`02x",
-//m->_name, s & 0x0F, c, v, v2);
-            m->_bAdd = pnew;
-         }
-         else return;                  // not bufferin?  no MIM_DATA msg
-      }
-      break;
-   default:
-      return;                          // don't send other MIMs thru
-   }
-   if (msg == MIM_LONGDATA) {
-      MIDIHDR *mh = (MIDIHDR *)l1;
-      if (m->_sigThrd)
-           {if (::PostThreadMessage (m->_sigThrd, msg,
-                (WPARAM)mh->lpData, (LPARAM)mh->dwBytesRecorded) != TRUE)
-               DieWn ("MidiI::Handler  PostThrdMsgX died");}
-      else {
-      if (::PostMessage       (m->_sigWndo, msg,
-                (WPARAM)mh->lpData, (LPARAM)mh->dwBytesRecorded) != TRUE)
-               DieWn ("MidiI::Handler  PostMsgX died");}
-   }
-   else {
-//DBG("MidiI::Handler got `s", m?m->_name:"?");
-      if (m->_sigThrd)
-           {if (::PostThreadMessage (m->_sigThrd, msg, l1, l2) != TRUE) {
-              static TStr rats;
-               StrFmt (rats, "MidiInHandler  PostThrdMsg died  PLEASE CHECK "
-                             "device `s  (type=`s  Description=`s)",
-                       m->_name, m->_type, m->_desc);
-               DieWn (rats);
-            }
-           }
-      else {if (::PostMessage       (m->_sigWndo, msg, l1, l2) != TRUE)
-               DieWn ("MidiI::Handler  PostThrdMsg died");}
-   }
-}
-
-
-// MidiO -----------------------------------------------------------------------
-void MidiO::Chk (UINT err, char *f)
-{ static TStr buf;
-  TSt2 b2;
-   if (err != MMSYSERR_NOERROR)
-      {::midiOutGetErrorText (err, b2, MAX_PATH);   Die (StrCvt (buf, b2), f);}
-}
-
-const ulong MSG_BANK = MSG_CLOSE+1;
-const ulong MSG_MIDI = MSG_CLOSE+2;
-
-MidiO::MidiO (char *name, bool noreset)
-: _hnd (NULL), _noSx (false), _hdrUsed (false), _hdrDone (false),
-  _sigThrd (::GetCurrentThreadId ())
-{ TStr m, buf, p;
-  TSt2 b2;
-  UINT rc;
-TRC("{ MidiO `s noreset=`b", name, noreset);
-   MemSet (_ntOn, 0, sizeof (_ntOn));
-   StrCp (_name, name);
-   _syn = 0;   _noRs = noreset;
-   if (! Midi.Get ('o', _name, _type, _desc))
-      Die ("MidiO::MidiO  don't know device name:", name);
-TRC("type=`s desc=`s", _type, _desc);
-
-// got syn?
-   if (! StrCm (_type, "syn")) {
-     char *p;
-      _syn = 1;
-      if (p = StrCh (_desc, '#'))  _syn = (ubyte) Str2Int (p+1);     // 1..8
-     ShMem  sh;
-     DWORD *b;
-      if (! (b = (DWORD *)sh.Open ("syn.exe", 4)))  Die ("can't open syn.exe");
-
-      _synThrd = *b;
-      sh.Shut ();
-      GMInit ();
-TRC("} MidiO - syn");
-      return;
-   }
-
-// look up regular midi device
-  ubyte max = ::midiOutGetNumDevs ();
-   for (_mmId = 0; _mmId < max; _mmId++) {
-      rc = ::midiOutGetDevCaps (_mmId, & _cap, sizeof (_cap));
-      if (rc != MMSYSERR_NOERROR) {
-         ::midiOutGetErrorText (rc, b2, MAX_PATH);
-         StrFmt (m, "Can't check a midiout device\r\n"
-                    "name=`s type=`s desc=`s\r\n`s",
-                 name, _type, _desc, StrCvt (buf, b2));
-         Die (m);
-      }
-      if (StrCm (StrCvt (p, _cap.szPname), _desc) == 0)  break;
-   }
-   if (_mmId >= max) {                 // device could be off...
-TRC("} MidiO - device not on=`s type=`s desc=`s", name, _type, _desc);
-      _hnd = NULL;
-      return;
-   }
-TRC("mmid=`d", _mmId);
-   if ((rc = ::midiOutOpen (& _hnd, _mmId, (DWORD_PTR)Handler, (DWORD_PTR)this,
-                            CALLBACK_FUNCTION) != MMSYSERR_NOERROR)) {
-      ::midiOutGetErrorText (rc, b2, MAX_PATH);
-TRC("device won't open rc=`d err=`s", rc, StrCvt (buf, b2));
-   // try again without the callback biz (can't do sysex now)
-      _hnd = NULL;   _noSx = true;
-      if ((rc = ::midiOutOpen (& _hnd, _mmId, 0, 0, 0)) != MMSYSERR_NOERROR) {
-         ::midiOutGetErrorText (rc, b2, MAX_PATH);   StrCvt (buf, b2);
-TRC("won't open even with no callback rc=`d err=`s", rc, buf);
-         StrFmt (m, "Can't open midiout device=`s type=`s desc=`s\r\nerror=`s",
-                 name, _type, _desc, buf);
-         Die (m);
-      }
-   }
-   GMInit ();
-TRC("} MidiO");
+//______________________________________________________________________________
+MidiO::MidiO (char *name, char noinit)
+{ int err;
+   _hnd = nullptr;   StrCp (_name, name);   MemSet (_ntOn, 0, sizeof (_ntOn));
+TRC("MidiO `s", _name);
+   if (! Midi.Get ('o', _name, _type, _desc, _dev))
+      {DBG("MidiO no device name=`s",  _name);   return;}
+   if (*_dev == '?')
+      {DBG("MidiO device `s isn't on", _name);   return;}
+TRC("   type=`s desc=`s dev=`s", _type, _desc, _dev);
+   if ((err = ::snd_rawmidi_open (nullptr, & _hnd, _dev, SND_RAWMIDI_NONBLOCK)))
+      {DBG("snd_rawmidi_open o `s failed: `s", _name, ::snd_strerror (err));
+       _hnd = nullptr;   return;}
+   if (! noinit)  GMInit ();
 }
 
 
 MidiO::~MidiO (void)
 // toss the header thing;  shush the notes left on;  reset n close
-{
-TRC("{ ~MidiO `s", (*_name) ? _name : "?");
-   if (_syn)  {NotesOff ();   _syn = 0;   TRC("} ~MidiO - syn");        return;}
-
-   if (_hnd == NULL)                     {TRC("} ~MidiO - was dead");   return;}
-
-   if ((! _noSx) && _hdrUsed) {
-      while (! _hdrDone)  Sleep (1);   // not nice...:/
-      Chk (::midiOutUnprepareHeader (_hnd, & _hdr, sizeof (_hdr)),
-                                     "midiOutUnprepareHeader");
-   }
-   NotesOff ();                        // does midiOutReset too
-   Chk (::midiOutClose (_hnd), "midiOutClose");
-TRC("} ~MidiO");
+{ int err;
+TRC("~MidiO `s", (*_name) ? _name : "?");
+   if (Dead ())  {TRC("...was dead");   return;}
+   if ((err = ::snd_rawmidi_close (_hnd)))
+      DBG("snd_rawmidi_close o `s failed: `s", _name, ::snd_strerror (err));
+   _hnd = nullptr;
 }
 
 
-void MidiO::PutMEv (ubyte *mev)
-{  if (_syn)           return;         // none of this for syn.exe (all in Put)
-   if (_hnd == NULL)  {DBG("PutMEv `s but _hnd is NULL", _name);   return;}
-
-  TSt2 b2;
-  TStr s;
-  UINT rc;
-   if ((! _noSx) && _hdrUsed)  {       // not nice :/
-DBG("await sysex");
-      while (! _hdrDone)  Sleep (1);
-DBG("wait done");
-   }
-//TRC("mosm a");
-   if (MMSYSERR_NOERROR != (rc = ::midiOutShortMsg (_hnd, *((DWORD *)mev)))) {
-TRC("mosm c");
-      ::midiOutGetErrorText (rc, b2, MAX_PATH);
-DBG("couldn't midiOutShortMsg `s/`s/`s rc=`d err=`s.  nulling _hnd",
-_name, _type, _desc, rc, StrCvt (b2, s));
-      _hnd = NULL;
-   }
-//TRC("mosm b");
-
+void MidiO::PutMEv (ubyte *mev, ubyte ln)
+{ int err;
+   if (Dead ())  {DBG("PutMEv `s but Dead :(", _name);   return;}
 /* for INEVitable tracing...:/
-DBG("PutMEv on `s/`s/`s", _name, _type, _desc);
-   switch (mev[0] & 0xF0) {
+TRC("MidiO::PutMEv on `s/`s/`s ln=`d", _name, _type, _desc, ln);
+  TStr s;
+   switch (mev [0] & 0xF0) {
       case M_NOTE:
          DBG(" ch=`d Note `s=`d", mev[0] & 0x0F, MKey2Str (s, mev[1]), mev [2]);
          break;
@@ -729,30 +477,30 @@ DBG("PutMEv on `s/`s/`s", _name, _type, _desc);
          DBG(" ch=`d Prss=`d",    mev[0] & 0x0F, mev[1]);
          break;
       case M_CTRL:
-         switch (mev[1]) {
-            case M_NRPNL:  StrCp (s, "NRPNL.");  break;
-            case M_NRPNH:  StrCp (s, "NRPN.");   break;
-            case M_RPNL:   StrCp (s, "RPNL.");   break;
-            case M_RPNH:   StrCp (s, "RPNH.");   break;
-            case M_DATH:   StrCp (s, "DatH.");   break;
-            case M_DATL:   StrCp (s, "DatL.");   break;
-            case M_BANK:   StrCp (s, "Bank.");   break;
-            case M_BNKL:   StrCp (s, "BnkL.");   break;
-            case M_MOD:    StrCp (s, "Mod.");    break;
-            case M_BRTH:   StrCp (s, "Brth.");   break;
-            case M_PEDL:   StrCp (s, "Pedl.");   break;
-            case M_VOL:    StrCp (s, "Vol.");    break;
-            case M_EXPR:   StrCp (s, "Expr.");   break;
-            case M_PAN:    StrCp (s, "Pan.");    break;
-            case M_BAL:    StrCp (s, "Bal.");    break;
-            case M_HOLD:   StrCp (s, "Hold.");   break;
-            case M_HLD2:   StrCp (s, "Hld2.");   break;
-            case M_SOFT:   StrCp (s, "Soft.");   break;
-            case M_SUST:   StrCp (s, "Sust.");   break;
-            case M_LEGA:   StrCp (s, "Lega.");   break;
-            default:       StrCp (s, "");        break;
+         switch (mev [1]) {
+            case M_NRPNL:  StrCp (s, CC("NRPL."));   break;
+            case M_NRPNH:  StrCp (s, CC("NRPH."));   break;
+            case M_RPNL:   StrCp (s, CC("RPL."));    break;
+            case M_RPNH:   StrCp (s, CC("RPH."));    break;
+            case M_DATH:   StrCp (s, CC("DatH."));   break;
+            case M_DATL:   StrCp (s, CC("DatL."));   break;
+            case M_BANK:   StrCp (s, CC("Bank."));   break;
+            case M_BNKL:   StrCp (s, CC("BnkL."));   break;
+            case M_MOD:    StrCp (s, CC("Mod."));    break;
+            case M_BRTH:   StrCp (s, CC("Brth."));   break;
+            case M_PEDL:   StrCp (s, CC("Pedl."));   break;
+            case M_VOL:    StrCp (s, CC("Vol."));    break;
+            case M_EXPR:   StrCp (s, CC("Expr."));   break;
+            case M_PAN:    StrCp (s, CC("Pan."));    break;
+            case M_BAL:    StrCp (s, CC("Bal."));    break;
+            case M_HOLD:   StrCp (s, CC("Hold."));   break;
+            case M_HLD2:   StrCp (s, CC("Hld2."));   break;
+            case M_SOFT:   StrCp (s, CC("Soft."));   break;
+            case M_SUST:   StrCp (s, CC("Sust."));   break;
+            case M_LEGA:   StrCp (s, CC("Lega."));   break;
+            default:       StrCp (s, CC("?."));      break;
          }
-         DBG(" ch=`d Ctrl(`s`d)=`d",  mev[0] & 0x0F, s, mev[1], mev[2]);
+         DBG(" ch=`d Ctrl(`s`d)=`d", mev[0] & 0x0F, s, mev[1], mev[2]);
          break;
       default:
          DBG(" ??? `d `d `d `d (x`02x `02x `02x `02x)",
@@ -761,49 +509,29 @@ DBG("PutMEv on `s/`s/`s", _name, _type, _desc);
          break;
    }
 */
+   if      ((err = ::snd_rawmidi_write (_hnd, mev, ln)) != ln)
+      DBG("snd_rawmidi_write failed: rc=`d <> ln=`d", err, ln);
+   else if ((err = ::snd_rawmidi_drain (_hnd)))
+      DBG("snd_rawmidi_drain failed: `s", ::snd_strerror (err));
 }
 
 
-/*
-void MidiO::PutSx (ubyte *strm, DWORD len)
-{  if (_syn || _noSx)  return;         // none of this for syn.exe
-
-   if (_hnd == NULL)  return;//Die ("MidiO::PutSx  _hnd is NULL");
-   if (_hdrUsed) {
-      while (! _hdrDone)  Sleep (1);   // not nice...:/
-      _hdrUsed = _hdrDone = false;
-      Chk (::midiOutUnprepareHeader (_hnd, & _hdr, sizeof (_hdr)),
-           "MidiO::PutSx  midiOutUnprepareHeader");
-   }
-   _hdr.lpData = (char *)strm;  _hdr.dwBufferLength = len;  _hdr.dwFlags = 0;
-   Chk (::midiOutPrepareHeader (_hnd, & _hdr, sizeof (_hdr)),
-        "MidiO::PutSx  midiOutPrepareHeader");
-   _hdrUsed = true;
-   Chk (::midiOutLongMsg (_hnd, & _hdr, sizeof (_hdr)),
-        "MidiOut::PutSx  midiOutLongMsg");
-}
-*/
-
-
-void MidiO::Put (ubyte ch, uword c, ubyte v, ubyte v2)
+void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // build a midi event given args
 // do notes (note/nprs/noff - keepin track of which chan/notes are on),
-{  if (_syn)  {if (! (ch & 0x80))  ch |= ((_syn-1)<<4);
-//DBG("MidiO::Put to syn ch=`d c=`d v=`d v2=`d",  ch, c, v, v2);
-               PosTM (_synThrd, MSG_MIDI, ch, (c<<16)|(v<<8)|v2);
-               return;}
+{
 //DBG("MidiO::Put on `s ch=`d c=`d v=`d v2=`d", _name, ch, c, v, v2);
-  ubyte mev [4], p;
-  ulong m;
+  ubyte mev [4], p, ln = 3;
+  ubyt4 m;
   ubyte mvol [8] = {0xF0,0x7F,0x7F,0x04,0x01,0,0,0xF7};
   ubyte mbal [8] = {0xF0,0x7F,0x7F,0x04,0x02,0,0,0xF7};
 //ubyte mtun [8] = {0xF0,0x7F,0x7F,0x04,0x04,0,0,0xF7}; 3,4 are +-cent/8192,cent
    mev [0] = ch;  mev [1] = (ubyte)c;  mev [2] = 0x7F & v;
    if      (c < MC_PROG) {             // just a note
       p = (ch << 2) | (c >> 5);  m = 1 << (c & 0x1F);
-      if (v & 0x80)  //if ((_ntOn [p] & m) == 0)
+      if (v & 0x80)  if ((_ntOn [p] & m) == 0)
                          {mev [0] |= M_NOTE;  _ntOn [p] |= ( m);}
-                     //else mev [0] |= M_NPRS;
+                     else mev [0] |= M_NPRS;
       else               {mev [0] |= M_NOFF;  _ntOn [p] &= (~m);}
    }
    else if (c < MC_CC) {               // std midi
@@ -811,54 +539,48 @@ void MidiO::Put (ubyte ch, uword c, ubyte v, ubyte v2)
       else if (c == MC_PRSS) {mev [0] |= M_PRSS;  mev [1] = v;}
       else if (c == MC_PBND) {mev [0] |= M_PBND;  mev [1] = v2;}
       else return;
+      ln = 2;
    }
-   else if (c < MC_US) {               // cc
+   else if (c < MC_US) {               // regular cc
       mev [0] |= M_CTRL;  mev [1] = c - MC_CC;
    }
-   else if (c < MC_RP) {               // cc
+   else if (c < MC_RP) {               // univ sysex
       if (c == MC_MVOL) {
-         mvol [6] = _MVol = v;  mvol [5] = v ? 0x7F : 0;   // PutSx (mvol, 8);
+         mvol [6] = _MVol = v;  mvol [5] = v ? 0x7F : 0;   PutMEv (mvol, 8);
       }
       if (c == MC_MBAL) {
-         mbal [6] = _MBal = v;  // PutSx (mbal, 8);
+         mbal [6] = _MBal = v;                             PutMEv (mbal, 8);
       }
+//TODO: MC_MTUN
       return;
    }
-   else if (c < MC_NP) {
+   else if (c < MC_NP) {               // reg param
       mev [0] |= M_CTRL;
       mev [1] = M_RPNH;    mev [2] = ((c - MC_RP) >> 8) & 0x7F;   PutMEv (mev);
       mev [1] = M_RPNL;    mev [2] = ((c - MC_RP) >> 1) & 0x7F;   PutMEv (mev);
       mev [1] = (c & 0x0001) ? M_DATL : M_DATH;   mev [2] = v;
    }
-   else {
+   else {                              // nonreg param
       mev [0] |= M_CTRL;
       mev [1] = M_NRPNH;   mev [2] = ((c - MC_NP) >> 8) & 0x7F;   PutMEv (mev);
       mev [1] = M_NRPNL;   mev [2] = ((c - MC_NP) >> 1) & 0x7F;   PutMEv (mev);
       mev [1] = (c & 0x0001) ? M_DATL : M_DATH;   mev [2] = v;
    }
-   PutMEv (mev);
+   PutMEv (mev, ln);
 }
 
 
 void MidiO::NotesOff ()
-{
-TRC("{ MidiO::NotesOff on `s/`s/`s", _name, _type, _desc);
-   if (_syn)  {
-      for (ubyte i = 0; i < 16; i++)
-         {PosTM (_synThrd, MSG_MIDI, ((_syn-1)<<4)|i, (MC_CC|M_ASOFF)<<16);
-          PosTM (_synThrd, MSG_MIDI, ((_syn-1)<<4)|i, (MC_CC|M_HOLD )<<16);}
-TRC("} MidiO::NotesOff");
-      return;
-   }
-  ubyte p, mev [4], hoff [4];
-  ulong m;
+{ ubyte p, mev [4], hoff [4];
+  ubyt4 m;
   TStr  ts;
+TRC("NotesOff on `s/`s/`s", _name, _type, _desc);
    hoff [1] = M_HOLD;  hoff [2] = 0;
    for (ubyte ch = 0; ch < 16; ch++) {
       for (ubyte nt = 0; nt < 128; nt++) {
          p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
          if (_ntOn [p] & m) {
-TRC("ch=`d nt=`s", ch, MKey2Str(ts, nt));
+TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
             mev [0] = M_NOFF | ch;   mev [1] = nt;  mev [2] = 0;
             PutMEv (mev);
          }
@@ -866,38 +588,25 @@ TRC("ch=`d nt=`s", ch, MKey2Str(ts, nt));
       hoff [0] = M_CTRL | ch;   PutMEv (hoff);     // hold to OFF, too
    }
    MemSet (_ntOn, 0, sizeof (_ntOn));
-   ::Sleep (5);   // ...so last noteoff doesn't get wrecked by this reset...
-   if (! _noRs)  if (MMSYSERR_NOERROR != ::midiOutReset (_hnd))  _hnd = NULL;
-TRC("} MidiO::NotesOff");
 }
 
 
 void MidiO::DumpOns ()
 { ubyte p;
-  ulong m;
+  ubyt4 m;
   TStr  ts;
-TRC("{ MidiO::DumpOns on `s/`s/`s", _name, _type, _desc);
+TRC("DumpOns on `s/`s/`s", _name, _type, _desc);
    for (ubyte ch = 0; ch < 16; ch++)  for (ubyte nt = 0; nt < 128; nt++) {
          p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
          if (_ntOn [p] & m)
-TRC("ch=`d nt=`s", ch, MKey2Str(ts, nt));
+TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
    }
-TRC("} MidiO::DumpOns");
 }
 
 
 void MidiO::GMInit ()
 {
-TRC("{ MidiO::GMInit on `s/`s/`s", _name, _type, _desc);
-   if (_syn)  {
-      for (ubyte i = 0; i < 16; i++) {
-         if (i != 9)
-         PosTM (_synThrd, MSG_MIDI, ((_syn-1)<<4)|i,  MC_PROG<<16);
-         PosTM (_synThrd, MSG_MIDI, ((_syn-1)<<4)|i, (MC_CC|M_ACOFF)<<16);
-      }
-TRC("} MidiO::GMInit");
-      return;
-   }
+TRC("GMInit on `s/`s/`s", _name, _type, _desc);
    Put (0, MC_MVOL, 127);
    Put (0, MC_MBAL, 64);         // non chan
    for (ubyte c = 0; c < 16; c++) {
@@ -913,17 +622,157 @@ TRC("} MidiO::GMInit");
       Put (c, MC_CC|M_VOL,  100);
       Put (c, MC_CC|M_EXPR, 127);                                    // 127
    }
-TRC("} MidiO::GMInit");
 }
 
 
-void CALLBACK MidiO::Handler (HMIDIOUT h, UINT msg, DWORD user,
-                              DWORD l1, DWORD l2)
-{ MidiO *m = (MidiO *)user;
-//DBG("in MidiO::Handler");
-   if (msg != MOM_DONE)  return;  // skip any other MOM msgs
-   m->_hdrDone = true;
-   if (m->_sigThrd)
-      if (::PostThreadMessage (m->_sigThrd, MOM_DONE, l1, l2) != TRUE)
-         Die ("MidiO::Handler  PostThrdMsg died");
+//______________________________________________________________________________
+void MidiI::run ()                     // poll loop runnin in sep thread
+{ ubyte buf [256];
+  ubyt2 re;
+  int   i, ln, err, npf;
+  struct pollfd *pf;
+//TRC("run bgn `s", _name);
+   snd_rawmidi_read (_hnd, nullptr, 0);      // trigger reading
+   npf = snd_rawmidi_poll_descriptors_count (_hnd);
+   pf  = (struct pollfd *)alloca (npf * sizeof (struct pollfd));
+   snd_rawmidi_poll_descriptors (_hnd, pf, npf);
+   while (_run) {
+      err = poll (pf, npf, 500);       // timeout at 1/2 sec (500 millisec)
+      if (err < 0)
+         {DBG ("poll failed: `s", strerror (errno));   break;}
+
+      err = snd_rawmidi_poll_descriptors_revents (_hnd, pf, npf, & re);
+      if (err < 0)
+         {DBG("s_r_poll_d_revents failed: `s", snd_strerror (err));   break;}
+      if (re & (POLLERR | POLLHUP))
+         {DBG("s_r_poll_d_revents ERR/HUP");   break;}
+
+      err = snd_rawmidi_read (_hnd, buf, sizeof (buf));
+      if (err == -EAGAIN)  continue;   // just ain't nothin therez
+
+      if (err < 0)
+         {DBG ("s_r_read failed: `s", snd_strerror (err));   break;}
+      for (ln = i = 0;  i < err;  i++)
+         if (buf [i] != MIDI_CMD_COMMON_CLOCK &&
+             buf [i] != MIDI_CMD_COMMON_SENSING) {
+            buf [ln++] = buf [i];
+//DBG("   `s: `02x", _name, buf [i]);
+//not sure bout sysex or other devices n stuff - weeee'll seee
+         }
+      if (ln == 0)  continue;
+      if (ln >  4)  continue;
+      emit Event (buf [0], (ln > 1) ? buf [1] : 0,
+                           (ln > 2) ? buf [2] : 0,
+                           (ln > 3) ? buf [3] : 0);
+   }
+   _run = false;
+//TRC("run end `s", _name);
+}
+
+
+void MidiI::EvIns (ubyte s, ubyte ci, ubyte v, ubyte v2)
+{ ubyte p, pnew, t;
+  ubyt2 c;
+  bool  ok = false;
+   c = ci;
+//DBG("EvIns `02x `02x `02x `02x", s, c, v, v2);
+   pnew = p = _bAdd;  if (++pnew == BITS (_buf))  pnew = 0;
+   if (pnew == _bRmv)  {_bErr = true;   DBG("MidiI::EvIns FULL");   return;}
+
+   if (_timer) {_buf [p].time = _timer->Get ();
+                _buf [p].msec = _timer->MS ();}
+   else         _buf [p].time = _buf [p].msec = 0;
+   switch (s & 0xF0) {
+      case M_NPRS: v2 = 0x80;
+      case M_NOTE: if (v)  v |= 0x80;
+      case M_NOFF: if ((c >= MKey (CC("0C"))) &&
+                       (c <= MKey (CC("8B"))))    ok = true;
+                                                               break;
+      case M_PROG: v = (ubyte)c;   c = MC_PROG;   ok = true;   break;
+      case M_PRSS: v = (ubyte)c;   c = MC_PRSS;   ok = true;   break;
+      case M_PBND: v2 = (ubyte)c;  c = MC_PBND;   ok = true;   break;
+      case M_CTRL:
+         switch (c) {
+            case M_NRPNL:
+               _rpn = 0x8000 | (_rpn & 0x7F00) | (v<<1);     break;
+            case M_NRPNH:
+               _rpn = 0x8000 | (v << 8) | (_rpn & 0x00FF);   break;
+            case M_RPNL:
+               _rpn =          (_rpn & 0x7F00) | (v<<1);     break;
+            case M_RPNH:
+               _rpn =          (v << 8) | (_rpn & 0x00FF);   break;
+            case M_DATL:
+            case M_DATH:
+               t = (ubyte)c;   c = _rpn;
+               if (! (c & 0x8000))  if (c < 16384)  c += MC_NP;
+               if (t == M_DATH)  c++;
+               break;
+            default:
+               c |= MC_CC;
+         }
+         ok = true;  break;
+   }
+   if (ok) {
+      _buf [p].chan = s & 0x0F;
+      _buf [p].ctrl = c;
+      _buf [p].valu = v;
+      _buf [p].val2 = v2;
+//DBG("EvIns  `s.`d ctrl=`04x valu=`02x val2=`02x",
+//_name, (s & 0x0F)+1, c, v, v2);
+      _bAdd = pnew;
+      emit MidiIEv ();
+   }
+}
+
+
+bool MidiI::Get (MidiEv *ev)
+{  if (Dead () || (_bRmv == _bAdd))  return false;
+   MemCp (ev, & _buf [_bRmv], sizeof (MidiEv));
+  ubyte p = _bRmv;
+   if (++p == BITS (_buf))  p = 0;
+   _bRmv = p;
+   return true;
+}
+
+
+void MidiI::BufAdj (sbyt4 tm)          // offset all our buffered times :/
+{ sbyt4 t;
+  ubyte p;
+   if (Dead ())  return;
+   for (p = _bRmv;  p != _bAdd;) {
+      t = (sbyt4)_buf [p].time + tm;   _buf [p].time = (ulong)t;
+      if (++p == BITS (_buf))  p = 0;
+   }
+}
+
+
+MidiI::MidiI (char *name, Timer *tmr)
+// timer needed to stamp MidiEv.time
+{ int err;
+   _hnd = nullptr;   _timer = tmr;   _bAdd = _bRmv = 0;   _bErr = false;
+   StrCp (_name, name);
+TRC("MidiI `s", _name);
+   if (! Midi.Get ('i', _name, _type, _desc, _dev))
+      {DBG("MidiI no device name=`s",  _name);   return;}
+   if (*_dev == '?')
+      {DBG("MidiI device `s isn't on", _name);   return;}
+TRC("   type=`s desc=`s dev=`s", _type, _desc, _dev);
+   if ((err = ::snd_rawmidi_open (& _hnd, nullptr, _dev, SND_RAWMIDI_NONBLOCK)))
+      {DBG("snd_rawmidi_open i `s failed: `s", _name, ::snd_strerror (err));
+       _hnd = nullptr;   return;}
+   connect (this, & MidiI::Event,    this, & MidiI::EvIns);
+   connect (this, & MidiI::finished, this, & QObject::deleteLater);
+   _run = true;
+   start ();
+}
+
+
+MidiI::~MidiI (void)
+{ int err;
+TRC("~MidiI `s", *_name ? _name : "?");
+   if (Dead ())  {TRC("...was dead");   return;}
+   if (_run)  {_run = false;   wait ();}
+   if ((err = ::snd_rawmidi_close (_hnd)))
+      DBG("snd_rawmidi_close i `s failed: `s", _name, ::snd_strerror (err));
+   _hnd = nullptr;
 }

@@ -4,13 +4,14 @@
 #include "os.h"
 #include <math.h>
 
+AppBase App;
 
-void MemSet (void *dst, ubyte c, ulong len)
+void MemSet (void *dst, ubyte c, ubyt4 len)
 { ubyte *p = SC(ubyte *,dst);
    while (len--)  *p++ = c;
 }
 
-void MemCp (void *dst, void *src, ulong len)
+void MemCp (void *dst, void *src, ubyt4 len)
 { ubyte *d = SC(ubyte *,dst), *s = SC(ubyte *,src);
    if ((! s) || (! d))  return;
    if ((d > s) && (d < s+len)) {
@@ -21,15 +22,15 @@ void MemCp (void *dst, void *src, ulong len)
    else while (len--)  *d++ = *s++;
 }
 
-void *MemCh (void *mem, ubyte c, ulong len)
+void *MemCh (void *mem, ubyte c, ubyt4 len)
 { ubyte *p = SC(ubyte *,mem);
    while (len--)  if (*p++ == c)  return SC(void *,--p);
    return nullptr;
 }
 
-char *MemSt (void *big, char *sm, ulong len, char x)
+char *MemSt (void *big, char *sm, ubyt4 len, char x)
 { char *cp;
-  ulong ln = StrLn (sm);
+  ubyt4 ln = StrLn (sm);
 //DBG("MemSt big=`08x sm=`s len=`d, x=`c", big, sm, len, x);
    if (! ln)  return SC(char *,big);
    for (cp = SC(char *,big);  len >= ln;  cp++, len--)
@@ -37,9 +38,9 @@ char *MemSt (void *big, char *sm, ulong len, char x)
    return nullptr;
 }
 
-slong MemCm (char *s1, char *s2, ulong len, char x)
+sbyt4 MemCm (char *s1, char *s2, ubyt4 len, char x)
 { char  c1, c2;
-  slong rc;
+  sbyt4 rc;
    while (len--) {
       c1 = *s1++;   c2 = *s2++;
       if (! x)  {c1 = CHDN (c1);   c2 = CHDN (c2);}
@@ -50,14 +51,18 @@ slong MemCm (char *s1, char *s2, ulong len, char x)
 
 
 //______________________________________________________________________________
-ulong StrLn (char *s)                  // guard against NULLs too :/
-{ ulong len = 0;   if (s) while (*s++) len++;   return len;}
+ubyt4 StrLn (char *s)                  // guard against NULLs too :/
+{ ubyt4 len = 0;   if (s) while (*s++) len++;   return len;}
 
-char *StrCp (char *dst, char *src)     // slow n safe...
-{ ulong len = StrLn (src);   MemCp (dst, src, len+1);   return dst;}
+char *StrCp (char *dst, char *src, char ul)      // slow n safe...
+{ ubyt4 len = StrLn (src);   MemCp (dst, src, len+1);
+   if (ul)  for (char *p = dst;  len--;  p++)
+               *p = ((ul == 'u') ? CHUP (*p) : CHDN (*p));
+   return dst;
+}
 
-char *StrAp (char *dst, char *src, ulong ofs)
-{ ulong ln = StrLn (dst);
+char *StrAp (char *dst, char *src, ubyt4 ofs)
+{ ubyt4 ln = StrLn (dst);
    if (ofs > ln)  ofs = ln;
    StrCp (& dst [ln-ofs], src);  return dst;
 }
@@ -67,8 +72,10 @@ char *StrCh (char *str, char c)
 
 char *StrSt (char *big, char *sm, char x)
 { char *cp = big, *s1, *s2;
-   if (cp == nullptr)  DBG ("StrSt arg 1 (big str) is NULL");
-   if (sm == nullptr)  DBG ("StrSt arg 2 (little str) is NULL");
+   if (cp == nullptr)  {DBG ("StrSt arg 1 (big str) is NULL");
+                        return nullptr;}
+   if (sm == nullptr)  {DBG ("StrSt arg 2 (little str) is NULL");
+                        return nullptr;}
    if (*sm == '\0')  return big;
    while (*cp) {
       s1 = cp;
@@ -81,9 +88,9 @@ char *StrSt (char *big, char *sm, char x)
    return nullptr;
 }
 
-slong StrCm (char *s1, char *s2, char x)
+sbyt4 StrCm (char *s1, char *s2, char x)
 { char  c1, c2;
-  slong rc;
+  sbyt4 rc;
    for (;;) {
       c1 = *s1++;   c2 = *s2++;
       if (! x)  {c1 = CHDN (c1);  c2 = CHDN (c2);}
@@ -99,17 +106,17 @@ int StrCm2 (void *p1, void *p2)
 
 //______________________________________________________________________________
 // int convert string ops
-char *Int2Str (slong i, char *buf12, char x)
+char *Int2Str (sbyt4 i, char *buf12, char x)
 { char *so, dg;
   bool  ng = false;
-  uword bs = (x == 'x') ? 16 : 10;
-  ulong j;
+  ubyt2 bs = (x == 'x') ? 16 : 10;
+  ubyt4 j;
    so = & buf12 [11];   *so = '\0';
    if (i == 0) *(--so) = '0';
    else {
       ng = false;
-      if ((x != 'x') && (i < 0)) {ng = true;   j = SC(ulong,-i);}
-      else                                     j = SC(ulong, i);
+      if ((x != 'x') && (i < 0)) {ng = true;   j = SC(ubyt4,-i);}
+      else                                     j = SC(ubyt4, i);
       while (j) {
          dg = SC(char,j % bs);   dg += ((dg > 9) ? ('A'-10) : '0');
          *(--so) = dg;   j /= bs;
@@ -119,7 +126,7 @@ char *Int2Str (slong i, char *buf12, char x)
    return so;
 }
 
-char *Unt2Str (ulong i, char *buf12)
+char *Unt2Str (ubyt4 i, char *buf12)
 { char *so;
    so = & buf12 [11];   *so = '\0';
    if (i == 0)  *(--so) = '0';
@@ -127,8 +134,8 @@ char *Unt2Str (ulong i, char *buf12)
    return so;
 }
 
-slong Str2Int (char *s, char **p)
-{ slong i = 0;
+sbyt4 Str2Int (char *s, char **p)
+{ sbyt4 i = 0;
   bool  ng = false;
    while ((*s == ' ') || (*s == '\t'))  s++;
    if    (*s == '-')  {s++;  ng = true;}
@@ -139,8 +146,8 @@ slong Str2Int (char *s, char **p)
 
 char *StrFmtX (char *so, char const *fmti, va_list va)  // sprintf replacement
 { char *s, c, fc, ju, buf [12], *fmt = CC(fmti);
-  ulong ln, ln2, ln3, u;
-  slong i;
+  ubyt4 ln, ln2, ln3, u;
+  sbyt4 i;
   bool  b;
    *so = '\0';
    if (fmt == nullptr)  return so;
@@ -150,7 +157,7 @@ char *StrFmtX (char *so, char const *fmti, va_list va)  // sprintf replacement
       else {                           // init to stringize dat arg
          ++fmt;   ju = '\0';   s = buf;   ln = ln3 = 0;
          if (StrCh (CC("<>0"), *fmt)) {
-            ju = *fmt++;   ln = SC(ulong,Str2Int (fmt, & fmt));
+            ju = *fmt++;   ln = SC(ubyt4,Str2Int (fmt, & fmt));
             if (! ln)  {DBG("StrFmtX: bad args (len)");   return so;}
          }
          switch (fc = *fmt++) {        // ^gots ta pad
@@ -161,11 +168,11 @@ char *StrFmtX (char *so, char const *fmti, va_list va)  // sprintf replacement
                s =          va_arg (va, char *);
                break;
             case 'u':
-               u = SC(ulong,va_arg (va, unsigned int));
+               u = SC(ubyt4,va_arg (va, unsigned int));
                s = Unt2Str (u, buf);
                break;
             case 'd':  case 'x':
-               i = SC(slong,va_arg (va, int));   s = Int2Str (i, buf, fc);
+               i = SC(sbyt4,va_arg (va, int));   s = Int2Str (i, buf, fc);
                if ((fc == 'x') && (! ju)) {      // square up the hex ln
                   ln = StrLn (s);
                   if ((ln > 1) && (ln % 2))  {ju = '0';   ln++;}
@@ -176,7 +183,7 @@ char *StrFmtX (char *so, char const *fmti, va_list va)  // sprintf replacement
                break;
             case 'b':
                b =         va_arg (va, int) ? true : false;
-               StrCp (buf, CC(b ? "t" : "f"));
+               StrCp (buf, CC(b ? "T" : "F"));
                break;
             default:
                DBG("StrFmtX: bad args (fmt=`s fc=`d)", fmti, fc);   return so;
@@ -197,87 +204,49 @@ char *StrFmtX (char *so, char const *fmti, va_list va)  // sprintf replacement
    return so;
 }
 
+
 char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 { va_list va;
    va_start (va, fmt);   StrFmtX (so, fmt, va);   va_end (va);   return so;
 }
 
+#include "pthread.h"
 
 void DbgX (char *s)
 { TStr buf;
-  int  msec;
-  struct tm *tm;
-  struct timeval tv;
-   gettimeofday (& tv, NULL);
-   msec = lrint (tv.tv_usec / 1000.0);      // Round to nearest millisec
-   if (msec >= 1000)  {msec -= 1000;   tv.tv_sec++;}
-   tm = localtime (& tv.tv_sec);
-   strftime (buf, sizeof (buf), "%a.%H:%M:%S", tm);
-   fprintf (stderr, "%s.%03d %s\n", buf, msec, s);
-
-// fprintf (stderr, "%s\n", s);  fflush (stderr);
-/*
-  char  s2 [16000];
-  ulong ln, thr, i;
-  uword ind;
-  ubyte x;
-   ln = StrLn (s);
-   StrFmt (s2, "`d ", thr = ::GetCurrentThreadId ());
-   for (x = 0;  x < BITS (DbgThr);  x++)  if ((DbgThr [x] == 0) ||
-                                              (DbgThr [x] == thr))  break;
-   if (x >= BITS (DbgThr))  Die ("too many threads to debug");
-   DbgThr [x] = thr;   ind = DbgInd [x];
-   if (*s == '}')  ind--;
-   for (i = 0;  i < ind;  i++)  StrAp (s2, "  ");
-   if ((StrLn (s2) + ln) < sizeof (s2))  StrAp (s2, s);
-   else {                              // gotta chop
-      MemCp (& s2 [StrLn (s2)], s, sizeof (s2)-1-StrLn (s2));
-      s2 [sizeof (s2)-1] = '\0';
-   }
-#ifndef DBG_F
-   ::OutputDebugString (StrCvt (su, s2, ' ', BITS (su)));
-#else
-   MemCp (QDbg [NDbg], s2, sizeof (TStr));  // faster to a memory q
-   QDbg [NDbg++][sizeof (TStr)-1] = '\0';
-   if (NDbg == BITS (QDbg))  {NDbg = 0;   WDbg = true;}
-   if (*s == '\0') {
-      if (WDbg)  for (i = NDbg;  i < BITS (QDbg);  i++)
-         ::OutputDebugString (StrCvt (su, QDbg [i]));
-      for            (i = 0;     i < NDbg;         i++)
-         ::OutputDebugString (StrCvt (su, QDbg [i]));
-      NDbg = 0;   WDbg = false;
-   }
-#endif
-   if (*s == '{')  ind++;
-   DbgInd [x] = ind;
-*/
+//  FILE *f;
+//   f = fopen ("/home/sh/dbg", "a");
+//   fprintf (f, "%s %s-%08X %s\n",
+   fprintf (stderr, "%s %s-%08X %s\n",
+                              NowMS (buf), App.app, SC(int,pthread_self ()), s);
+//   fclose (f);
 }
 
 
-inline void DBG (char const *fmt, ...)        // printf-y debugging
+inline void DBG (char const *fmt, ...)      // printf-y debugging
 { va_list va;
-  PStr    out;
+  BStr    out;
    va_start (va, fmt);   StrFmtX (out, fmt, va);   va_end (va);   DbgX (out);
 }
 
 
 //______________________________________________________________________________
-ulong LinePos (char *s, ulong ln)
-{ ulong p = 0;
+ubyt4 LinePos (char *s, ubyt4 ln)
+{ ubyt4 p = 0;
   char *n;
    while (ln--) {
       if ((n = StrCh (& s [p], '\n')) == nullptr)  return 0;
-      p += SC(ulong,n - & s [p] + 1);
+      p += SC(ubyt4,n - & s [p] + 1);
    }
    return p;
 }
 
-ulong NextLn (char *str, char *buf, ulong len, ulong p)
+ubyt4 NextLn (char *str, char *buf, ubyt4 len, ubyt4 p)
 { char *ch;
-  ulong ln;
+  ubyt4 ln;
    *str = '\0';
    if ((ch = StrCh (& buf [p], '\n'))) {
-      MemCp (str, & buf [p], ln = SC(ulong,ch - & buf [p]));
+      MemCp (str, & buf [p], ln = SC(ubyt4,ch - & buf [p]));
       p += (1 + ln);
       str [ln] = '\0';
    }
@@ -292,7 +261,7 @@ char *Chomp (char *str, char end)
       if ((ch = StrCh (str, '\n')))  *ch = '\0';
    }
    else {
-     ulong ln = StrLn (str);
+     ubyt4 ln = StrLn (str);
       if (ln && (str [ln-1] == '\n'))  str [--ln] = '\0';
       if (ln && (str [ln-1] == '\r'))  str [--ln] = '\0';
    }
@@ -305,9 +274,9 @@ char *ReplCh (char *s, char f, char t)
    return in;
 }
 
-ulong PosInZZ (char *t, char *s, char x)
+ubyt4 PosInZZ (char *t, char *s, char x)
 // \0 sep'd, \0\0 term'd list
-{ ulong p = 1;
+{ ubyt4 p = 1;
    while (*s) {
       if (StrCm (s, t, x) == 0)  return p;
       p++;   s += (StrLn (s) + 1);
@@ -315,9 +284,9 @@ ulong PosInZZ (char *t, char *s, char x)
    return 0;
 }
 
-ulong PosInWZ (char *t, char *s, uword w, char x)
+ubyt4 PosInWZ (char *t, char *s, ubyt2 w, char x)
 // w sep'd, \0 term'd list
-{ ulong p = 1;
+{ ubyt4 p = 1;
    while (*s) {
       if (StrCm (s, t, x) == 0)  return p;
       p++;   s += w;
@@ -325,9 +294,9 @@ ulong PosInWZ (char *t, char *s, uword w, char x)
    return 0;
 }
 
-ulong PosInWH (char *t, char *s, uword w, ulong h, char x)
+ubyt4 PosInWH (char *t, char *s, ubyt2 w, ubyt4 h, char x)
 // w sep'd, h term'd list
-{ ulong p = 1;
+{ ubyt4 p = 1;
    while (h--) {
       if (StrCm (s, t, x) == 0)  return p;
       p++;   s += w;
@@ -338,10 +307,10 @@ ulong PosInWH (char *t, char *s, uword w, ulong h, char x)
 
 //______________________________________________________________________________
 // filename string ops
-slong PathCmp (char *f1, char *f2)
+sbyt4 PathCmp (char *f1, char *f2)
 // sort by just dir, in case different depths, then fn
 { TStr  b1, b2;
-  slong cmp;
+  sbyt4 cmp;
    StrCp (b1, f1);   Fn2Path (b1);
    StrCp (b2, f2);   Fn2Path (b2);
    return (cmp = StrCm (b1, b2)) ? cmp : StrCm (f1, f2);
@@ -349,7 +318,7 @@ slong PathCmp (char *f1, char *f2)
 
 char *Fn2Name (char *fn)
 // kill .ext:  strip tail end of fn till you hit a .
-{ ulong p;
+{ ubyt4 p;
    if ((p = StrLn (fn)) == 0)        return fn;
    do --p;  while (p && (fn [p] != '.') && (fn [p] != '/'));
    if ((p == 0) || (fn [p] == '/'))  return fn;
@@ -359,7 +328,7 @@ char *Fn2Name (char *fn)
 
 char *Fn2Path (char *fn)
 // kill name.ext:  strip tail end of fn till you hit a / n lose it
-{ ulong p;
+{ ubyt4 p;
    if ((p = StrLn (fn)) == 0)  return fn;
    do --p;  while (p && (fn [p] != '/'));
    fn [p] = '\0';
@@ -370,7 +339,7 @@ char *FnExt (char *ext, char *fn)
 // return just the .ext (without path/name)
 { TStr t;
    StrCp (t, fn);
-  ulong ln = StrLn (Fn2Name (t));
+  ubyt4 ln = StrLn (Fn2Name (t));
    StrCp (ext, (ln < StrLn (fn)) ? (& fn [ln+1]) : CC(""));
    return ext;
 }
@@ -379,7 +348,7 @@ char *FnName (char *nm, char *fn)
 // return just name.ext (without path)
 { TStr t;
    StrCp (t, fn);
-  ulong ln = StrLn (Fn2Path (t));
+  ubyt4 ln = StrLn (Fn2Path (t));
    StrCp (nm,  (ln < StrLn (fn)) ? (ln ? & fn [ln+1] : fn) : CC(""));
    return nm;
 }
@@ -395,6 +364,22 @@ char *FnFix (char *fn)
    for (; *fn && (fn [StrLn (fn)-1] == '_');)  StrAp (fn, CC(""), 1);
    return fn;
 }
+
+
+//______________________________________________________________________________
+static ubyt4 RandSeed;                 // copied from ms crt src ;)
+
+void  RandInit ()
+{ timespec ts;
+   clock_gettime (CLOCK_REALTIME, & ts);   RandSeed = ts.tv_nsec;
+}
+
+ubyt2 Rand ()                          // return pseudo-random num 0-32767
+{  return (ubyt2)(((RandSeed = RandSeed * 214013L + 2531011L)>>16) & RANDMAX);
+}
+
+ubyt2 Rnd (ubyt2 n)                    // return 0..n-1
+{ ubyt2 r = Rand ();   return (ubyt2)(((r?(r-1):0) * n) / RANDMAX);  }
 
 
 //______________________________________________________________________________
@@ -478,130 +463,149 @@ recurse:
 
 
 //______________________________________________________________________________
-bool File::Kill (char *fn)
-{
-DBG("File::Kill `s", fn);
-   if (remove (fn)) {
-DBG("remove() error:`s\n", strerror (errno));
-      return false;
-   }
-   return true;
+char *Now (char *s)
+{ time_t t = time (nullptr);
+   strftime (s, 20, "%Y%m%d.%H%M%S.%a", localtime (& t));
+   return s;
 }
 
-
-bool File::ReNm (char *from, char *to)
-{
-DBG("File::ReNm from='`s' to='`s'", from, to);
-   if (rename (from, to)) {
-DBG("rename() error:`s\n", strerror (errno));
-      return false;
-   }
-   return true;
+char *NowMS (char *s)                  // current time in msec for debuggin
+{ int  msec;
+  TStr buf;
+  struct timeval tv;
+  struct tm     *tm;
+   gettimeofday (& tv, NULL);
+   msec = lrint (tv.tv_usec / 1000.0);      // Round to nearest msec
+   if (msec >= 1000)  {msec -= 1000;   tv.tv_sec++;}
+   tm = localtime (& tv.tv_sec);
+   strftime (buf, sizeof (buf), "%a.%H:%M:%S", tm);
+   return StrFmt (s, "`s.`03d", buf, msec);
 }
 
 
 bool File::Copy (char *from, char *to)
-{
-DBG("File::Copy from='`s' to='`s'", from, to);
-  int ff = open (from, O_RDONLY, 0);
-  int ft = open (to,   O_WRONLY | O_CREAT, 0644);
+{ int ff, ft;
+  TStr tod;
+  FDir d;
+TRC("File::Copy from='`s' to='`s'", from, to);
+   StrCp (tod, to);   Fn2Path (tod);   d.Make (tod);
+   if (! (ff = open (from, O_RDONLY, 0)))
+      {DBG ("Copy from=`s open failed", from);             return false;}
+   if (! (ft = open (to,   O_WRONLY | O_CREAT, 0644)))
+      {DBG ("Copy to=`s open failed", to);   close (ff);   return false;}
   struct stat st;
    fstat (ff, & st);
    sendfile64 (ft, ff, 0, st.st_size);   close (ff);   close (ft);
    return true;
 }
 
+bool File::ReNm (char *from, char *to)
+{ TStr tod;
+  FDir d;
+TRC("File::ReNm from='`s' to='`s'", from, to);
+   StrCp (tod, to);   Fn2Path (tod);   d.Make (tod);
+   if (! rename (from, to))  return true;
+DBG("rename(fr=`s to=`s) error:`s\n", from, to, strerror (errno));
+   return false;
+}
 
-bool File::PathMake (char *fn)
-// make dir in fn (and everything up to it)
+bool File::Kill (char *fn)
+{
+TRC("File::Kill `s", fn);
+   if (! remove (fn))  return true;
+DBG("File::Kill remove(`s) error:`s\n", fn, strerror (errno));
+   return false;
+}
+
+
+bool FDir::Make (char *dir, ubyt2 perm)
+// make dir (and everything up to it)
 { TStr path;
   bool got;
-  uword p;
-DBG("File::PathMake `s", fn);
-   StrCp (path, fn);
+  ubyt2 p;
+TRC("FDir::Make `s", dir);
+   StrCp (path, dir);
 // see if the dir is there.  if not, trim it down and see if THAT's there, etc
    do {
-      got = PathGot (path);
-      if (! got) {  // trim trailing stuff off till you get a \ or a :
+      got = Got (path);
+      if (! got) {
          Fn2Path (path);
          if (*path == '\0') {
-DBG("File::PathMake couldn't get path root for `s", fn);
+DBG("FDir::Make couldn't get path root for `s", dir);
             return false;
          }
       }
    } while (! got);
 // ok, we got SOMEthing, so make any further dirs needed
-   for (;;) {
+   while (StrLn (path) < StrLn (dir)) {
    // tack on next dir increment
-      p = SC(uword,StrLn (path));
-      path [p] = fn [p];  path [p+1] = '\0';     // cuzu when you've got C:
-      if (StrLn (path) >= StrLn (fn))  break;    // YAY :)
-
-      for (p = SC(uword,StrLn (path));  fn [p] && (fn [p] != '/');  p++)
-         path [p] = fn [p];
+      StrAp (path, CC("/"));
+      for (p = SC(ubyt2,StrLn (path));  dir [p] && (dir [p] != '/');  p++)
+         path [p] = dir [p];
       path [p] = '\0';
-   // MAKE it
-      if (! mkdir (path, 0755)) {
-DBG("File::PathMake - mkdir died: `s", path);
+TRC(" mkdir `s", path);
+      if (mkdir (path, SC(int,perm))) {   // finally MAKE it
+DBG("FDir::Make mkdir died: `s", strerror (errno));
          return false;
       }
-DBG("File::PathMake - mkdir `s", path);
    }
    return true;
 }
 
 
-bool File::PathKill (char *dir)
+bool FDir::Kill (char *dir)
 // kill dir (and EVERything in it)
 { TStr fn;
-  FDir d;
+  File f;
   char df;
-DBG("File::PathKill `s", dir);
+TRC("FDir::Kill `s", dir);
    if ( (*dir == '\0') || (! StrCm (dir, CC("/"))) ) {
-DBG("File::PathKill  NOT gonna kill your whole hard drive...");
+DBG("FDir::Kill  NOT gonna kill your whole hard drive...");
       return false;
    }
 // recursively kill files first cuz can't kill dirs till they're ALL gone
-   if ((df = d.Open (fn, dir))) {
+   if ((df = Open (fn, dir))) {
       do
-         if (! ((df == 'd') ? PathKill (fn) : Kill (fn)) ) {
-DBG("File::PathKill `s died early :(", dir);
-            d.Shut ();
+         if (! ((df == 'd') ? Kill (fn) : f.Kill (fn)) ) {
+DBG("FDir::Kill `s died early :(", dir);
+            Shut ();
             return false;
          }
-      while ((df = d.Next (fn)));
-      d.Shut ();
+      while ((df = Next (fn)));
+      Shut ();
    }
 // NOW we can kill the dir
    rmdir (dir);
-DBG (" rmdir(`s)", dir);
+TRC(" rmdir `s", dir);
    return true;
 }
 
 
-bool File::PathCopy (char *from, char *to)
+bool FDir::Copy (char *from, char *to)
 // copy dir in FROM (and everything in it) to TO
 { TStr src, dst;
-  FDir d;
+  File f;
   char df;
-DBG("File::PathCopy `s `s", from, to);
+TRC("FDir::Copy `s `s", from, to);
    StrCp (src, from);
-   if (! (df = d.Open (src, from))) {
-DBG("File::PathCopy  from dir not therez");
+   if (! Got (from)) {
+DBG("FDir::Copy  from dir not there");
       return false;
    }
-   PathMake (to);                      // make dst path in case it ain't there
+   Make (to);                          // make dst path in case it ain't there
 // do every non . or .. dir and every file
-   do {
-      StrFmt (dst, "`s`s`s", to, to [StrLn (to)-1] == '/' ? "" : "/",
-                              & src [StrLn (from)+1]);
-      if (! ((df == 'd') ? PathCopy (src, dst) : Copy (src, dst)) ) {
-         d.Shut ();
-DBG("File::PathCopy  :(");
-         return false;
-      }
-   } while ((df = d.Next (src)));
-   d.Shut ();
+   if ((df = Open (src, from))) {
+      do {
+         StrFmt (dst, "`s`s`s", to, to [StrLn (to)-1] == '/' ? "" : "/",
+                                 & src [StrLn (from)+1]);
+         if (! ((df == 'd') ? Copy (src, dst) : f.Copy (src, dst)) ) {
+            Shut ();
+DBG("FDir::Copy  :(");
+            return false;
+         }
+      } while ((df = Next (src)));
+      Shut ();
+   }
    return true;
 }
 
@@ -632,22 +636,22 @@ void File::DoDir (char *dir, void *ptr, FDoDirFunc func, char *skip)
 }
 
 
-char *File::DoText (char *name, void *ptr, FDoTextFunc func, ulong maxlen)
+char *File::DoText (char *name, void *ptr, FDoTextFunc func, ubyt4 maxlen)
 // load and parse a text file given a parsin func - pretty OS specific cuzu \n
-{ char *msg = nullptr, c;
-  ulong line = 0;
-  uword len, p = 0, l, ls;
+{ char *msg = nullptr;
+  ubyt4 line = 0;
+  ubyt2 len, p = 0, l, ls;
   bool  gotLn;
-  PStr  buf;
-  static PStr err;
+  BStr  buf;
+  static BStr err;
    if (! Open (name, "r"))
       return  StrFmt (err, "File::DoText  Couldn't read file '`s'", name);
-   while ((len = p + (uword) Get (& buf [p], sizeof (buf) - p)) &&
+   while ((len = p + (ubyt2) Get (& buf [p], sizeof (buf) - p)) &&
           (msg == nullptr)) {
       p = 0;
       do {
          gotLn = false;
-         for (l = 0;  p+l < len;  l++)  if ((c = buf [p+l]) == '\n')  break;
+         for (l = 0;  p+l < len;  l++)  if (buf [p+l] == '\n')  break;
          if (p+l < len) {
             if (l > maxlen)   return CC("Not a text file (reclen >max)");
 

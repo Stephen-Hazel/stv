@@ -48,3 +48,29 @@ char *KeyMap::Str (key k)
    if (k & 0x80)  return KMap [k & 0x7F].str;
    buf [0] = k & 0x7F;   buf [1] = '\0';   return buf;
 }
+
+/*
+QKeySequence KeyMap::UnStr (char *k)
+{ Qt::Key o;
+  TStr i;
+  int  j;
+   o = (Qt::Key)0;
+   StrCp (i, k);
+   while ( (StrLn (i) > 4) && (i [3] == '|') ) {
+      if (MemCm (i, CC("SHF|"), 4) == 0)  o = o | Qt::SHIFT;
+      if (MemCm (i, CC("CTL|"), 4) == 0)  o = o | Qt::CTRL;
+      if (MemCm (i, CC("ALT|"), 4) == 0)  o = Qt::ALT;
+      if (MemCm (i, CC("MET|"), 4) == 0)  o = Qt::META;
+      else {
+DBG("KeyMap::UnStr error with shift str='`s'", k);
+         return o;
+      }
+      StrCp (i, & i [4]);
+   }
+   if (StrLn (i) > 1)
+      for (j = 0;  j < BITS (KMap);  j++)  if (StrCm (i, KMap [j].str) == 0)
+         {o |= KMap [j].in;   break;}
+   else   o |= (*i);
+   return QKeySequence (o);
+}
+*/
