@@ -88,7 +88,7 @@ void QtEr::WinLoad (QSplitter *spl)
                                          _a->setFont (f);}
       else {QFont f ("monospace", 14);   _a->setFont (f);}
 //QFont f = Gui.A ()->font ();
-//DBG("font=`s `d", UnQS (f.family ()), f.pointSize ());      
+//DBG("font=`s `d", UnQS (f.family ()), f.pointSize ());
    }
    if (s.contains ("size"))  _w->resize (s.value ("size").toSize ());
    _w->move (0, 0);   _w->show ();
@@ -225,7 +225,7 @@ SIDlg::SIDlg (QObject *par, char *ed, ppop pop)
 
 void SIDlg::paint (QPainter *p, const QStyleOptionViewItem &opt,
                                 const QModelIndex &ind)  const
-{  if (! opt.icon.isNull ()) 
+{  if (! opt.icon.isNull ())
         {p->save ();   opt.icon.paint (p, opt.rect);
          p->restore ();}
    else  QStyledItemDelegate::paint (p, opt, ind);
@@ -233,7 +233,12 @@ void SIDlg::paint (QPainter *p, const QStyleOptionViewItem &opt,
 
 void SIDlg::cbChanged (int i)
 { QComboBox *cb = qobject_cast<QComboBox *>(sender ());
-   (void)i;   emit commitData (cb);   emit closeEditor (cb);
+   (void)i;
+//DBG("cbChanged a");
+   emit commitData (cb);
+//DBG("cbChanged b");
+   emit closeEditor (cb);
+//DBG("cbChanged c");
 }
 
 QWidget *SIDlg::createEditor (QWidget *par, const QStyleOptionViewItem &opt,
@@ -243,9 +248,9 @@ QWidget *SIDlg::createEditor (QWidget *par, const QStyleOptionViewItem &opt,
    if (_ed [ind.column ()] == '^') {
       _pop (bs, ind.row (), ind.column ());
       if (*bs == 0)  return nullptr;
-      
+
      QComboBox *cb = new QComboBox (par);
-      for (s = bs;  *s;  s = & s [StrLn (s)+1])   
+      for (s = bs;  *s;  s = & s [StrLn (s)+1])
          cb->addItem (StrCm (s, CC("-")) ? s : "");
       return cb;
    }
@@ -255,8 +260,16 @@ QWidget *SIDlg::createEditor (QWidget *par, const QStyleOptionViewItem &opt,
 void SIDlg::setEditorData (QWidget *ed, const QModelIndex &ind)  const
 { QComboBox *cb = qobject_cast<QComboBox *>(ed);
    if (cb) {
-     int i = cb->findText (ind.data (Qt::EditRole).toString ());
-      if (i < 0)  i = 0;
+     TStr s, t;
+      StrCp (s, UnQS (ind.data (Qt::EditRole).toString ()));
+     int i = cb->findText (s);
+      if (i < 0) {                     // no exact match, look fer edit bein
+         i = 0;                        // prefix of a list str;  else pos 0
+         for (int j = 0;  j < cb->count ();  j++) {
+            StrCp (t, UnQS (cb->itemText (j)));
+            if (! MemCm (t, s, StrLn (t)))  {i = j;   break;}
+         }
+      }
       cb->setCurrentIndex (i);   cb->showPopup ();
       connect (cb, & QComboBox::currentIndexChanged,
                this,   & SIDlg::cbChanged);
@@ -267,8 +280,10 @@ void SIDlg::setEditorData (QWidget *ed, const QModelIndex &ind)  const
 void SIDlg::setModelData (QWidget *ed, QAbstractItemModel *mod,
                           const QModelIndex &ind)  const
 { QComboBox *cb = qobject_cast<QComboBox *>(ed);
+//DBG("setModelData a");
    if (cb)  mod->setData (ind, cb->currentText (), Qt::EditRole);
    else  QStyledItemDelegate::setModelData (ed, mod, ind);
+//DBG("setModelData b");
 }
 
 
@@ -303,13 +318,14 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
 /* _t->horizontalHeader ()->setSectionResizeMode (2, QHeaderView::Fixed)
 ** _t->horizontalHeader ()->setStretchLastSection (true);
 ** _t->horizontalHeader ()->setHighlightSections (false);
+** _t->horizontalHeader ()->savestate ();   n restorestate ()
 ** _t->setSelectionBehavior (QAbstractItemView::SelectItems/Rows);
 ** _t->setSelectionMode     (QAbstractItemView::ExtendedSelection);
 ** _t->setGridShow (false);
 */
 
 void  CtlTabl::SetRowH (ubyt2 h)
-{  _t->verticalHeader ()->setDefaultSectionSize (h);  
+{  _t->verticalHeader ()->setDefaultSectionSize (h);
    _t->setIconSize (QSize (h, h));
    _ih = h;
 }
@@ -353,7 +369,9 @@ void CtlTabl::SetColor (ubyt2 r, QColor c)
 }
 
 void CtlTabl::Open ()
-{  _tr = CurRow ();   _tc = CurCol ();
+{
+//DBG("CtlTabl::Open bgn");
+   _tr = CurRow ();   _tc = CurCol ();
    _t->hide ();   _t->blockSignals (true);
    _t->clearContents ();   _t->setRowCount (0);
    _nr = 0;
@@ -381,10 +399,15 @@ void CtlTabl::Put (char **rp)
          if (_ju [c] == '>')  it->setTextAlignment (Qt::AlignRight);
          if (_ju [c] == '|')  it->setTextAlignment (Qt::AlignCenter);
          it->setText (*rp);
+//DBG("CtlTabl::Put r=`d c=`d d=`s", _nr, c, *rp);
       }
    }
    _nr++;
 }
 
 void CtlTabl::Shut ()
-{  _t->show ();   _t->blockSignals (false);  HopTo (_tr, _tc);  }
+{  _t->show ();
+// HopTo (_tr, _tc);                   // cuz CLOSED?? editor sets value again:(
+   _t->blockSignals (false);
+//DBG("CtlTabl::Shut end");
+}

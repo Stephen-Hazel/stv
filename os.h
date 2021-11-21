@@ -554,6 +554,18 @@ public:
       d.Shut ();
       Sort ();
    }
+
+   char *SetZZ (char *zi)              // z better be & BStr
+   { char *p, *z = zi;
+     ulong l, i, t = 0;
+      for (i = 0;  i < NRow ();  i++) {
+         l = 1 + StrLn (p = Get (i));
+         if ((t += l) >= sizeof (BStr))  DBG("StrArr.SetZZ blew up !!");
+         MemCp (z, p, l);   z += l;
+      }
+      *z = '\0';
+      return zi;
+   }
 };
 
 
@@ -739,12 +751,12 @@ public:
       StrFmt (a, "`s/`s", Path (t), cmd);
       if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
    }
-   
+
    void Spinoff (char *cmd)
    // spin it off in another session totally in parallel
    { BStr a, t;
      int  rc;
-      StrFmt (a, "setsid `s/`s </dev/null >/dev/null 2>/dev/null &", 
+      StrFmt (a, "setsid `s/`s </dev/null >/dev/null 2>/dev/null &",
               Path (t), cmd);
       if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
    }
@@ -764,7 +776,7 @@ inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
   File  f;
    do StrFmt (fn, "/tmp/wget.`d", ++i);   while (f.Size (fn));  // find tmp fn
    StrFmt (c, "wget -q -O `s `s", fn, url);                     // wget it
-   if ((rc = system (c)))  
+   if ((rc = system (c)))
          {DBG("system `s died rc=`d", c, rc);   i = 0;}
    else  {i = f.Load (fn, buf, siz);   f.Kill (fn);}            // load n kill
    buf [i] = '\0';                     // term string
