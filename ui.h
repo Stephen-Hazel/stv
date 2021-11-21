@@ -52,7 +52,7 @@ struct QtEr {                          // my layer on toppa Qt
 public:
    QApplication *A ()  {return _a;}
    QMainWindow  *W ()  {return _w;}
-   
+
    ubyt2 FontH ()
    { QFontMetrics fm (_a->font ());
       return fm.capHeight () + 1 + fm.descent ();
@@ -222,13 +222,17 @@ private:
 
 class CtlList {
 public:
-   CtlList (QComboBox *w, char *ls = nullptr)
-   { char *s;
-      _w = w;
-      if (ls) {
-         _w->clear ();
-         for (s = ls;  *s;  s = & s [StrLn (s)+1])  _w->addItem (s);
-      }
+   CtlList (QComboBox *w, char *ls = nullptr)  {_w = w;   SetLs (ls);}
+
+   void ClrLs ()      {_w->clear ();}
+
+   void InsLs (char *s, ubyt2 p = 65535)
+   {  if (p == 65535)  _w->addItem (s);  else _w->insertItem (p, s);  }
+
+   void SetLs (char *ls = nullptr)
+   {  if (ls == nullptr)  return;
+     char *s;
+      ClrLs ();  for (s = ls;  *s;  s = & s [StrLn (s)+1])  InsLs (s);
    }
 
    ubyt2 Get  ()         {return _w->currentIndex ();}
@@ -423,14 +427,14 @@ testRenderHint(QPainter::LosslessImageRendering));
      QFontMetrics fm (_f);
       _fasc = fm.ascent ();   _fdsc = fm.descent ();   _fcap = fm.capHeight ();
    }
-   
+
    ubyt2 FontH ()  {return _fcap + 1 + _fdsc;}
 /*
 DBG("fh=`d fa=`d fd=`d avgCharW=`d capH=`d dpi=`d leading=`d "
 "lineSpc=`d lineW=`d maxW=`d minLftBear=`d minRitBear=`d overlinePos=`d "
-"strikePos=`d underlinePos=`d xH=`d lftBeari=`d ritBeari=`d horizAdv=`d", 
+"strikePos=`d underlinePos=`d xH=`d lftBeari=`d ritBeari=`d horizAdv=`d",
 fm.height(), _fasc, _fdsc,
-fm.averageCharWidth(), _fcap, (int)fm.fontDpi(), fm.leading(), 
+fm.averageCharWidth(), _fcap, (int)fm.fontDpi(), fm.leading(),
 fm.lineSpacing(), fm.lineWidth(), fm.maxWidth(), fm.minLeftBearing(),
 fm.minRightBearing(), fm.overlinePos(), fm.strikeOutPos(),
 fm.underlinePos(), fm.xHeight(), fm.leftBearing('i'), fm.rightBearing('i'),
@@ -439,7 +443,7 @@ fm.horizontalAdvance("0123456789"));
      QRect s = fm.tightBoundingRect("0123456789");
 DBG("bound `d `d `d `d", r.x(), r.y(), r.width(), r.height());
 DBG("tight `d `d `d `d", s.x(), s.y(), s.width(), s.height());
- 
+
 QFontMetrics    values for NotoSans 12
 H=22        always ascent+descent
 ascent=17   height from baseline to top
@@ -464,8 +468,8 @@ bound 0 -17 90 22
 tight 0 -12 90 12
 dpi=96
 Noto Sans 14:
-fh=26 fa=20 fd=6 avgCharW=11 capH=14 dpi=96 leading=0 lineSpc=26 lineW=1 
-maxW=54 minLftBear=-12 minRitBear=-12 overlinePos=21 strikePos=6 
+fh=26 fa=20 fd=6 avgCharW=11 capH=14 dpi=96 leading=0 lineSpc=26 lineW=1
+maxW=54 minLftBear=-12 minRitBear=-12 overlinePos=21 strikePos=6
 underlinePos=2 xH=10 lftBeari=1 ritBeari=1 horizAdv=109
 */
    void bgn (QPaintDevice *dev)  {begin (dev);   setFont (_f);}
@@ -481,22 +485,22 @@ underlinePos=2 xH=10 lftBeari=1 ritBeari=1 horizAdv=109
 
    void TextV (ubyt2 x, ubyt2 y, char *s)   // vertical
    {  SetMode ('t');
-      save ();   translate (x, y);   rotate (90);   drawText (0, 0, s);   
+      save ();   translate (x, y);   rotate (90);   drawText (0, 0, s);
       restore ();
    }
-/* 
+/*
 drawText x,y point is at the BASELINE, and i dunno if 1 below or exactly ??
 =i= want x,y to be top,left of text rect.
 for regular horiz text,
 I don't want dead space above the font (above capsH).
 so using only capsH, not full ascent.  (and +1 i guess ???)
-and for vert text, I don't want desc (p,q) space 
+and for vert text, I don't want desc (p,q) space
 and x,y is AT baseline, so a plain translate x,y and rotate 90
 SEEM TO LINE UP :/
 
 s = CC("HIOAW  0123456789_hioawpqg.,`~_");
 drawText (400, 500+_fcap+1, s);
-save();   translate (400, 500);   rotate (90);   drawText (0, 0, s);   
+save();   translate (400, 500);   rotate (90);   drawText (0, 0, s);
 restore ();
 save ();
 SetFg (CRED);
@@ -536,8 +540,8 @@ drawLine (0,0,     300,0);      // baseline
 drawLine (0,0+_fd, 300,0+_fd);  // total descent
 restore ();
 */
-   
-   void TextC  (ubyt2 x, ubyt2 y, char *s, QColor c)  
+
+   void TextC  (ubyt2 x, ubyt2 y, char *s, QColor c)
    {  SetFg (c);   Text  (x, y, s);  }
 
    void TextVC (ubyt2 x, ubyt2 y, char *s, QColor c)
