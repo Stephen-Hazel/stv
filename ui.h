@@ -18,6 +18,7 @@
 #include <QVBoxLayout>
 #include <QToolBar>
 #include <QLabel>
+#include <QPushButton>
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QSpinBox>
@@ -76,6 +77,7 @@ public:
    void  WinSave (QSplitter *spl = nullptr);
    void  DlgLoad (QDialog *d, QString nm, QSplitter *spl = nullptr);
    void  DlgSave (QDialog *d, QString nm, QSplitter *spl = nullptr);
+   void  DlgMv   (QDialog *d, QPointF p, char const *anch);
    void  SetTtl  (char *t);
    void  FullSc  (bool b)
    {  if (b) _w->setWindowState (_w->windowState () |   Qt::WindowFullScreen );
@@ -94,6 +96,7 @@ extern QtEr Gui;
 
 //______________________________________________________________________________
 // in main:   app.installEventFilter (new EvDump);
+/*
 class EvDump: public QObject {
    Q_OBJECT
 protected:
@@ -119,7 +122,6 @@ protected:
 };
 
 
-/*
 #include <QMetaObject>
 #include <QMetaMethod>
 
@@ -143,8 +145,11 @@ class CtlTBar {
 public:
    CtlTBar (QMainWindow *w, const char *tipIcoKey, const char *nm = "");
    CtlTBar (QDialog *d,     const char *tipIcoKey);
-   QAction *Act (ubyte p)  {return _ac [p];}
+   QAction *Act (ubyte p)  {if (p >= _na)  {DBG("BAD toolbar button :(");
+                                            return nullptr;}
+                            return _ac [p];}
 private:
+   ubyte    _na;
    QAction *_ac [32];
 };
 
@@ -155,6 +160,17 @@ public:
    void Set (char *s)   {_w->setText (s);}
 private:
    QLabel *_w;
+};
+
+
+class CtlBttn {
+public:
+   CtlBttn (QPushButton *w)  {_w = w;}
+   char *Get    (char *s)   {return UnQS (_w->text ());}
+   void  Set    (char *s)   {_w->setText    (s);}
+   void  Enable (bool  s)   {_w->setEnabled (s);}
+private:
+   QPushButton *_w;
 };
 
 
@@ -235,10 +251,11 @@ public:
       ClrLs ();  for (s = ls;  *s;  s = & s [StrLn (s)+1])  InsLs (s);
    }
 
-   ubyt2 Get  ()         {return _w->currentIndex ();}
-   void  Set  (ubyt2 p)      {_w->setCurrentIndex (p);}
-   char *GetS (char *s)  {return StrCp (s, UnQS (_w->currentText ()));}
-   void  SetS (char *s)                      {_w->setCurrentText (s);}
+   ubyt2 Get    ()         {return _w->currentIndex ();}
+   void  Set    (ubyt2 p)         {_w->setCurrentIndex (p);}
+   char *GetS   (char *s)  {return StrCp (s, UnQS (_w->currentText ()));}
+   void  SetS   (char *s)                         {_w->setCurrentText (s);}
+   void  Enable (bool s)   {_w->setEnabled (s);}
 private:
    QComboBox *_w;
 };
@@ -409,6 +426,8 @@ public:
    Canvas (QPaintDevice *dev): QPainter (dev)  {}
    Canvas ()  {}
   ~Canvas ()  {}
+
+   QPainter *Painter ()  {return this;}
 
    void Dump () {
 DBG("antiAlias=`b textAA=`b smoothPMapTrans=`b losslessImg=`b", // f t f f

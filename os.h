@@ -70,12 +70,16 @@ char *StrCh   (char *str, char c);
 char *StrSt   (char *big, char *sm,    char x = '\0');    // exact? or caseless
 sbyt4 StrCm   (char *s1,  char *sbyt2, char x = '\0');
 int   StrCm2  (void *p1, void *p2);
+ubyt2 ZZLn    (char *zz);                   // zz num strs in list (not StrLn)
+void  ZZCp    (char *dzz, char *szz);
+void  ZZAp    (char *dzz, char *szz);       // zz str list append
 
 // str formattin stuff
 char *Int2Str (sbyt4 Int, char *buf12, char base = 'd');   // 'x' for hex
 sbyt4 Str2Int (char *Str, char **p = nullptr);
 char *StrFmt  (char *s, char const *fmt, ...);   // my sprintf replacement
 void  DBG     (char const *fmt, ...);
+void  DbgX    (char *s, char zz = '\0');
 #define TRC(...)  if(App.trc)DBG(__VA_ARGS__)    // DBG but only if tracing on
 
 // str array/file-ish stuff
@@ -220,7 +224,7 @@ private:
 // parses a record with columns separated by (usually) spaces - handy for files
 class ColSep {
 public:
-   char *Col [40];
+   char *Col [90];
    ColSep (char *Rec, ubyte Pre, char Sp = ' ')
    { ubyt2 p, c;
       if (Pre >= BITS (Col))  Pre = BITS (Col) - 1;  // just to be sorta safe

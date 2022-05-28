@@ -166,6 +166,31 @@ void QtEr::DlgSave (QDialog *d, QString nm, QSplitter *spl)
    }
 }
 
+void QtEr::DlgMv (QDialog *d, QPointF p, char const *anch)
+// move relative to mouse  (caps in anch give a little extra room)
+{ int w, h; //, mw, mh;
+//   mw = 1;  // HORZRES
+//   mh = 1;  // VERTRES
+   w = d->width ();   h = d->height ();
+   switch (anch [0]) {              // tweak y
+      case 't': break;
+      case 'T': p.setY ( p.y () + 15);   break;
+      case 'b': p.setY ((p.y () > h     ) ? (p.y () - h)      : 0);  break;
+      case 'B': p.setY ((p.y () > (h+15)) ? (p.y () - (h+15)) : 0);  break;
+      default:  p.setY ((p.y () > h/2   ) ? (p.y () - h/2)    : 0);  break;
+   }
+   switch (anch [1]) {              // tweak x
+      case 'l': break;
+      case 'L': p.setX ( p.x () + 15);   break;
+      case 'r': p.setX ((p.x () > w     ) ? (p.x () - w)      : 0);  break;
+      case 'R': p.setX ((p.x () > (w+15)) ? (p.x () - (w+15)) : 0);  break;
+      default:  p.setX ((p.x () > w/2   ) ? (p.x () - w/2)    : 0);  break;
+   }
+//   if (p.x () + w > mw) p.setX (mw - w);    // limit to on screen
+//   if (p.y () + h > mh) p.setY (mh - h);
+   d->move (SC(int,p.x ()), SC(int,p.y ()));
+}
+
 
 //______________________________________________________________________________
 CtlTBar::CtlTBar (QMainWindow *w, const char *tip, const char *nm)
@@ -180,17 +205,24 @@ CtlTBar::CtlTBar (QMainWindow *w, const char *tip, const char *nm)
       if (*t == '|')  tb->addSeparator ();
       else {
          StrCp (s, t);
-        ColSep cs (s, 2, '`');
+        ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
          StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
                                    StrCp (ks, cs.Col [2]);
          if (*ks)  StrAp (tp, StrFmt (ts, " (`s)", ks));
-        QIcon ico = (*is == ':') ? QIcon (is)
-                                 : QIcon::fromTheme (is, QIcon (is));
-         _ac [p] = new QAction (ico, tp, w);
+         if (*is == '*') {
+            _ac [p] = new QAction (& is [1], w);
+            _ac [p]->setToolTip (tp);
+         }
+         else {
+           QIcon ico = (*is == ':') ? QIcon (is)
+                                    : QIcon::fromTheme (is, QIcon (is));
+            _ac [p] = new QAction (ico, tp, w);
+         }
          if (*ks)  _ac [p]->setShortcut (QKeySequence (ks));
          tb->addAction (_ac [p]);
       }
    }
+   _na = p;
 }
 
 CtlTBar::CtlTBar (QDialog *d, const char *tip)
@@ -204,17 +236,24 @@ CtlTBar::CtlTBar (QDialog *d, const char *tip)
       if (*t == '|')  tb->addSeparator ();
       else {
          StrCp (s, t);
-        ColSep cs (s, 2, '`');
+        ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
          StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
                                    StrCp (ks, cs.Col [2]);
          if (*ks)  StrAp (tp, StrFmt (ts, " (`s)", ks));
-        QIcon ico = (*is == ':') ? QIcon (is)
-                                 : QIcon::fromTheme (is, QIcon (is));
-         _ac [p] = new QAction (ico, tp, tb);
+         if (*is == '*') {
+            _ac [p] = new QAction (& is [1], tb);
+            _ac [p]->setToolTip (tp);
+         }
+         else {
+           QIcon ico = (*is == ':') ? QIcon (is)
+                                    : QIcon::fromTheme (is, QIcon (is));
+            _ac [p] = new QAction (ico, tp, tb);
+         }
          if (*ks)  _ac [p]->setShortcut (QKeySequence (ks));
          tb->addAction (_ac [p]);
       }
    }
+   _na = p;
 }
 
 
@@ -271,8 +310,8 @@ void SIDlg::setEditorData (QWidget *ed, const QModelIndex &ind)  const
          }
       }
       cb->setCurrentIndex (i);   cb->showPopup ();
-      connect (cb, & QComboBox::currentIndexChanged,
-               this,   & SIDlg::cbChanged);
+      connect (cb, QOverload<int>::of(&QComboBox::currentIndexChanged),
+               this,      & SIDlg::cbChanged);
    }
    else  QStyledItemDelegate::setEditorData (ed, ind);
 }
