@@ -103,6 +103,22 @@ sbyt4 StrCm (char *s1, char *s2, char x)
 int StrCm2 (void *p1, void *p2)
 {  return StrCm (SC(char *,p1),SC(char *,p2));  }
 
+ubyt2 ZZLn (char *s)
+{ ulong r = 0;
+   while (*s)  {r++;   s += (StrLn (s)+1);}
+   return r;
+}
+
+void ZZAp (char *dzz, char *szz)
+{ char *p, *dp;
+  ubyt4 ln, sln;                                 // get len of szz
+   for (p = szz, sln = 1;  (ln = StrLn (p));  p += (ln+1))  sln += (ln+1);
+   for (p = dzz;  *p;  p += (StrLn (p)+1))  ;    // get dzz end ta tack onta
+   MemCp (p, szz, sln);
+}
+
+void ZZCp (char *d, char *s)   {*d = '\0';   ZZAp (d, s);}
+
 
 //______________________________________________________________________________
 // int convert string ops
@@ -212,14 +228,21 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 
 #include "pthread.h"
 
-void DbgX (char *s)
+void DbgX (char *s, char zz)
 { TStr buf;
-//  FILE *f;
-//   f = fopen ("/home/sh/dbg", "a");
-//   fprintf (f, "%s %s-%08X %s\n",
-   fprintf (stderr, "%s %s-%08X %s\n",
+//FILE *f;
+// f = fopen ("/home/sh/dbg", "a");
+// fprintf (f, "%s %s-%08X %s\n",
+   if (zz) {
+     ubyt2 r = 0, ln = ZZLn (s);
+      fprintf (stderr, "%s %s-%08X nZZ=%d\n",
+                             NowMS (buf), App.app, SC(int,pthread_self ()), ln);
+      while (ln--)  {fprintf (stderr,"%d: %s\n", r++, s);   s += (StrLn (s)+1);}
+   }
+   else
+      fprintf (stderr, "%s %s-%08X %s\n",
                               NowMS (buf), App.app, SC(int,pthread_self ()), s);
-//   fclose (f);
+// fclose (f);
 }
 
 
