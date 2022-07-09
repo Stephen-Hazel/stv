@@ -80,17 +80,29 @@ bool QtEr::AskDir (char *name, char const *titl)
 //______________________________________________________________________________
 void QtEr::SetTtl (char *t)  {_w->setWindowTitle (t);}
 
+/* how i found raspi needed it's global font :/
+void DbgF (char *s)
+{ { QFont f = Gui.A ()->font ();
+DBG("`s app font=`s `d", s, UnQS (f.family ()), f.pointSize ());
+  }
+  { QFont f = Gui.W ()->font ();
+DBG("`s win font=`s `d", s, UnQS (f.family ()), f.pointSize ());
+  }
+}
+*/
+
 void QtEr::WinLoad (QSplitter *spl)
 { QSettings s (App.grp, App.app);
    if (_fixw) {
       if (s.contains ("font"))
            {QFont f (s.value ("font").toString (), s.value ("fontpt").toInt ());
-                                         _a->setFont (f);}
-      else {QFont f ("monospace", 14);   _a->setFont (f);}
-//QFont f = Gui.A ()->font ();
-//DBG("font=`s `d", UnQS (f.family ()), f.pointSize ());
+                                         _a->setFont (f);   _w->setFont (f);}
+      else {QFont f ("monospace", 14);   _a->setFont (f);   _w->setFont (f);}
+//QFont f = Gui.A ()->font ();         // raspi needs _w too sigh
+//DBG("WinLoad font=`s `d", UnQS (f.family ()), f.pointSize ());
    }
    if (s.contains ("size"))  _w->resize (s.value ("size").toSize ());
+   else                      _w->resize (400, 400);
    _w->move (0, 0);   _w->show ();
 
    if (s.contains ("scr")) {
@@ -115,8 +127,8 @@ void QtEr::WinLoad (QSplitter *spl)
 void QtEr::WinSave (QSplitter *spl)
 { QSettings s (App.grp, App.app);
    if (_fixw) {
-      s.setValue ("font",   _a->font ().family ());
-      s.setValue ("fontpt", _a->font ().pointSize ());
+      s.setValue ("font",   _w->font ().family ());
+      s.setValue ("fontpt", _w->font ().pointSize ());
    }
    if (spl) {
      QList<int> p = spl->sizes ();
