@@ -631,7 +631,7 @@ void MidiI::run ()                     // poll loop runnin in sep thread
   ubyt2 re;
   int   i, ln, err, npf;
   struct pollfd *pf;
-//TRC("run bgn `s", _name);
+TRC("run bgn `s", _name);
    snd_rawmidi_read (_hnd, nullptr, 0);      // trigger reading
    npf = snd_rawmidi_poll_descriptors_count (_hnd);
    pf  = (struct pollfd *)alloca (npf * sizeof (struct pollfd));
@@ -666,7 +666,7 @@ void MidiI::run ()                     // poll loop runnin in sep thread
                            (ln > 3) ? buf [3] : 0);
    }
    _run = false;
-//TRC("run end `s", _name);
+TRC("run end `s", _name);
 }
 
 
@@ -717,8 +717,7 @@ void MidiI::EvIns (ubyte s, ubyte ci, ubyte v, ubyte v2)
       _buf [p].ctrl = c;
       _buf [p].valu = v;
       _buf [p].val2 = v2;
-//DBG("EvIns  `s.`d ctrl=`04x valu=`02x val2=`02x",
-//_name, (s & 0x0F)+1, c, v, v2);
+TRC("EvIns  `s.`d ctrl=`04x valu=`02x val2=`02x",_name,(s & 0x0F)+1,c,v,v2);
       _bAdd = pnew;
       emit MidiIEv ();
    }
