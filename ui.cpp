@@ -270,74 +270,6 @@ CtlTBar::CtlTBar (QDialog *d, const char *tip)
 
 
 //______________________________________________________________________________
-SIDlg::SIDlg (QObject *par, char *ed, ppop pop)
-: QStyledItemDelegate (par)
-{  _ed = ed;   _pop = pop;  }
-
-void SIDlg::paint (QPainter *p, const QStyleOptionViewItem &opt,
-                                const QModelIndex &ind)  const
-{  if (! opt.icon.isNull ())
-        {p->save ();   opt.icon.paint (p, opt.rect);
-         p->restore ();}
-   else  QStyledItemDelegate::paint (p, opt, ind);
-}
-
-void SIDlg::cbChanged (int i)
-{ QComboBox *cb = qobject_cast<QComboBox *>(sender ());
-   (void)i;
-//DBG("cbChanged a");
-   emit commitData (cb);
-//DBG("cbChanged b");
-   emit closeEditor (cb);
-//DBG("cbChanged c");
-}
-
-QWidget *SIDlg::createEditor (QWidget *par, const QStyleOptionViewItem &opt,
-                              const QModelIndex &ind)  const
-{ BStr bs;
-  char *s;
-   if (_ed [ind.column ()] == '^') {
-      _pop (bs, ind.row (), ind.column ());
-      if (*bs == 0)  return nullptr;
-
-     QComboBox *cb = new QComboBox (par);
-      for (s = bs;  *s;  s = & s [StrLn (s)+1])
-         cb->addItem (StrCm (s, CC("-")) ? s : "");
-      return cb;
-   }
-   return    QStyledItemDelegate::createEditor (par, opt, ind);
-}
-
-void SIDlg::setEditorData (QWidget *ed, const QModelIndex &ind)  const
-{ QComboBox *cb = qobject_cast<QComboBox *>(ed);
-   if (cb) {
-     TStr s, t;
-      StrCp (s, UnQS (ind.data (Qt::EditRole).toString ()));
-     int i = cb->findText (s);
-      if (i < 0) {                     // no exact match, look fer edit bein
-         i = 0;                        // prefix of a list str;  else pos 0
-         for (int j = 0;  j < cb->count ();  j++) {
-            StrCp (t, UnQS (cb->itemText (j)));
-            if (! MemCm (t, s, StrLn (t)))  {i = j;   break;}
-         }
-      }
-      cb->setCurrentIndex (i);   cb->showPopup ();
-      connect (cb, QOverload<int>::of(&QComboBox::currentIndexChanged),
-               this,      & SIDlg::cbChanged);
-   }
-   else  QStyledItemDelegate::setEditorData (ed, ind);
-}
-
-void SIDlg::setModelData (QWidget *ed, QAbstractItemModel *mod,
-                          const QModelIndex &ind)  const
-{ QComboBox *cb = qobject_cast<QComboBox *>(ed);
-//DBG("setModelData a");
-   if (cb)  mod->setData (ind, cb->currentText (), Qt::EditRole);
-   else  QStyledItemDelegate::setModelData (ed, mod, ind);
-//DBG("setModelData b");
-}
-
-
 void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
 // hdr is zz string of labels
 //  *  prefix means icon
@@ -396,7 +328,7 @@ char *CtlTabl::Get (ubyt2 r, ubyte c)  {return UnQS (_t->item (r, c)->text ());}
 void  CtlTabl::Set (ubyt2 r, ubyte c, char *s)
 { QTableWidgetItem *it = _t->item (r, c);
   TStr ico;
-//DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
+DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
    _t->blockSignals (true);
    if (_ju [c] != '*')      it->setText (s);
    else {
