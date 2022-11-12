@@ -207,8 +207,8 @@ MCCRow MCC [] = { // types are u=0-127(default)
                             // o=0,127(split at 64)
                             // s=0-127=>-64-63
                             // x=tmpo,tsig,ksig,prog
-   {"Tmpo",    'x',120,MC_TMPO},  // tempo (scaled unsigned)  (non midi/mapd)
-   {"TSig",    'x',260,MC_TSIG},  // time signature  (non midi/mapd)
+   {"Tmpo",    'x',120,MC_TMPO},  // tempo (scaled unsigned)    (non midi/mapd)
+   {"TSig",    'x',260,MC_TSIG},  // time signature             (non midi/mapd)
    {"KSig",    'x',0,  MC_KSIG},  // key signature C(0b,Maj)=0  (non midi/mapd)
    {"Prog",    'x',0,  MC_PROG},  // set track's sound on it's dev/chn
    {"MTun",    's',64, MC_US+3},  // master transpose/tune
@@ -454,27 +454,30 @@ TRC("~MidiO `s", (*_name) ? _name : "?");
 void MidiO::PutMEv (ubyte *mev, ubyte ln)
 { int err;
    if (Dead ())  {DBG("PutMEv `s but Dead :(", _name);   return;}
-/* for INEVitable tracing...:/
-TRC("MidiO::PutMEv on `s/`s/`s ln=`d", _name, _type, _desc, ln);
-  TStr s;
+// for INEVitable tracing...:/
+//DBG("MidiO::PutMEv on `s/`s/`s ln=`d", _name, _type, _desc, ln);
+  TStr s, dc;
+  char ch;
+   StrFmt (dc, " `s.`d ", _name, (mev[0] & 0x0F)+1);
    switch (mev [0] & 0xF0) {
       case M_NOTE:
-         DBG(" ch=`d Note `s=`d", mev[0] & 0x0F, MKey2Str (s, mev[1]), mev [2]);
-         break;
       case M_NOFF:
-         DBG(" ch=`d NOff `s=`d", mev[0] & 0x0F, MKey2Str (s, mev[1]), mev [2]);
+      case M_NPRS:                       ch = '~';
+         if ((mev[0] & 0xF0) == M_NOTE)  ch = '_';
+         if ((mev[0] & 0xF0) == M_NOFF)  ch = '^';
+         if ((mev[0] & 0x0F) == 9)  MDrm2Str (s, mev [1]);
+         else                       MKey2Str (s, mev [1]);
+         DBG("`s`s`c`d",     dc, s, ch, mev [2]);
          break;
-      case M_NPRS:
-         DBG(" ch=`d NPrs `s=`d", mev[0] & 0x0F, MKey2Str (s, mev[1]), mev [2]);
-         break;
+/*
       case M_PROG:
-         DBG(" ch=`d Prog=`s.`d", mev[0] & 0x0F, MProg [mev[1]], mev[1]);
+         DBG("`sProg=`s.`d", dc, MProg [mev[1]], mev[1]);
          break;
       case M_PBND:
-         DBG(" ch=`d PBnd=`d",    mev[0] & 0x0F, 8192-(mev[1] + mev[2]*128));
+         DBG("`sPBnd=`d",    dc, 8192-(mev[1] + mev[2]*128));
          break;
       case M_PRSS:
-         DBG(" ch=`d Prss=`d",    mev[0] & 0x0F, mev[1]);
+         DBG("`sPrss=`d",    dc, mev[1]);
          break;
       case M_CTRL:
          switch (mev [1]) {
@@ -498,17 +501,24 @@ TRC("MidiO::PutMEv on `s/`s/`s ln=`d", _name, _type, _desc, ln);
             case M_SOFT:   StrCp (s, CC("Soft."));   break;
             case M_SUST:   StrCp (s, CC("Sust."));   break;
             case M_LEGA:   StrCp (s, CC("Lega."));   break;
+            case M_RVRB:   StrCp (s, CC("Rvrb."));   break;
+            case M_CHOR:   StrCp (s, CC("Chor."));   break;
+            case M_ASOFF:  StrCp (s, CC("ASOff."));  break;
+            case M_ACOFF:  StrCp (s, CC("ACOff."));  break;
+            case M_LOCAL:  StrCp (s, CC("Local."));  break;
+            case M_ANOFF:  StrCp (s, CC("ANOff."));  break;
+
             default:       StrCp (s, CC("?."));      break;
          }
-         DBG(" ch=`d Ctrl(`s`d)=`d", mev[0] & 0x0F, s, mev[1], mev[2]);
+         DBG("`s`s`d=`d",    dc, s, mev[1], mev[2]);
          break;
       default:
-         DBG(" ??? `d `d `d `d (x`02x `02x `02x `02x)",
-              mev[0], mev[1], mev[2], mev[3],
-              mev[0], mev[1], mev[2], mev[3]);
-         break;
-   }
+         DBG("`sln=`d ??? `d `d `d `d (x`02x `02x `02x `02x)",
+             dc, ln, mev[0], mev[1], mev[2], mev[3],
+                     mev[0], mev[1], mev[2], mev[3]);
 */
+   }
+//
    if      ((err = ::snd_rawmidi_write (_hnd, mev, ln)) != ln)
       DBG("snd_rawmidi_write failed: rc=`d <> ln=`d", err, ln);
    else if ((err = ::snd_rawmidi_drain (_hnd)))
@@ -528,11 +538,11 @@ void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 //ubyte mtun [8] = {0xF0,0x7F,0x7F,0x04,0x04,0,0,0xF7}; 3,4 are +-cent/8192,cent
    mev [0] = ch;  mev [1] = (ubyte)c;  mev [2] = 0x7F & v;
    if      (c < MC_PROG) {             // just a note
-      p = (ch << 2) | (c >> 5);  m = 1 << (c & 0x1F);
-      if (v & 0x80)  if ((_ntOn [p] & m) == 0)
-                         {mev [0] |= M_NOTE;  _ntOn [p] |= ( m);}
-                     else mev [0] |= M_NPRS;
-      else               {mev [0] |= M_NOFF;  _ntOn [p] &= (~m);}
+      p = (ch << 2) | (c >> 5);   m = 1 << (c & 0x1F);
+      if (v & 0x80) // {if ((_ntOn [p] & m) == 0)
+                            {mev [0] |= M_NOTE;  _ntOn [p] |= ( m);}
+                    //  else mev [0] |= M_NPRS;}
+      else                  {mev [0] |= M_NOFF;  _ntOn [p] &= (~m);}
    }
    else if (c < MC_CC) {               // std midi
       if      (c == MC_PROG) {mev [0] |= M_PROG;  mev [1] = v;}
@@ -576,11 +586,11 @@ void MidiO::NotesOff ()
   TStr  ts;
 TRC("NotesOff on `s/`s/`s", _name, _type, _desc);
    hoff [1] = M_HOLD;  hoff [2] = 0;
-   for (ubyte ch = 0; ch < 16; ch++) {
-      for (ubyte nt = 0; nt < 128; nt++) {
+   for (ubyte ch = 0;  ch < 16;  ch++) {
+      for (ubyte nt = 0;  nt < 128;  nt++) {
          p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
          if (_ntOn [p] & m) {
-TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
+TRC(" ch=`d `s", ch+1, MKey2Str (ts, nt));
             mev [0] = M_NOFF | ch;   mev [1] = nt;  mev [2] = 0;
             PutMEv (mev);
          }
@@ -717,7 +727,8 @@ void MidiI::EvIns (ubyte s, ubyte ci, ubyte v, ubyte v2)
       _buf [p].ctrl = c;
       _buf [p].valu = v;
       _buf [p].val2 = v2;
-TRC("EvIns  `s.`d ctrl=`04x valu=`02x val2=`02x",_name,(s & 0x0F)+1,c,v,v2);
+// cuz you know...
+//DBG("MidiIEvIns `s.`d `04x `02x `02x",_name,(s & 0x0F)+1,c,v,v2);
       _bAdd = pnew;
       emit MidiIEv ();
    }

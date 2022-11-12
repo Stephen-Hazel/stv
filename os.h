@@ -383,7 +383,7 @@ public:
 
 // read/write stuff
    bool Open (char *name, char const *mode, ubyt2 perm = 0644)
-   {  StrCp (_fn, name);   //*_bkFn = '\0';
+   {  StrCp (_fn, name);
       if      (*mode == 'r') {
          if (0 <= (_f = open (_fn, O_RDONLY)))  return true;
       }
@@ -391,11 +391,10 @@ public:
         File tf;
          if ((mode [1] == 'b') && tf.Size (_fn)) {    // back it up?
            TStr dir, ext, fn, s;       // get dir n ext
-            StrCp (dir, _fn);   Fn2Path (dir);   FnExt (ext, _fn);
+            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, "/old");
+            FnExt (ext, _fn);
             StrFmt  (fn, "`s/`s.`s", dir, Now (s), ext);
             tf.Copy (name, fn);        // copy to back up
-            StrCp   (name, fn);        // return it
-//          StrCp (_bkFn, fn);
          }
         TStr dir;
         FDir d;
@@ -409,10 +408,8 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
    }
 
    void Shut (void)
-   { TStr s;
-      if (_f >= 0)  close (_f);
+   {  if (_f >= 0)  close (_f);
       _f = -1;
-//    if (*_bkFn)  {StrFmt (s, "delsame `s", _bkFn);   App.Run (s);}
    }
 
    bool IsOpen ()  {return (_f >= 0) ? true : false;}
@@ -442,7 +439,7 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
    char *DoText (char *name, void *ptr, FDoTextFunc func, ubyt4 maxlen = 500);
 private:
    int  _f;
-   TStr _fn;  //, _bkFn;
+   TStr _fn;
 };
 
 

@@ -390,7 +390,7 @@ void CtlTabl::Put (char **rp)
 
 void CtlTabl::Shut ()
 {  _t->show ();
-// HopTo (_tr, _tc);                   // cuz CLOSED?? editor sets value again:(
+   HopTo (_tr, _tc);                   // in 6 on CLOSE, ed sets value again:(
    _t->blockSignals (false);
 //DBG("CtlTabl::Shut end");
 }
