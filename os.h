@@ -391,7 +391,7 @@ public:
         File tf;
          if ((mode [1] == 'b') && tf.Size (_fn)) {    // back it up?
            TStr dir, ext, fn, s;       // get dir n ext
-            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, "/old");
+            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, CC("/old"));
             FnExt (ext, _fn);
             StrFmt  (fn, "`s/`s.`s", dir, Now (s), ext);
             tf.Copy (name, fn);        // copy to back up
