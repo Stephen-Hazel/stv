@@ -315,6 +315,7 @@ public:
          if (*bs == '\0')  return nullptr;
 
         QComboBox *cb = new QComboBox (tb);
+         cb->setMaxVisibleItems (16);
          connect (cb, QOverload<int>::of(&QComboBox::activated),
                   this,      & SIDlg::cbChanged);
 //       connect (cb, QOverload<int>::of(&QComboBox::currentIndexChanged),

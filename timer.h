@@ -63,7 +63,7 @@ TRC("Timer bgn");
                {DBG("timer read failed");                        _run = false;}
          _msec++;                      // TICK !!!
          if    (_msecSig && (_msec >= _msecSig))      // msecs always bump
-               {_msecSig = 0;                       emit TimerEv ();}
+               {_msecSig = 0;                       emit TimerMsEv ();}
          if (! _pause) {                              // time only bumps unpozd
             _timeErr += (_tempo * 2);
             while (_timeErr >= 625)  {_time++;  _timeErr -= 625;}
@@ -100,7 +100,10 @@ public:
       _pause = pause;
    }
 
-   void SetTempo (ubyt2 tempo)  {_tempo = tempo;}
+   void SetTempo (ubyt2 tempo)  {
+      _tempo = tempo;
+TRC("Timer.SetTempo `d", tempo);
+   }
 
    void Set (ubyt4 time)
    {  _time = time;   _timeErr = 0;   if (! time) _msec = 0;  }
@@ -108,7 +111,8 @@ public:
    void SetSig (ubyt4 time)  {_timeSig = time;}
 
 signals:
-   void TimerEv ();
+   void TimerEv ();                    // hit a time
+   void TimerMsEv ();                  // ms delay expired
 };
 
 
