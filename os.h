@@ -692,7 +692,14 @@ struct AppBase {
 public:
    void Init (char *g, char *a, char *t)
    {  StrCp (grp, g);   StrCp (app, a);   StrCp (ttl, t);
-     TStr s;   CfgGet (CC("trc"), s);   trc = (*s == 'y') ? true : false;
+     TStr s;   CfgGet (CC("trc"), s);
+      if (*s)
+         trc = (*s == 'y') ? true : false;
+      else {                           // uh oh !  kick initme !
+         CfgPut (CC("trc"), CC("n"));  // skip this?  initme infinite loop :)
+         Run (CC("initme"));
+         trc = false;
+      }
    }
 
    char *Path (char *s, char typ = 'a')     // [a]ppPath, [c]fgPath
@@ -704,7 +711,7 @@ public:
          {DBG("getenv HOME failed");   *s = '\0';   return s;}
       StrFmt (s, "`s/.config/`s", p, grp);  // /home/sh/.config/pcheetah
       if (typ != 'c')  {t [0] = typ;   t [1] = '\0';   CfgGet (t, s);}
-   // typ of [d]ata - get /home/sh/.config/pcheetah/d.cfg  (set in install)
+   // typ of [d]ata - get /home/sh/.config/pcheetah/d.cfg  (set in initme)
       return s;
    }
 
@@ -782,6 +789,23 @@ inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
    else  {i = f.Load (fn, buf, siz);   f.Kill (fn);}            // load n kill
    buf [i] = '\0';                     // term string
    return i;
+}
+
+inline void Zip (char *dir, char xc = 'x')
+{ TStr cmd, pdir;
+  int  rc;
+   StrCp (pdir, dir);   Fn2Path (pdir);
+   if (xc == 'x') {                    // x tract .tar.gz to a dir (n kill it)
+      StrFmt (cmd, "cd `s && tar xzf `s.tar.gz", pdir, dir);
+      if ((rc = system (cmd)))
+DBG("system `s died rc=`d", cmd, rc);
+      StrFmt (cmd, "rm `s.tar.gz", dir);
+   }
+   else {                              // c reate .tar.gz of a dir
+      StrFmt (cmd, "cd `s && tar czf `s.tar.gz `s", pdir, dir, dir);
+   }
+   if ((rc = system (cmd)))
+DBG("system `s died rc=`d", cmd, rc);
 }
 
 
