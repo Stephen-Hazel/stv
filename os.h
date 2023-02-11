@@ -693,13 +693,13 @@ public:
    void Init (char *g, char *a, char *t)
    {  StrCp (grp, g);   StrCp (app, a);   StrCp (ttl, t);
      TStr s;   CfgGet (CC("trc"), s);
-      if (*s)
-         trc = (*s == 'y') ? true : false;
+      if (*s)  trc = (*s == 'y') ? true : false;
       else {                           // uh oh !  kick initme !
          CfgPut (CC("trc"), CC("n"));  // skip this?  initme infinite loop :)
          Run (CC("initme"));
          trc = false;
       }
+      Path (s, 'c');   StrAp (s, CC("/dbg.txt"));   fdbg.Open (s, "w");
    }
 
    char *Path (char *s, char typ = 'a')     // [a]ppPath, [c]fgPath
@@ -770,6 +770,7 @@ public:
    }
 
    bool trc;
+   File fdbg;
    TStr grp, app, ttl;
 };
 

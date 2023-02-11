@@ -230,19 +230,19 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 
 void DbgX (char *s, char zz)
 { TStr buf;
-//FILE *f;
-// f = fopen ("/home/sh/dbg", "a");
-// fprintf (f, "%s %s-%08X %s\n",
+  FILE *f;
+   f = fopen ("/home/sh/dbg.txt", "a");
+   fprintf (f, "%s %s-%08X %s\n",
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
-      fprintf (stderr, "%s %s-%08X nZZ=%d\n",
-                             NowMS (buf), App.app, SC(int,pthread_self ()), ln);
-      while (ln--)  {fprintf (stderr,"%d: %s\n", r++, s);   s += (StrLn (s)+1);}
+      fprintf (f, "%s %s-%08X nZZ=%d\n",
+                  NowMS (buf), App.app, SC(int,pthread_self ()), ln);
+      while (ln--)  {fprintf (f, "%d: %s\n", r++, s);   s += (StrLn (s)+1);
    }
-   else
-      fprintf (stderr, "%s %s-%08X %s\n",
-                              NowMS (buf), App.app, SC(int,pthread_self ()), s);
-// fclose (f);
+   else 
+      fprintf (f, "%s %s-%08X %s\n",
+                  NowMS (buf), App.app, SC(int,pthread_self ()), s)
+   fclose (f);
 }
 
 
@@ -501,7 +501,7 @@ char *NowMS (char *s)                  // current time in msec for debuggin
    msec = lrint (tv.tv_usec / 1000.0);      // Round to nearest msec
    if (msec >= 1000)  {msec -= 1000;   tv.tv_sec++;}
    tm = localtime (& tv.tv_sec);
-   strftime (buf, sizeof (buf), "%a.%H:%M:%S", tm);
+   strftime (buf, sizeof (buf), "%d.%a.%H:%M:%S", tm);
    return StrFmt (s, "`s.`03d", buf, msec);
 }
 
