@@ -232,16 +232,15 @@ void DbgX (char *s, char zz)
 { TStr buf;
   FILE *f;
    f = fopen ("/home/sh/dbg.txt", "a");
-   fprintf (f, "%s %s-%08X %s\n",
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
       fprintf (f, "%s %s-%08X nZZ=%d\n",
                   NowMS (buf), App.app, SC(int,pthread_self ()), ln);
-      while (ln--)  {fprintf (f, "%d: %s\n", r++, s);   s += (StrLn (s)+1);
+      while (ln--)  {fprintf (f, "%d: %s\n", r++, s);   s += (StrLn (s)+1);}
    }
    else 
       fprintf (f, "%s %s-%08X %s\n",
-                  NowMS (buf), App.app, SC(int,pthread_self ()), s)
+                  NowMS (buf), App.app, SC(int,pthread_self ()), s);
    fclose (f);
 }
 

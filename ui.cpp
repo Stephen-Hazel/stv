@@ -145,9 +145,7 @@ void QtEr::WinSave (QSplitter *spl)
 
 
 void QtEr::Init (QApplication *a, QMainWindow *w, char fixw)
-{  _a = a;   _w = w;   _fixw = fixw;  }
-
-int  QtEr::Loop ()  { int r = _a->exec ();   return r;  }
+{  _a = a;   _w = w;   _fixw = fixw;  _q = false;  }
 
 
 void QtEr::DlgLoad (QDialog *d, QString nm, QSplitter *spl)
