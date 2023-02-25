@@ -85,13 +85,15 @@ public:
    {  if (b) _w->setWindowState (_w->windowState () |   Qt::WindowFullScreen );
       else   _w->setWindowState (_w->windowState () & (~Qt::WindowFullScreen));
    }
-   int   Loop ();
-   void  Quit ()  {_a->quit ();}
+   int   Loop ()  {if (_q)  return 0;
+                   int r = _a->exec ();   return r;}
+   void  Quit ()  {_q = true;   _a->exit (0);}
 
 private:
    QApplication *_a;
    QMainWindow  *_w;
    char          _fixw;
+   bool          _q;
 };
 extern QtEr Gui;
 

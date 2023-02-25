@@ -802,9 +802,8 @@ inline void Zip (char *dir, char xc = 'x')
 DBG("system `s died rc=`d", cmd, rc);
       StrFmt (cmd, "rm `s.tar.gz", dir);
    }
-   else {                              // c reate .tar.gz of a dir
+   else                                // c reate .tar.gz of a dir
       StrFmt (cmd, "cd `s && tar czf `s.tar.gz `s", pdir, dir, dir);
-   }
    if ((rc = system (cmd)))
 DBG("system `s died rc=`d", cmd, rc);
 }
