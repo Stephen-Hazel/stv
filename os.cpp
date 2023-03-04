@@ -231,17 +231,18 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 void DbgX (char *s, char zz)
 { TStr buf;
   FILE *f;
-   f = fopen ("/home/sh/dbg.txt", "a");
+// f = fopen ("/home/sh/dbg.txt", "a");
+   f = stderr;
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
       fprintf (f, "%s %s-%08X nZZ=%d\n",
                   NowMS (buf), App.app, SC(int,pthread_self ()), ln);
       while (ln--)  {fprintf (f, "%d: %s\n", r++, s);   s += (StrLn (s)+1);}
    }
-   else 
+   else
       fprintf (f, "%s %s-%08X %s\n",
                   NowMS (buf), App.app, SC(int,pthread_self ()), s);
-   fclose (f);
+// fclose (f);
 }
 
 
