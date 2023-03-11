@@ -229,10 +229,13 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 #include "pthread.h"
 
 void DbgX (char *s, char zz)
-{ TStr buf;
+{ char *p;
   FILE *f;
-// f = fopen ("/home/sh/dbg.txt", "a");
-   f = stderr;
+  TStr  fn, buf;
+   if (! (p = getenv ("HOME")))  return;
+   StrCp (fn, p);   StrAp (fn, CC("/dbg.txt"));
+   f = fopen (fn, "a");
+// f = stderr;
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
       fprintf (f, "%s %s-%08X nZZ=%d\n",
@@ -242,7 +245,7 @@ void DbgX (char *s, char zz)
    else
       fprintf (f, "%s %s-%08X %s\n",
                   NowMS (buf), App.app, SC(int,pthread_self ()), s);
-// fclose (f);
+   fclose (f);
 }
 
 
