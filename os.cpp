@@ -602,7 +602,7 @@ TRC("Path::Make `s", dir);
       if (! got) {
          Fn2Path (path);
          if (*path == '\0') {
-DBG("FDir::Make couldn't get path root for `s", dir);
+DBG("Path::Make couldn't get path root for `s", dir);
             return false;
          }
       }
@@ -616,7 +616,7 @@ DBG("FDir::Make couldn't get path root for `s", dir);
       path [p] = '\0';
 TRC(" mkdir `s", path);
       if (mkdir (path, SC(int,perm))) {   // finally MAKE it
-DBG("FDir::Make mkdir died: `s", strerror (errno));
+DBG("Path::Make mkdir died: `s", strerror (errno));
          return false;
       }
    }
@@ -630,22 +630,22 @@ bool Path::Kill (char *dir)
   File f;
   FDir d;
   char df;
-TRC("FDir::Kill `s", dir);
+TRC("Path::Kill `s", dir);
    if ( (*dir == '\0') || (! StrCm (dir, CC("/"))) ) {
-DBG("FDir::Kill  NOT gonna kill your whole hard drive...");
+DBG("Path::Kill  NOT gonna kill your whole hard drive...");
       return false;
    }
 // recursively kill files first cuz can't kill dirs till they're ALL gone
    if ((df = d.Open (fn, dir))) {
       do {
-DBG(" bye `s,`c", fn,df);
+//DBG(" bye `s,`c", fn,df);
          if (! ((df == 'd') ? Kill (fn) : f.Kill (fn)) ) {
-DBG("FDir::Kill `s died early :(", dir);
+DBG("Path::Kill `s died early :(", dir);
             d.Shut ();
             return false;
          }
          df = d.Next (fn);
-DBG(" Next=`s,`c", fn,df);
+//DBG(" Next=`s,`c", fn,df);
       } while (df);
       d.Shut ();
    }
@@ -662,10 +662,10 @@ bool Path::Copy (char *from, char *to)
   File f;
   FDir d;
   char df;
-TRC("FDir::Copy `s `s", from, to);
+TRC("Path::Copy `s `s", from, to);
    StrCp (src, from);
    if (! d.Got (from)) {
-DBG("FDir::Copy  from dir not there");
+DBG("Path::Copy  from dir not there");
       return false;
    }
    Make (to);                          // make dst path in case it ain't there
@@ -676,7 +676,7 @@ DBG("FDir::Copy  from dir not there");
                                  & src [StrLn (from)+1]);
          if (! ((df == 'd') ? Copy (src, dst) : f.Copy (src, dst)) ) {
             d.Shut ();
-DBG("FDir::Copy  :(");
+DBG("Path::Copy  :(");
             return false;
          }
       } while ((df = d.Next (src)));
@@ -692,7 +692,7 @@ void File::DoDir (char *dir, void *ptr, FDoDirFunc func, char *skip)
   char df;
   TStr fn;
   bool naw = false;
-//DBG("DoDir `s", dir);
+//DBG("File::DoDir `s", dir);
    if      (func (ptr, 'd', dir))  naw = true;
    else if ((df = d.Open (fn, dir))) {
       do {
