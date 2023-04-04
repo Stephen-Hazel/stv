@@ -445,6 +445,9 @@ MidiO::~MidiO (void)
 { int err;
 TRC("~MidiO `s", (*_name) ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
+   for (ubyte c = 0;  c < 16;  c++)  Put (c, MC_CC|M_ASOFF);
+   if ((err = ::snd_rawmidi_drain (_hnd)))
+      DBG("snd_rawmidi_drain o `s failed: `s", _name, ::snd_strerror (err));
    if ((err = ::snd_rawmidi_close (_hnd)))
       DBG("snd_rawmidi_close o `s failed: `s", _name, ::snd_strerror (err));
    _hnd = nullptr;
@@ -456,6 +459,7 @@ void MidiO::PutMEv (ubyte *mev, ubyte ln)
    if (Dead ())  {DBG("PutMEv `s but Dead :(", _name);   return;}
 // for INEVitable tracing...:/
 //DBG("MidiO::PutMEv on `s/`s/`s ln=`d", _name, _type, _desc, ln);
+/*
   TStr s, dc;
   char ch;
    StrFmt (dc, " `s.`d ", _name, (mev[0] & 0x0F)+1);
@@ -469,7 +473,6 @@ void MidiO::PutMEv (ubyte *mev, ubyte ln)
          else                       MKey2Str (s, mev [1]);
          DBG("`s`s`c`d",     dc, s, ch, mev [2]);
          break;
-/*
       case M_PROG:
          DBG("`sProg=`s.`d", dc, MProg [mev[1]], mev[1]);
          break;
@@ -516,13 +519,10 @@ void MidiO::PutMEv (ubyte *mev, ubyte ln)
          DBG("`sln=`d ??? `d `d `d `d (x`02x `02x `02x `02x)",
              dc, ln, mev[0], mev[1], mev[2], mev[3],
                      mev[0], mev[1], mev[2], mev[3]);
-*/
    }
-//
-   if      ((err = ::snd_rawmidi_write (_hnd, mev, ln)) != ln)
-      DBG("snd_rawmidi_write failed: rc=`d <> ln=`d", err, ln);
-   else if ((err = ::snd_rawmidi_drain (_hnd)))
-      DBG("snd_rawmidi_drain failed: `s", ::snd_strerror (err));
+*/
+   if ((err = ::snd_rawmidi_write (_hnd, mev, ln)) != ln)
+      DBG("snd_rawmidi_write o `s failed: rc=`d <> ln=`d", _name, err, ln);
 }
 
 

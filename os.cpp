@@ -160,64 +160,108 @@ sbyt4 Str2Int (char *s, char **p)
    return ng ? -i : i;
 }
 
-char *StrFmtX (char *so, char const *fmti, va_list va)  // sprintf replacement
-{ char *s, c, fc, ju, buf [12], *fmt = CC(fmti);
-  ubyt4 ln, ln2, ln3, u;
+char *StrFmtX (char *out, char const *fmti, va_list va)  // sprintf replacement
+// `   substitute
+// <>0 justification/prefix 0s
+// ``  allow ` without substitue
+// s   string
+// p   path escaped by ' for shell :/
+// c   char
+// b   bool
+// u   unsigned int decimal
+// d     signed int decimal
+// x   hex int
+{ char *fmt, ju, fc,   *s, buf [12],  c, *pc;
+  ubyt4      ln,        sLn, padLn,   u;
   sbyt4 i;
   bool  b;
-   *so = '\0';
-   if (fmt == nullptr)  return so;
+  BStr  bs;
+   *out = '\0';   if ((fmt = CC(fmti)) == nullptr)  return out;
    while (*fmt) {
-      if (*fmt != '`')                 // fmt HAS to be ascii
-           {ln = StrLn (so);   so [ln] = *fmt++;   so [ln+1] = '\0';}
-      else {                           // init to stringize dat arg
-         ++fmt;   ju = '\0';   s = buf;   ln = ln3 = 0;
-         if (StrCh (CC("<>0"), *fmt)) {
-            ju = *fmt++;   ln = SC(ubyt4,Str2Int (fmt, & fmt));
-            if (! ln)  {DBG("StrFmtX: bad args (len)");   return so;}
+      if (*fmt != '`')                 // un-substitued char (HAS to be ascii)
+         {ln = StrLn (out);   out [ln] = *fmt++;   out [ln+1] = '\0';
+          continue;}
+
+   // init to stringize dat arg
+      ++fmt;   ju = '\0';   s = buf;   ln = padLn = 0;
+
+   // get ju,ln before our format char (fc)
+      if (StrCh (CC("<>0"), *fmt)) {
+         ju = *fmt++;   ln = SC(ubyt4,Str2Int (fmt, & fmt));
+         if (! ln)  {DBG("StrFmtX: bad args (len)");   return out;}
+      }
+
+   // set fc n va_arg in whatev we gots.  we end w s pointin to it's str
+      switch (fc = *fmt++) {
+         case '`':
+            s = CC("`");               // allow `` => `
+            break;
+         case 's': case 'p':
+            s =          va_arg (va, char *);
+            break;
+         case 'u':
+            u = SC(ubyt4,va_arg (va, unsigned int));
+            s = Unt2Str (u, buf);
+            break;
+         case 'd':  case 'x':
+            i = SC(sbyt4,va_arg (va, int));
+            s = Int2Str (i, buf, fc);
+            if ((fc == 'x') && (! ju)) {    // square up the hex ln
+               ln = StrLn (s);
+               if ((ln > 1) && (ln % 2))  {ju = '0';   ln++;}
+            }
+            break;
+         case 'c':
+            c = SC(char,va_arg (va, int));   buf [0] = c;   buf [1] = '\0';
+            break;
+         case 'b':
+            b =         va_arg (va, int) ? true : false;
+            StrCp (buf, CC(b ? "T" : "F"));
+            break;
+         default:
+            DBG("StrFmtX: bad args (fmt=`s fc=`d)", fmti, fc);   return out;
+      }
+
+   // do ju,ln make us put stuff in front of s?
+      if ( ju && ((sLn = StrLn (s)) < ln) ) {
+         padLn = ln - sLn;
+         if (ju != '<') {              // < means put stuff aaafter s (later)
+            if (ju != '0')  ju = ' ';
+            ln = StrLn (out);   MemSet (& out [ln], SC(ubyte,ju), padLn);
+                                          out [ln+padLn] = '\0';
+            padLn = 0;
          }
-         switch (fc = *fmt++) {        // ^gots ta pad
-            case '`':
-               s = CC("`");            // allow `` => `
-               break;
-            case 's':
-               s =          va_arg (va, char *);
-               break;
-            case 'u':
-               u = SC(ubyt4,va_arg (va, unsigned int));
-               s = Unt2Str (u, buf);
-               break;
-            case 'd':  case 'x':
-               i = SC(sbyt4,va_arg (va, int));   s = Int2Str (i, buf, fc);
-               if ((fc == 'x') && (! ju)) {      // square up the hex ln
-                  ln = StrLn (s);
-                  if ((ln > 1) && (ln % 2))  {ju = '0';   ln++;}
+      }
+
+   // in goes s
+      if      (s == nullptr)  StrAp (out, CC("NULL"));
+      else if (fc != 'p')     StrAp (out, s);
+      else {                           // fuckin linux
+         ln = StrLn (out);   StrCp (bs, s);   s = bs;
+         while (*s) {
+            if ((pc = StrCh (s, '\'')) != nullptr) {
+               if (pc != s) {
+                  *pc = '\0';          // now string ends where ' was
+                  StrAp (out, CC("'"));   StrAp (out, s);
+                  StrAp (out, CC("'"));
                }
-               break;
-            case 'c':
-               c = SC(char,va_arg (va, int));   buf [0] = c;   buf [1] = '\0';
-               break;
-            case 'b':
-               b =         va_arg (va, int) ? true : false;
-               StrCp (buf, CC(b ? "T" : "F"));
-               break;
-            default:
-               DBG("StrFmtX: bad args (fmt=`s fc=`d)", fmti, fc);   return so;
+               do StrAp (out, CC("\\'"));   while (*(++pc) == '\'');
+                                        s = pc;
+            }
+            else {
+               StrAp (out, CC("'"));   StrAp (out, s);
+               StrAp (out, CC("'"));   *s = '\0';     // DONE !!
+            }
          }
-         if ( ju && ((ln2 = StrLn (s)) < ln) ) {
-            ln3 = ln - ln2;
-            if (ju != '<')
-                   {if (ju != '0')  ju = ' ';
-                    ln = StrLn (so);   MemSet (& so [ln], SC(ubyte,ju), ln3);
-                    so [ln+ln3] = '\0';
-                    ln3 = 0;}
-         }
-         StrAp (so, s ? s : CC("NULL"));
-         if (ln3)  {ln = StrLn (so);   MemSet (& so [ln], ' ', ln3);
-                    so [ln+ln3] = '\0';}
+      }
+
+   // did ju,ln make us put stuff after s?
+      if (padLn) {
+         ln = StrLn (out);   MemSet (& out [ln], ' ', padLn);
+                                       out [ln+padLn] = '\0';
       }
    }
-   return so;
+   return out;
 }
 
 
@@ -511,8 +555,8 @@ char *NowMS (char *s)                  // current time in msec for debuggin
 
 bool File::Copy (char *from, char *to)
 { int ff, ft;
-  TStr tod;
-  FDir d;
+  BStr tod;
+  Path d;
 TRC("File::Copy from='`s' to='`s'", from, to);
    StrCp (tod, to);   Fn2Path (tod);   d.Make (tod);
    if (! (ff = open (from, O_RDONLY, 0)))
@@ -527,7 +571,7 @@ TRC("File::Copy from='`s' to='`s'", from, to);
 
 bool File::ReNm (char *from, char *to)
 { TStr tod;
-  FDir d;
+  Path d;
 TRC("File::ReNm from='`s' to='`s'", from, to);
    StrCp (tod, to);   Fn2Path (tod);   d.Make (tod);
    if (! rename (from, to))  return true;
@@ -544,16 +588,17 @@ DBG("File::Kill remove(`s) error:`s\n", fn, strerror (errno));
 }
 
 
-bool FDir::Make (char *dir, ubyt2 perm)
+bool Path::Make (char *dir, ubyt2 perm)
 // make dir (and everything up to it)
 { TStr path;
+  FDir d;
   bool got;
   ubyt2 p;
-TRC("FDir::Make `s", dir);
+TRC("Path::Make `s", dir);
    StrCp (path, dir);
 // see if the dir is there.  if not, trim it down and see if THAT's there, etc
    do {
-      got = Got (path);
+      got = d.Got (path);
       if (! got) {
          Fn2Path (path);
          if (*path == '\0') {
@@ -579,10 +624,11 @@ DBG("FDir::Make mkdir died: `s", strerror (errno));
 }
 
 
-bool FDir::Kill (char *dir)
+bool Path::Kill (char *dir)
 // kill dir (and EVERything in it)
 { TStr fn;
   File f;
+  FDir d;
   char df;
 TRC("FDir::Kill `s", dir);
    if ( (*dir == '\0') || (! StrCm (dir, CC("/"))) ) {
@@ -590,15 +636,18 @@ DBG("FDir::Kill  NOT gonna kill your whole hard drive...");
       return false;
    }
 // recursively kill files first cuz can't kill dirs till they're ALL gone
-   if ((df = Open (fn, dir))) {
-      do
+   if ((df = d.Open (fn, dir))) {
+      do {
+DBG(" bye `s,`c", fn,df);
          if (! ((df == 'd') ? Kill (fn) : f.Kill (fn)) ) {
 DBG("FDir::Kill `s died early :(", dir);
-            Shut ();
+            d.Shut ();
             return false;
          }
-      while ((df = Next (fn)));
-      Shut ();
+         df = d.Next (fn);
+DBG(" Next=`s,`c", fn,df);
+      } while (df);
+      d.Shut ();
    }
 // NOW we can kill the dir
    rmdir (dir);
@@ -607,30 +656,31 @@ TRC(" rmdir `s", dir);
 }
 
 
-bool FDir::Copy (char *from, char *to)
+bool Path::Copy (char *from, char *to)
 // copy dir in FROM (and everything in it) to TO
 { TStr src, dst;
   File f;
+  FDir d;
   char df;
 TRC("FDir::Copy `s `s", from, to);
    StrCp (src, from);
-   if (! Got (from)) {
+   if (! d.Got (from)) {
 DBG("FDir::Copy  from dir not there");
       return false;
    }
    Make (to);                          // make dst path in case it ain't there
 // do every non . or .. dir and every file
-   if ((df = Open (src, from))) {
+   if ((df = d.Open (src, from))) {
       do {
          StrFmt (dst, "`s`s`s", to, to [StrLn (to)-1] == '/' ? "" : "/",
                                  & src [StrLn (from)+1]);
          if (! ((df == 'd') ? Copy (src, dst) : f.Copy (src, dst)) ) {
-            Shut ();
+            d.Shut ();
 DBG("FDir::Copy  :(");
             return false;
          }
-      } while ((df = Next (src)));
-      Shut ();
+      } while ((df = d.Next (src)));
+      d.Shut ();
    }
    return true;
 }

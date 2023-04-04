@@ -238,6 +238,13 @@ typedef struct {ubyt4 time;  ubyte ctrl, valu, val2, x;} TrkEv;
 #define MNPRS(m)  (MNOTE(m) && MDOWN(m) &&    MPRSS(m) )
 #define MNTUP(m)  (MNOTE(m) && MUP(m))
 
+inline bool FnMid (char *fn)
+{ ubyt2 ln = StrLn (fn);
+   return ( (ln > 4) && ((! StrCm (& fn [ln-4], CC(".mid"))) ||
+                         (! StrCm (& fn [ln-4], CC(".kar"))) ||
+                         (! StrCm (& fn [ln-4], CC(".rmi")))) ) ? true : false;
+}
+
 
 //______________________________________________________________________________
 extern ubyte MNt      (char *s);
@@ -268,7 +275,7 @@ extern void  CtlX2Val (TrkEv *e, char *cs, char *s);
 
 // MidiChd.cpp stuff...
 // for chord calcs  chordType label, offset set, use in Calc, yamaha chord ID#
-struct MChdDef {char const *lbl;  char tmp [8];  
+struct MChdDef {char const *lbl;  char tmp [8];
                 char calc;  ubyte yId;  char const *etc;};
 const  ubyte   MAJ_CHD = 3;            // 0=off,1=oct,2=5,3=maj
 extern MChdDef MChd [];
