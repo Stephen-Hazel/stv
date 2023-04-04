@@ -310,10 +310,10 @@ class Path {
 public:
    bool Empty (char *dir)
    // exists AND empty - kinda tricky :(
-   { FDir fd;
+   { FDir d;
      TStr fn;
-      if (! fd.Got (dir))  return false;  // can't be empty if it ain't there
-      if (fd.Open (fn, dir))  {fd.Shut ();   return false;}
+      if (! d.Got (dir))  return false;     // can't be empty if it ain't there
+      if (d.Open (fn, dir))  {d.Shut ();   return false;}
       return true;
    }
 
@@ -321,17 +321,17 @@ public:
    ubyt2 FLst (char *dir, TStr *lst, ubyt2 max)
    // get (just) files (nonrecursively) in dir matching pat
    { ubyt2 len = 0;
+     FDir  d;
      char  df;
      TStr  fn;
-     FDir  fd;
-      if ((df = fd.Open (fn, dir))) {
+      if ((df = d.Open (fn, dir))) {
          do {
             if (df == 'f') {
                if (len >= max)  {DBG ("Path::FLst  len>max  `s", dir);   break;}
                else              StrCp (lst [len++], & fn [StrLn (dir)+1]);
             }
-         } while ((df = fd.Next (fn)));
-         fd.Shut ();
+         } while ((df = d.Next (fn)));
+         d.Shut ();
       }
       return len;
    }
@@ -339,17 +339,17 @@ public:
    ubyt2 DLst (char *dir, TStr *lst, ubyt2 max)
    // get subdirs of dir
    { ubyt2 len = 0;
+     FDir  d;
      char  df;
      TStr  fn;
-     FDir  fd;
-      if ((df = fd.Open (fn, dir))) {
+      if ((df = d.Open (fn, dir))) {
          do {
             if (df == 'd') {
-               if (len >= max)  {DBG ("FDir::DLst  len>max  `s", dir);   break;}
+               if (len >= max)  {DBG ("Path::DLst  len>max  `s", dir);   break;}
                else              StrCp (lst [len++], & fn [StrLn (dir)+1]);
             }
-         } while ((df = fd.Next (fn)));
-         fd.Shut ();
+         } while ((df = d.Next (fn)));
+         d.Shut ();
       }
       return len;
    }
