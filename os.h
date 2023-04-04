@@ -299,11 +299,21 @@ DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
    void Shut ()
    {  if (_d) {closedir (_d);   _d = nullptr;}  }
 
+private:
+   char   *_dir;
+   DIR    *_d;
+   dirent *_e;
+};
+
+
+class Path {
+public:
    bool Empty (char *dir)
    // exists AND empty - kinda tricky :(
-   { TStr fn;
-      if (! Got (dir))  return false;  // can't be empty if it ain't there
-      if (Open (fn, dir))  {Shut ();   return false;}
+   { FDir fd;
+     TStr fn;
+      if (! fd.Got (dir))  return false;  // can't be empty if it ain't there
+      if (fd.Open (fn, dir))  {fd.Shut ();   return false;}
       return true;
    }
 
@@ -313,14 +323,15 @@ DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
    { ubyt2 len = 0;
      char  df;
      TStr  fn;
-      if ((df = Open (fn, dir))) {
+     FDir  fd;
+      if ((df = fd.Open (fn, dir))) {
          do {
             if (df == 'f') {
-               if (len >= max)  {DBG ("FDir::FLst  len>max  `s", dir);   break;}
+               if (len >= max)  {DBG ("Path::FLst  len>max  `s", dir);   break;}
                else              StrCp (lst [len++], & fn [StrLn (dir)+1]);
             }
-         } while ((df = Next (fn)));
-         Shut ();
+         } while ((df = fd.Next (fn)));
+         fd.Shut ();
       }
       return len;
    }
@@ -330,14 +341,15 @@ DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
    { ubyt2 len = 0;
      char  df;
      TStr  fn;
-      if ((df = Open (fn, dir))) {
+     FDir  fd;
+      if ((df = fd.Open (fn, dir))) {
          do {
             if (df == 'd') {
                if (len >= max)  {DBG ("FDir::DLst  len>max  `s", dir);   break;}
                else              StrCp (lst [len++], & fn [StrLn (dir)+1]);
             }
-         } while ((df = Next (fn)));
-         Shut ();
+         } while ((df = fd.Next (fn)));
+         fd.Shut ();
       }
       return len;
    }
@@ -346,11 +358,6 @@ DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
    bool Make (char *dir, ubyt2 perm = 0755);
    bool Kill (char *dir);
    bool Copy (char *from, char *to);
-
-private:
-   char   *_dir;
-   DIR    *_d;
-   dirent *_e;
 };
 
 
@@ -397,7 +404,7 @@ public:
             tf.Copy (name, fn);        // copy to back up
          }
         TStr dir;
-        FDir d;
+        Path d;
          StrCp (dir, _fn);   Fn2Path (dir);   if (*dir)  d.Make (dir);
          if (0 <= (_f = open (_fn, O_WRONLY | O_CREAT | O_TRUNC, perm)))
             return true;
@@ -784,8 +791,7 @@ inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
   int   rc;
   File  f;
    do StrFmt (fn, "/tmp/wget.`d", ++i);   while (f.Size (fn));  // find tmp fn
-   StrFmt (c, "wget -q -O `s `s", fn, url);                     // wget it
-   if ((rc = system (c)))
+   if ((rc = system (StrFmt (c, "wget -q -O `p `p", fn, url)))) // wget it
          {DBG("system `s died rc=`d", c, rc);   i = 0;}
    else  {i = f.Load (fn, buf, siz);   f.Kill (fn);}            // load n kill
    buf [i] = '\0';                     // term string
@@ -797,13 +803,12 @@ inline void Zip (char *dir, char xc = 'x')
   int  rc;
    StrCp (pdir, dir);   Fn2Path (pdir);
    if (xc == 'x') {                    // x tract .tar.gz to a dir (n kill it)
-      StrFmt (cmd, "cd `s && tar xzf `s.tar.gz", pdir, dir);
-      if ((rc = system (cmd)))
+      if ((rc = system (StrFmt (cmd, "cd `p && tar xzf `p.tar.gz", pdir, dir))))
 DBG("system `s died rc=`d", cmd, rc);
-      StrFmt (cmd, "rm `s.tar.gz", dir);
+      StrFmt (cmd, "rm `p.tar.gz", dir);
    }
    else                                // c reate .tar.gz of a dir
-      StrFmt (cmd, "cd `s && tar czf `s.tar.gz `s", pdir, dir, dir);
+      StrFmt (cmd, "cd `p && tar czf `p.tar.gz `p", pdir, dir, dir);
    if ((rc = system (cmd)))
 DBG("system `s died rc=`d", cmd, rc);
 }

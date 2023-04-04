@@ -345,7 +345,7 @@ void CtlTabl::HopTo (ubyt2 r, ubyte c)  {_t->scrollToItem   (_t->item (r, c));
 void CtlTabl::SetColor (ubyt2 r, QColor c)
 {  for (ubyte i = NCol ();  i;  i--) {
 //    _t->item (r, i-1)->setForeground (QBrush (CBLACK));
-      _t->item (r, i-1)->setForeground (QBrush (c));
+      _t->item (r, i-1)->setBackground (QBrush (c));
    }
 }
 
