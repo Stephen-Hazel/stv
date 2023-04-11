@@ -5,6 +5,8 @@
 #define EVEN(n)     ((n)&0xFFFFFFFE)
 #define EVEN_UP(n)  EVEN((n)+1)
 
+#define WAVE_FORMAT_PCM	 0x0001
+
 typedef struct GUID {
    ubyt4 Data1;
    ubyt2 Data2;
@@ -29,8 +31,8 @@ typedef struct {
       sbyt2 wSamplesPerBlock;
       sbyt2 wReserved;
    } Samples;
-   sbyt4   dwChannelMask;
-   GUID    SubFormat;
+   sbyt4    dwChannelMask;
+   GUID     SubFormat;
 } WAVEFORMATEXTENSIBLE;
 
 typedef struct {
@@ -64,7 +66,7 @@ typedef struct {
    sbyt4 cbSamplerData;
    struct SampleLoop Loops [];
 } SamplerChunk;
-*/
+
 class Wav {
 public:
    Wav ();
@@ -84,3 +86,4 @@ public:
    ubyt4                _fmtSz;
    WAVESMPL            *_smp;
 };
+*/

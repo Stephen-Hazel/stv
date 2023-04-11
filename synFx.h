@@ -2,7 +2,7 @@
 
 class LPF {                            // low pass filter
    bool  init;
-   ulong inc;
+   ubyt4 inc;
    real  cut,  res,                    // cutoff frequency, resonance params
         pCut, pRes, gain,              // prev cut;  gain derived from res
          a1,    a2,    b1,    b2,
@@ -93,55 +93,55 @@ public:
 
 class Chorus {
 public:
-   slong  blocks;                      // number of blocks used 0-MAX_BLOCK(=99)
+   sbyt4  blocks;                      // number of blocks used 0-MAX_BLOCK(=99)
    real   level, speed, depth;         // speed in Hz; depth in msec
-   slong  type;                        // 0=sin 1=tri
-   slong  modPerSamples;               // modulation period samples
-   slong  counter;
+   sbyt4  type;                        // 0=sin 1=tri
+   sbyt4  modPerSamples;               // modulation period samples
+   sbyt4  counter;
    real  *chorusbuf;
-   slong *lookup;
-   slong  phase [MAX_BLOCK];
+   sbyt4 *lookup;
+   sbyt4  phase [MAX_BLOCK];
    real   sinc_table [INTERP_SAMPLES][INTERP_SUBSAMPLES];
 
-   void sine     (slong *buf, slong len, slong depth)
-   { slong i;
+   void sine     (sbyt4 *buf, sbyt4 len, sbyt4 depth)
+   { sbyt4 i;
      real  val;
       for (i = 0;  i < len;  i++) {
          val = sin ((real) i / (real)len * 2.*PI);
-         buf [i]  = (slong)((1. + val) * (real) depth / 2. *
+         buf [i]  = (sbyt4)((1. + val) * (real) depth / 2. *
                                          (real) INTERP_SUBSAMPLES);
          buf [i] -= 3* MAX_SAMPLES *            INTERP_SUBSAMPLES;
       }
    }
 
-   void triangle (slong *buf, slong len, slong depth)
-   { slong i = 0, ii = len-1;
+   void triangle (sbyt4 *buf, sbyt4 len, sbyt4 depth)
+   { sbyt4 i = 0, ii = len-1;
      real  val, val2;
       while (i <= ii) {
          val  = i * 2. / len * (real)depth *     (real)INTERP_SUBSAMPLES;
-         val2 = (slong)(val + 0.5) - 3 * MAX_SAMPLES * INTERP_SUBSAMPLES;
-         buf [i++]  = (slong) val2;
-         buf [ii--] = (slong) val2;
+         val2 = (sbyt4)(val + 0.5) - 3 * MAX_SAMPLES * INTERP_SUBSAMPLES;
+         buf [i++]  = (sbyt4) val2;
+         buf [ii--] = (sbyt4) val2;
       }
    }
 
    void Update ()
    // reset stuff for new params
-   { slong i, modDepthSamps;
+   { sbyt4 i, modDepthSamps;
 //TStr s1,s2,s3;
 //DBG("chorus Update blocks=`d level=`s speed=`s depthh=`s type=`d",
 //blocks, R2Str(level,s1), R2Str(speed,s2), R2Str(depth,s3), type);
-      modPerSamples = (slong)(AuO.frq / speed);
-      modDepthSamps = (slong)(depth / 1000. * AuO.frq);
+      modPerSamples = (sbyt4)(AuO.frq / speed);
+      modDepthSamps = (sbyt4)(depth / 1000. * AuO.frq);
       if (modDepthSamps > MAX_SAMPLES)  modDepthSamps = MAX_SAMPLES;
       if (type == 1)  triangle (lookup, modPerSamples, modDepthSamps);
       else            sine     (lookup, modPerSamples, modDepthSamps);
       for (i = 0;  i < blocks;  i++)  phase [i] =
-                          (slong)((real)modPerSamples * (real)i / (real)blocks);
+                          (sbyt4)((real)modPerSamples * (real)i / (real)blocks);
       counter = 0;                     // (re)start circular buffer
    }
 
-   void SetNr    (slong val)
+   void SetNr    (sbyt4 val)
    {  if      (val < 0)          val = 0;
       else if (val > MAX_BLOCK)  val = MAX_BLOCK;        blocks = val;}
 
@@ -154,10 +154,10 @@ public:
       else if (val > MAX_SPEED)  val = MAX_SPEED;         speed = val;}
 
    void SetDepth (real val)   {if (val < 0.)  val = 0.;   depth = val;}
-   void SetType (slong val)                               {type = val;}
+   void SetType (sbyt4 val)                               {type = val;}
 
    Chorus ()
-   { slong i, ii;
+   { sbyt4 i, ii;
      real  iShf;
       MemSet (this, 0, sizeof (Chorus));
       for (i = 0; i < INTERP_SAMPLES; i++)
@@ -171,17 +171,17 @@ public:
                          cos (2.*PI * iShf / (real)INTERP_SAMPLES));
             }
          }
-      lookup = new slong [(ulong)(AuO.frq / MIN_SPEED)];
+      lookup = new sbyt4 [(ubyt4)(AuO.frq / MIN_SPEED)];
       chorusbuf  = new real  [MAX_SAMPLES];
    // init
-      for (slong i = 0; i < MAX_SAMPLES; i++)  chorusbuf [i] = 0.;
+      for (sbyt4 i = 0; i < MAX_SAMPLES; i++)  chorusbuf [i] = 0.;
    }
 
   ~Chorus ()  {delete [] chorusbuf;   delete [] lookup;}
 
    void Mix (real *in, real *mixL, real *mixR)
-   { ulong smp;
-     slong i, ii, pos_samples, pos_subsamples;
+   { ubyt4 smp;
+     sbyt4 i, ii, pos_samples, pos_subsamples;
      real  d_in, d_out;
       for (smp = 0;  smp < AuO.bufLn;  smp++) {
          d_in = in [smp];   d_out = 0.;
@@ -213,9 +213,9 @@ public:
 class Allpass {                        // allpass and comb are simpler filters
 public:                                // used by reverb to do it's thing
    real *buf;
-   slong len, pos;
+   sbyt4 len, pos;
 
-   Allpass (slong l)
+   Allpass (sbyt4 l)
    {  buf = new real [len = l];   pos = 0;
       while (l)  buf [--l] = DC_OFFSET;
    }
@@ -235,9 +235,9 @@ public:                                // used by reverb to do it's thing
 class Comb {
 public:
    real *buf, feedback, damp1, damp2, store;
-   slong len, pos;
+   sbyt4 len, pos;
 
-   Comb (slong l)
+   Comb (sbyt4 l)
    {  buf = new real [len = l];   pos = 0;   store = 0;
       while (l)  buf [--l] = DC_OFFSET;
    }
@@ -274,9 +274,9 @@ public:
 */
 
 // These assume 44.1KHz sample rate so adjust em
-const ulong LEN_COMB [NUM_COMB] =
+const ubyt4 LEN_COMB [NUM_COMB] =
                                {1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617};
-const ulong LEN_ALLP [NUM_ALLP] = {556, 441, 341, 225};
+const ubyt4 LEN_ALLP [NUM_ALLP] = {556, 441, 341, 225};
 
 class Reverb {
 public:
@@ -286,7 +286,7 @@ public:
 
    void Update ()                      // reinit given new params
    {  wet1 = wet * (width / 2 + 0.5f);   wet2 = wet * ((1 - width) / 2);
-      for (slong i = 0;  i < NUM_COMB;  i++)
+      for (sbyt4 i = 0;  i < NUM_COMB;  i++)
          {combL [i]->setfeedback (room);   combL [i]->setdamp (damp);
           combR [i]->setfeedback (room);   combR [i]->setdamp (damp);}
    }
@@ -297,28 +297,28 @@ public:
    void SetWidth (real val)  {width =  val;}
 
    Reverb ()
-   { ulong i;
+   { ubyt4 i;
      real  lenSc = AuO.frq / 44100.0;
       for (i = 0;  i < NUM_COMB;  i++) {
-         combL [i] = new Comb    ((slong)( LEN_COMB [i]             * lenSc));
-         combR [i] = new Comb    ((slong)((LEN_COMB [i]+STEREO_SPR) * lenSc));
+         combL [i] = new Comb    ((sbyt4)( LEN_COMB [i]             * lenSc));
+         combR [i] = new Comb    ((sbyt4)((LEN_COMB [i]+STEREO_SPR) * lenSc));
       }
       for (i = 0;  i < NUM_ALLP;  i++) {
-         allpL [i] = new Allpass ((slong)( LEN_ALLP [i]             * lenSc));
-         allpR [i] = new Allpass ((slong)((LEN_ALLP [i]+STEREO_SPR) * lenSc));
+         allpL [i] = new Allpass ((sbyt4)( LEN_ALLP [i]             * lenSc));
+         allpR [i] = new Allpass ((sbyt4)((LEN_ALLP [i]+STEREO_SPR) * lenSc));
       }
    }
 
   ~Reverb ()
-   { ulong i;
+   { ubyt4 i;
       for (i = 0;  i < NUM_COMB;  i++)  {delete combL [i];   delete combR [i];}
       for (i = 0;  i < NUM_ALLP;  i++)  {delete allpL [i];   delete allpR [i];}
    }
 
    void Mix (real *in, real *mixL, real *mixR)
-   { slong i;
+   { sbyt4 i;
      real  outL, outR, input;
-      for (ulong k = 0;  k < AuO.bufLn;  k++) {
+      for (ubyt4 k = 0;  k < AuO.bufLn;  k++) {
          outL = outR = 0;
          input = (2 * in [k] + DC_OFFSET) * REVERB_GAIN;   // gain is fixed
          for (i = 0;  i < NUM_COMB;  i++)  {combL [i]->mix (input, & outL);
