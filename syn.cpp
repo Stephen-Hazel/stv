@@ -14,7 +14,7 @@ char *R2Str (real f, char *s)
    neg = (f < 0.) ? true : false;   if (neg) f = -f;
    i = (int)f;   f -= (real)i;
    StrFmt (t, "`09d", (int)(f*1000000000.));
-   while (ln = StrLn (t))  {if (t[--ln] == '0')  t[ln] = '\0';  else break;}
+   while (ln = StrLn (t))  {if (t [--ln] == '0')  t [ln] = '\0';  else break;}
    return StrFmt (s, "`s`d`s`s", neg?"-":"", i, *t?".":"", t);
 }
 
@@ -35,7 +35,7 @@ void InitInterp ()
 real     Dither [2][MAX_DITHER];       // per l/r channel
 void InitDither (void)                 // rand real btw -.999 and +.999
 { real  d, dp;
-  slong c, i;
+  sbyt4 c, i;
    for (c = 0; c < 2; c++) {
       dp = 0;
       for (i = 0; i < MAX_DITHER-1; i++) {
@@ -52,18 +52,18 @@ real Cnv_pan   [127];                  // 128    2 pan
 
 real Ct2Hz (real ct)
 {  if (ct <     0.) return (real)    1.;
-   if (ct <   900.) return (real)  6.875 * Cnv_ct2hz [(slong)(ct +   300)];
-   if (ct <  2100.) return (real)  13.75 * Cnv_ct2hz [(slong)(ct -   900)];
-   if (ct <  3300.) return (real)   27.5 * Cnv_ct2hz [(slong)(ct -  2100)];
-   if (ct <  4500.) return (real)   55.  * Cnv_ct2hz [(slong)(ct -  3300)];
-   if (ct <  5700.) return (real)  110.  * Cnv_ct2hz [(slong)(ct -  4500)];
-   if (ct <  6900.) return (real)  220.  * Cnv_ct2hz [(slong)(ct -  5700)];
-   if (ct <  8100.) return (real)  440.  * Cnv_ct2hz [(slong)(ct -  6900)];
-   if (ct <  9300.) return (real)  880.  * Cnv_ct2hz [(slong)(ct -  8100)];
-   if (ct < 10500.) return (real) 1760.  * Cnv_ct2hz [(slong)(ct -  9300)];
-   if (ct < 11700.) return (real) 3520.  * Cnv_ct2hz [(slong)(ct - 10500)];
-   if (ct < 12900.) return (real) 7040.  * Cnv_ct2hz [(slong)(ct - 11700)];
-   if (ct < 14100.) return (real)14080.  * Cnv_ct2hz [(slong)(ct - 12900)];
+   if (ct <   900.) return (real)  6.875 * Cnv_ct2hz [(sbyt4)(ct +   300)];
+   if (ct <  2100.) return (real)  13.75 * Cnv_ct2hz [(sbyt4)(ct -   900)];
+   if (ct <  3300.) return (real)   27.5 * Cnv_ct2hz [(sbyt4)(ct -  2100)];
+   if (ct <  4500.) return (real)   55.  * Cnv_ct2hz [(sbyt4)(ct -  3300)];
+   if (ct <  5700.) return (real)  110.  * Cnv_ct2hz [(sbyt4)(ct -  4500)];
+   if (ct <  6900.) return (real)  220.  * Cnv_ct2hz [(sbyt4)(ct -  5700)];
+   if (ct <  8100.) return (real)  440.  * Cnv_ct2hz [(sbyt4)(ct -  6900)];
+   if (ct <  9300.) return (real)  880.  * Cnv_ct2hz [(sbyt4)(ct -  8100)];
+   if (ct < 10500.) return (real) 1760.  * Cnv_ct2hz [(sbyt4)(ct -  9300)];
+   if (ct < 11700.) return (real) 3520.  * Cnv_ct2hz [(sbyt4)(ct - 10500)];
+   if (ct < 12900.) return (real) 7040.  * Cnv_ct2hz [(sbyt4)(ct - 11700)];
+   if (ct < 14100.) return (real)14080.  * Cnv_ct2hz [(sbyt4)(ct - 12900)];
    return                  (real)    1.;
 }
 
@@ -76,7 +76,7 @@ real Pan (ubyte c, bool lft)
 
 
 void InitLookup (void)
-{ slong i;
+{ sbyt4 i;
   real  x;
    for (i = 0;  i < BITS (Cnv_ct2hz);  i++)
       Cnv_ct2hz [i] = (real) pow (2., (real) i / 1200.);
