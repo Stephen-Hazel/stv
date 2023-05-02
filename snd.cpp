@@ -1,107 +1,222 @@
 // snd.h - sound - out only - deal with alsa pcm
 
 #include "snd.h"
+#include <math.h>
 
-SndOLst Snd;
+SndLst Snd;
 
-void SndO::run ()                      // poll loop runnin in sep thread
-{ ubyte buf [256];
-  ubyt2 re;
-  int   i, ln, err, npf;
-  struct pollfd *pf;
-TRC("run bgn `s", _desc);
-   snd_pcm_writei (_hnd, nullptr, 0);      // trigger reading
-   npf = snd_pcm_poll_descriptors_count (_hnd);
-   pf  = (struct pollfd *)alloca (npf * sizeof (struct pollfd));
-   snd_pcm_poll_descriptors (_hnd, pf, npf);
-   while (_run) {
-      err = poll (pf, npf, 500);       // timeout at 1/2 sec (500 millisec)
-      if (err < 0)
-         {DBG ("poll failed: `s", strerror (errno));   break;}
-
-      err = snd_pcm_poll_descriptors_revents (_hnd, pf, npf, & re);
-      if (err < 0)
-         {DBG("s_r_poll_d_revents failed: `s", snd_strerror (err));   break;}
-      if (re & (POLLERR | POLLHUP))
-         {DBG("s_r_poll_d_revents ERR/HUP");   break;}
-
-      err = snd_pcm_writei (_hnd, buf, sizeof (buf));
-      if (err == -EAGAIN)  continue;   // just ain't nothin therez
-
-      if (err < 0)
-         {DBG ("s_r_read failed: `s", snd_strerror (err));   break;}
-
-      if (ln == 0)  continue;
-      if (ln >  4)  continue;
-      emit SndBuf ();
+void SndLst::Load ()                   // whiiich device/descrips do we gots?
+{ TStr name;
+  int  c, d, e;                        // card, device, error
+  snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
+  snd_ctl_t *h;                        // handle
+  snd_ctl_card_info_t *info;
+  snd_pcm_info_t      *pcmi;
+   len = 0;   snd_ctl_card_info_alloca (& info);
+   c = -1;         snd_pcm_info_alloca (& pcmi);
+   if ((snd_card_next (& c) < 0) || (c < 0)) {
+      StrCp (lst [0].desc, CC("(no audio outs)"));
+             lst [0].dev [0] = '\0';
+      return;
    }
-   _run = false;
-TRC("run end `s", _desc);
+   snd_pcm_stream_name (stream);
+   while (c >= 0) {
+      StrFmt (name, "hw:`d", c);
+      if ((e = snd_ctl_open (& h, name, 0)) < 0)
+{DBG("snd_ctl_open died - `s", snd_strerror (e));   exit (1);}
+      if ((e = snd_ctl_card_info (h, info)) < 0)
+{DBG("snd_ctl_card_info died - `s", snd_strerror (e));   exit (1);}
+      d = -1;
+      for (;;) {
+         if ((e = snd_ctl_pcm_next_device (h, & d)) < 0)
+{DBG("snd_ctl_pcm_next_device died - `s", snd_strerror (e));   exit (1);}
+         if (d < 0)  break;
+
+         snd_pcm_info_set_device    (pcmi, d);
+         snd_pcm_info_set_subdevice (pcmi, 0);   // there's never any more
+         snd_pcm_info_set_stream    (pcmi, stream);
+         snd_ctl_pcm_info        (h, pcmi);
+         StrFmt (lst [len].dev,  "hw:`d,`d", c, d);
+         StrFmt (lst [len].desc, "`s|`s",
+            snd_ctl_card_info_get_name (info), snd_pcm_info_get_name (pcmi));
+         len++;
+      }
+      snd_ctl_close (h);
+      if (snd_card_next (& c) < 0)
+{DBG("snd_card_next died");   exit (1);}
+   }
+}
+
+void SndLst::Dump ()
+{  for (ubyte i = 0;  i < len;  i++)  DBG ("`s => `s", lst [i].dev,
+                                                       lst [i].desc);
+}
+
+char *SndLst::Get (char *desc)
+{  for (ubyte i = 0;  i < len;  i++)
+      if (! StrCm (desc, lst [i].desc))  return lst [i].dev;
+DBG("SndLst.Get(`s) got nothin !", desc);
+   return CC("");
+}
+
+
+/*______________________________________________________________________________
+any:
+   PCM handle name  = 'hw:2,0'
+   PCM state        = OPEN
+   access type      = (null)
+   format           = '(null)' ((null))
+   subformat        = 'STD' (Standard)
+   channels         = 0
+   rate             = 0 bps
+   period time      = 0 us
+   period size      = 159518096 frames
+   buffer time      = 0 us
+   buffer size      = 0 frames
+   periods per buffer = 0 frames
+ * exact rate       = 0/32658 bps
+ * significant bits = -22
+   is batch         = 1
+   is block transfer = 1
+   is double        = 0
+   is half duplex   = 0
+   is joint duplex  = 0
+   can overrange    = 0
+ * can mmap         = 1
+ * can pause        = 1
+ * can resume       = 0
+ * can sync start   = 0
+
+after example hw init:
+   PCM state        = PREPARED
+   access type      = MMAP_INTERLEAVED
+   format           = 'S16_LE' (Signed 16 bit Little Endian)
+   channels         = 2
+   rate             = 44100 bps
+   period time      = 1451 us
+   period size      = 64 frames
+   buffer time      = 2902 us
+   buffer size      = 128 frames
+   periods per buffer = 2 frames
+   exact rate       = 44100/1 bps
+   significant bits = 16
+______________________________________________________________________________*/
+
+void SndO::Dump (snd_pcm_hw_params_t *hw)
+{ unsigned int val, val2;
+  int          dir;
+  snd_pcm_uframes_t fr;
+   DBG("PCM handle name = '`s'",
+      snd_pcm_name (_hnd));
+
+   DBG("PCM state = `s",
+      snd_pcm_state_name (snd_pcm_state (_hnd)));
+
+   snd_pcm_hw_params_get_access (hw, (snd_pcm_access_t *) & val);
+   DBG("access type = `s",
+      snd_pcm_access_name ((snd_pcm_access_t)val));
+
+  snd_pcm_format_t fmt;
+   snd_pcm_hw_params_get_format (hw, & fmt);
+   DBG("format = '`s' (`s)",
+      snd_pcm_format_name        (fmt),
+      snd_pcm_format_description (fmt));
+
+   snd_pcm_hw_params_get_subformat (hw, (snd_pcm_subformat_t *)&val);
+   DBG("subformat = '`s' (`s)",
+      snd_pcm_subformat_name        ((snd_pcm_subformat_t)val),
+      snd_pcm_subformat_description ((snd_pcm_subformat_t)val));
+
+   snd_pcm_hw_params_get_channels (hw, &val);
+   DBG("channels = `d", val);
+
+   snd_pcm_hw_params_get_rate (hw, &val, &dir);
+   DBG("rate = `d bps", val);
+
+   snd_pcm_hw_params_get_period_time (hw, &val, &dir);
+   DBG("period time = `d us", val);
+
+   snd_pcm_hw_params_get_period_size (hw, & fr, &dir);
+   DBG("period size = `d frames", (int)fr);
+
+   snd_pcm_hw_params_get_buffer_time (hw, &val, &dir);
+   DBG("buffer time = `d us", val);
+
+   snd_pcm_hw_params_get_buffer_size (hw, (snd_pcm_uframes_t *) &val);
+   DBG("buffer size = `d frames", val);
+
+   snd_pcm_hw_params_get_periods (hw, &val, &dir);
+   DBG("periods per buffer = `d frames", val);
+
+   snd_pcm_hw_params_get_rate_numden (hw, &val, &val2);
+   DBG("exact rate = `d/`d bps", val, val2);
+
+   val = snd_pcm_hw_params_get_sbits (hw);
+   DBG("significant bits = `d", val);
+
+   val = snd_pcm_hw_params_is_batch (hw);
+   DBG("is batch = `d", val);
+
+   val = snd_pcm_hw_params_is_block_transfer (hw);
+   DBG("is block transfer = `d", val);
+
+   val = snd_pcm_hw_params_is_double (hw);
+   DBG("is double = `d", val);
+
+   val = snd_pcm_hw_params_is_half_duplex (hw);
+   DBG("is half duplex = `d", val);
+
+   val = snd_pcm_hw_params_is_joint_duplex (hw);
+   DBG("is joint duplex = `d", val);
+
+   val = snd_pcm_hw_params_can_overrange (hw);
+   DBG("can overrange = `d", val);
+
+   val = snd_pcm_hw_params_can_mmap_sample_resolution (hw);
+   DBG("can mmap = `d", val);
+
+   val = snd_pcm_hw_params_can_pause (hw);
+   DBG("can pause = `d", val);
+
+   val = snd_pcm_hw_params_can_resume (hw);
+   DBG("can resume = `d", val);
+
+   val = snd_pcm_hw_params_can_sync_start (hw);
+   DBG("can sync start = `d", val);
 }
 
 /*
-static void AudORun (void *d)
-{ AudO  *dev = (AudO *)d;
-  sbyt2 *buf;
-  int    buffer_size, offset, n;
-   buffer_size = d->buffer_size;
-   buf = new short [buffer_size];
-   if (buf == nullptr)
-{DBG("AudO thread out of memory");   exit (1);}
-   if ((e = snd_pcm_prepare (AudO)) < 0)
-{DBG("pcm_prepare died - `s", snd_strerror (e));   exit (1);}
-
-   while (d->cont) {
-      d->write_s16 (buffer_size, buf, 0, 2, buf, 1, 2);
-      offset = 0;
-      while (offset < buffer_size) {
-         n = snd_pcm_writei (AudO, (void *)(buf + 2*offset),
-                                            buffer_size - offset);
-         if (n >= 0)  offset += n;
-         else {
-            switch (n) {
-               case -EAGAIN:
-                  snd_pcm_wait (AudO, 1);
-                  break;
-               case -ESTRPIPE:
-                  if (snd_pcm_resume (AudO) != 0)
-{DBG("pcm_resume died");   exit (1);}
-               case -EPIPE:  case -EBADFD:
-                  if (snd_pcm_prepare (AudO) != 0)
-{DBG("pcm_prepare died");   exit (1);}
-                  break;
-               default:
-{DBG("pcm error `s", snd_strerror (e));   exit (1);}
-            }
-         }
-      }
-   }
-   delete [] buf;
+void SndO::SinWv ()
+{  for (ubyt4 i = 0;  i < _nFr;  i++)  _buf [i][0] = _buf [i][1] =
+                           (sbyt2)(sin ((real)i/(real)_nFr * 2.*M_PI) * 32767.);
+   MemCp (& _buf [_nFr][0], & _buf [0][0], _nFr*2*2);      // 2nd period
 }
 */
 
 
-static ubyt2 PerSize = 4096, Periods = 1;
-static sbyt2 Buf [4096], Buf2 [4096];
-
-SndO::SndO (char *desc)
-// timer needed to stamp MidiEv.time
-{ int e;
-   _hnd = nullptr;   _bAdd = _bRmv = 0;   _bErr = false;
-   StrCp (_desc, desc);
-TRC("SndO `s", _desc);
-   if (StrCp (_dev, Snd.Get (_desc)) == nullptr)
-      {DBG("SndO no device for `s", _desc);   return;}
+SndO::SndO (ubyt4 nFr, ubyt4 frq)  // frames in period, frequency
+// open up our alsa pcm device (audio out)
+// always 2 periods of nFr frames - interleaved stereo s16
+{ int   e;  // error
+  sbyt4 dir = 0;
+  ubyt3 nPer = 2;
+   _frq = frq;   _nFr = nFr;           // what we get: may change
+   _hnd = nullptr;   _buf = nullptr;
+   App.CfgGet (CC("syn"), _desc);
+TRC("SndO desc=`s", _desc);
+   Snd.Load ();   StrCp (_dev, Snd.Get (_desc));
+TRC("     dev =`s", _dev);
+   if (*_dev == '\0')
+      {DBG("SndO no device for desc=`s", _desc);   return;}
    if (*_dev == '?')
       {DBG("SndO device `s isn't on", _desc);   return;}
-TRC("   dev=`s", _dev);
 
    if ((e = snd_pcm_open (& _hnd, _dev, SND_PCM_STREAM_PLAYBACK,
                                         SND_PCM_NONBLOCK))) {
       if (e == -EBUSY)
-DBG("snd_pcm_open - another app has it - `s", _dev, snd_strerror (e));
+DBG("snd_pcm_open `s - another app has it - `s", _desc, snd_strerror (e));
       else
-DBG("snd_pcm_open died - `s", _dev, snd_strerror (e));
+DBG("snd_pcm_open `s died - `s",                 _desc, snd_strerror (e));
       _hnd = nullptr;   return;
    }
 
@@ -111,82 +226,107 @@ DBG("snd_pcm_open died - `s", _dev, snd_strerror (e));
    snd_pcm_hw_params_any (_hnd, hw);
    if ((e = snd_pcm_hw_params_set_access (_hnd, hw,
                                           SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
-DBG("pcm_access interleaved died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+DBG("pcm_access rw_interleaved died - `s", snd_strerror (e));
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
    if ((e = snd_pcm_hw_params_set_format (_hnd, hw, SND_PCM_FORMAT_S16)) < 0) {
 DBG("pcm_format s16 died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
    if ((e = snd_pcm_hw_params_set_channels (_hnd, hw, 2)) < 0) {
 DBG("pcm_channels stereo died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-  unsigned int frq = 44100;
-   if ((e = snd_pcm_hw_params_set_rate_near (_hnd, hw, & frq, 0)) < 0) {
+
+   if ((e = snd_pcm_hw_params_set_rate_near (_hnd, hw, & _frq, 0)) < 0) {
 DBG("pcm_rate 44100 died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-   if (frq != 44100)
-DBG("pcm_rate only `d not 44100 :(", frq);
-  snd_pcm_uframes_t nfr = PerSize;
-  int               dir = 0;
-   if ((e = snd_pcm_hw_params_set_period_size_near (_hnd, hw, & nfr, & dir))
-                                                                          < 0) {
+   if (_frq != frq)    DBG("pcm_rate is `d not `d :/", _frq, frq);
+
+   if ((e = snd_pcm_hw_params_set_period_size_near (_hnd, hw,
+                                   (snd_pcm_uframes_t *)(& _nFr), & dir)) < 0) {
 DBG("pcm_period died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-   if (nfr != PerSize) {
-DBG("pcm_period only `d not `d :(", nfr, PerSize);
-      PerSize = nfr;
-   }
-  ubyt4 per = Periods;
-   if ((e = snd_pcm_hw_params_set_periods_near (_hnd, hw, & per, & dir)) < 0) {
+   if (_nFr != nFr)    DBG("pcm_period is `d not `d :/", _nFr, nFr);
+
+   if ((e = snd_pcm_hw_params_set_periods_near (_hnd, hw, & nPer, & dir)) < 0) {
 DBG("pcm_periods died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-   if (per != Periods) {
-DBG("pcm_periods only `d not `d :(", per, Periods);
-      Periods = per;
+   if (nPer != 2) {
+DBG("pcm_periods is `d not 2 :(", nPer);
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
    if ((e = snd_pcm_hw_params (_hnd, hw)) < 0) {
 DBG("pcm_hw died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
+Dump (hw);
 
   snd_pcm_sw_params_t *sw;
    snd_pcm_sw_params_alloca (& sw);
    snd_pcm_sw_params_current (_hnd, sw);
-   if ((e = snd_pcm_sw_params_set_start_threshold (_hnd, sw, PerSize)) < 0) {
+   if ((e = snd_pcm_sw_params_set_start_threshold (_hnd, sw, _nFr)) < 0) {
 DBG("pcm_start_thresh died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-   if ((e = snd_pcm_sw_params_set_avail_min (_hnd, sw, PerSize)) < 0) {
-DBG("pcm_avail_min `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+   if ((e = snd_pcm_sw_params_set_avail_min (_hnd, sw, _nFr)) < 0) {
+DBG("pcm_avail_min died - `s", snd_strerror (e));
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
    if ((e = snd_pcm_sw_params (_hnd, sw)) < 0) {
 DBG("pcm_sw died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
-   }
-   if ((e = snd_pcm_nonblock (_hnd, 0)) < 0) {
-DBG("pcm_nonblock died - `s", snd_strerror (e));
-      _hnd = nullptr;   return;
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
 
-// connect (this, & SndO::SndBuf,   this, & SndO::EvIns);
-   connect (this, & SndO::finished, this, & QObject::deleteLater);
-   _run = true;
-   start ();
+   if ((e = snd_pcm_nonblock (_hnd, 0)) < 0) {
+DBG("pcm_nonblock died - `s", snd_strerror (e));
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
+   }
+   _buf = new sbyt2 [2*_nFr][2];  // 2 periods of 64 frames of stereo s16
+// SinWv ();
+
+   if ((e = snd_pcm_prepare (_hnd)) < 0) {
+DBG("pcm_prepare died - `s", snd_strerror (e));
+      snd_pcm_close (_hnd);   _hnd = nullptr;   return;
+   }
+}
+
+
+void SndO::Put (sbyt2 *buf)
+{ ubyt4 p;
+  int   e;
+// send em on out thar
+   for (p = 0;  p < _nFr;) {
+      e = snd_pcm_writei (_hnd, (void *)(& _buf [p*2]), _nFr - p);
+      if (e >= 0)  p += e;
+      else                          // oops - fixup stuff
+         switch (e) {
+            case -EAGAIN:
+               if ((e = snd_pcm_wait    (_hnd, 1)) < 0)
+{DBG("pcm_wait died - `s",    snd_strerror (e));   return;}
+               break;
+            case -ESTRPIPE:
+               if ((e = snd_pcm_resume  (_hnd)) < 0)    // n fall thru
+{DBG("pcm_resume died - `s",  snd_strerror (e));   return;}
+            case -EPIPE:  case -EBADFD:
+               if ((e = snd_pcm_prepare (_hnd)) < 0)
+{DBG("pcm_prepare died - `s", snd_strerror (e));   return;}
+               break;
+            default:
+{DBG("pcr_writei died - `s",  snd_strerror (e));   return;}
+         }
+   }
 }
 
 
 SndO::~SndO (void)
-{ int err;
+{ int e;
 TRC("~SndO `s", *_desc ? _desc : "?");
-   if (Dead ())  {TRC("...was dead");   return;}
-   if (_run)  {_run = false;   wait ();}
-   if ((err = ::snd_pcm_close (_hnd)))
-      DBG("snd_pcm_close died - `s", ::snd_strerror (err));
+   if (Dead ())  {DBG("...was dead");   return;}
+   if ((e = snd_pcm_close (_hnd)) < 0)
+DBG("snd_pcm_close died - `s", snd_strerror (e));
    _hnd = nullptr;
 }

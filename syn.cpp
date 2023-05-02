@@ -14,7 +14,7 @@ char *R2Str (real f, char *s)
    neg = (f < 0.) ? true : false;   if (neg) f = -f;
    i = (int)f;   f -= (real)i;
    StrFmt (t, "`09d", (int)(f*1000000000.));
-   while (ln = StrLn (t))  {if (t [--ln] == '0')  t [ln] = '\0';  else break;}
+   while ((ln = StrLn (t)))  {if (t [--ln] == '0')  t [ln] = '\0';  else break;}
    return StrFmt (s, "`s`d`s`s", neg?"-":"", i, *t?".":"", t);
 }
 
@@ -23,7 +23,7 @@ real     Interp [MAX_INTERP][7];       // interpolation coefficients
 void InitInterp ()
 { real v, iShf;
    for (ubyte i = 0; i < 7; i++)
-      for (uword j = 0; j < MAX_INTERP; j++) {
+      for (ubyt2 j = 0; j < MAX_INTERP; j++) {
          iShf = (real)i - (7. / 2.) + (real)j / (real)MAX_INTERP;
          if (fabs (iShf) <= 0.000001)  v = 1.;
          else {v = sin (iShf * PI) / (PI * iShf);

@@ -1,24 +1,20 @@
 // syn.h - easy(ish) software synthesizer
-//         based on plain jane .WAV files for instrument sounds
-// ALWAYS DEBUG MID2WAV FIRST !!
+//         .WAV files for instrument sounds
+
+#ifndef SYN_H
+#define SYN_H
 
 #include "os.h"
 #include "midi.h"
-#include "math.h"                      // need floatin' point...
+#include "snd.h"
+#include "math.h"                      // no gettin round reals with synths
 
 #define EVEN(n)     ((n)&0xFFFFFFFE)
 #define EVEN_UP(n)  EVEN((n)+1)
-
+#define MID14       ((ubyt2)(64 << 7))      // mid point of a midi 14 bit int
 #define CLIP(_val,_min,_max) \
 {(_val) = ((_val)<(_min))?(_min):(((_val)>(_max))?(_max):(_val));}
 
-
-const ubyt2 MAX_SAMP = 88*20*2;        // max #stereo WAVs per sound
-                                       // all piano keys - 20 velo grps - 2x...
-const real  WMAX  = 32767.;
-const real  ULMAX = 4294967296.;       // max ubyt4 as real
-const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int
-const real  PI    = 3.1415926535897932384626433832795;
 
 char *R2Str (real f, char *s);
 
@@ -29,13 +25,14 @@ extern real Pan        (ubyte c, bool lft);      // 128 to pan, true=L/false=R
 #define                MAX_INTERP  (256)
 extern real Interp    [MAX_INTERP][7];
 #define                MAX_DITHER  (48000)
-extern real Dither [2][MAX_DITHER];  // per l/r channel
+extern real Dither [2][MAX_DITHER];    // per l/r channel
 
 
 // sample interpolation position+fraction  ...just a uhuge w hilong=int,lo=frac
-typedef ubyt8 Phase;
+typedef ubyt8  Phase;
+#define MAXU4  (4294967296.)           // max ubyt4 as real
 #define LONG2PHASE(a)   (((Phase)(a))<<32)
-#define REAL2PHASE(a)  ((((Phase)(a))<<32) | (Phase)(((a)-((ubyt4)(a)))*ULMAX))
+#define REAL2PHASE(a)  ((((Phase)(a))<<32) | (Phase)(((a)-((ubyt4)(a)))*MAXU4))
 
 // hi ubyt4=>index;  lo ubyt4/MAXULONG=>fract
 #define PHASE_INDEX(x)  ((ubyt4)((x) >> 32))               // just int part
@@ -44,7 +41,7 @@ typedef ubyt8 Phase;
 #define PHASE_FRACT(x)  ((((ubyt4)(x)) >> 24) & 0x00FF)    // MSB of frac part
 
 
-typedef struct ModCurveDef {
+struct ModCurv {
    ubyte relsVol [128];
    ubyt2 relsLen;
 
@@ -91,21 +88,20 @@ typedef struct ModCurveDef {
 //     65..97
 //     96..127
    }
-} ModCurv;
+};
 
 
 // audio out specs
-typedef struct {ubyt2 bufLn;   ubyte bits;   bool flt;   real frq;
-                real *smp;     ubyt4 nSmp, *tmpo;   ModCurv crv;}
-        AuODef;
-extern  AuODef  AuO;
+struct AuODef {ubyt2 bufLn;   ubyte bits;   bool flt;   real frq;
+               real *smp;     ubyt4 nSmp, *tmpo;   ModCurv crv;};
+extern AuODef  AuO;
 
 #include "synSnd.h"                    // .WAV loading, etc
 #include "synFx.h"                     // sample filtering, effects, etc
 
 
 //------------------------------------------------------------------------------
-typedef struct ChannelDef {
+struct Channel {
    ubyte id;                           // dev(0-7)*16+chn and 0x80|drum
    ubyte snd;
    ubyt2 pbnd, pbnr;
@@ -133,7 +129,7 @@ DBG("   channel=`s: snd=`d pbnd=`d pbnr=`d hold=`d vol=`d pan=`d "
 (id & 0x80) ? MDrm2Str (ts, id & 0x7F) : Int2Str (id, ts),
 snd, pbnd, pbnr, hold, vol, pan, vCut, cut, res, chor, rvrb);
    }
-} Channel;
+};
 
 
 //------------------------------------------------------------------------------
@@ -517,7 +513,9 @@ typedef struct FxPDef {
 
 
 //------------------------------------------------------------------------------
-class Syn {
+class Syn: public QObject {
+   Q_OBJECT
+
 public:
    Sound   *_snd [128];   ubyte _nSnd;      // melodic sounds (pitched)
    Sound   *_drm [128];                     // percussive ones (UNpitched)
@@ -557,11 +555,13 @@ bufLn, bits, flt, R2Str (ofrq, s1), nvc);
       _fxP.Init (_chP, _rvP);
       _quit = false;
       _maxLvl = 1.0;   _maxVc = 0;   _cur = 0;
+      start ();
 DBG("} Syn::Syn");
    }
 
   ~Syn ()
-   {  _quit = true;   WipeSound ();         delete    _rvP;    delete    _chP;
+   {  wait ();
+      WipeSound ();                         delete    _rvP;    delete    _chP;
       delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;   delete [] _chor;
       delete [] _vc;
    }
@@ -842,7 +842,7 @@ TRC(" AllCh ch=`d `c/`s", ch, todo,
 
 // -----------------------------------------------------------------------------
 // =MY= main api...
-   void Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
+   void Put (char *cmd, ubyte ch, ubyt2 c, ubyte v, ubyte v2)
    // setup a chan's voices with CC else start/stop a voice with note
    // only drum notes,CCs of ANOFF,ASOFF,ACOFF should be on ch 9
    // rest should have hi bit set in chn, drum note in LS7bits
@@ -943,13 +943,13 @@ DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
       return (float)r;
    }
 
-   void PutAuO (void *out)
-   // live rendering...  send 16 bit output;  optionally padded w 0 if 32 bit :/
+   void run ()  override
+// void PutAuO (void *out)
+   // live rendering...  send 16 bit output
    { ubyt4 o, len = AuO.bufLn,  sz = len * sizeof (real);
      ubyt2 i;
      sbyt2 *o16 = (sbyt2 *)out;
      float *ofl = (float *)out;
-      if (_quit)  return;
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
       MemSet (_chor, 0, sz);   MemSet (_rvrb, 0, sz);
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix (_mixL, _mixR, _chor, _rvrb);
@@ -958,8 +958,8 @@ DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
    // upd ch rPoz,rPos for next buf
       for (i = 0;  i < 128;  i++)  if (_chn [i].roto)
          for (o = 0;  o < AuO.bufLn;  o++) {
-            if (_chn [i].rPoz == 0) {
-               _chn [i].rPoz = 3 * (128 - _chn [i].roto);  // 1..127=>3*(127..1)
+            if (_chn [i].rPoz == 0) {       // 1..127=>3*(127..1)
+               _chn [i].rPoz = 3 * (128 - _chn [i].roto);
                if (++_chn [i].rPos >= AuO.crv.rotoLen)  _chn [i].rPos = 0;
             }
             else _chn [i].rPoz--;
@@ -978,7 +978,7 @@ DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
    }
-
+/*
    void PutWav (ubyt4 len, sbyt2 *out)
    // rendering direct to .WAV (16bit 44.1KHz)
    { ubyt4 o, ofs, sz = AuO.bufLn * sizeof (real);
@@ -1006,4 +1006,7 @@ DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
    }
+*/
 };
+
+#endif

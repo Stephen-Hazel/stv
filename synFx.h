@@ -1,5 +1,8 @@
 // synFx.h - filter,fx classes fer syn
 
+#ifndef SYNFX_H
+#define SYNFX_H
+
 class LPF {                            // low pass filter
    bool  init;
    ubyt4 inc;
@@ -32,7 +35,7 @@ public:
    // can we skip the grindin'...?
       if ((fabs (cut - pCut) <= 0.01))  return;
 
-     real omega = 2.*PI * (cut / AuO.frq);
+     real omega = 2.*M_PI * (cut / AuO.frq);
      real sinO  = sin (omega);
      real cosO  = cos (omega);
      real alpha = sinO / (2. * res);
@@ -107,7 +110,7 @@ public:
    { sbyt4 i;
      real  val;
       for (i = 0;  i < len;  i++) {
-         val = sin ((real) i / (real)len * 2.*PI);
+         val = sin ((real) i / (real)len * 2.*M_PI);
          buf [i]  = (sbyt4)((1. + val) * (real) depth / 2. *
                                          (real) INTERP_SUBSAMPLES);
          buf [i] -= 3* MAX_SAMPLES *            INTERP_SUBSAMPLES;
@@ -166,9 +169,9 @@ public:
                          (real) ii / (real) INTERP_SUBSAMPLES);
             if (fabs (iShf) < 0.000001)  sinc_table [i][ii] = (real)1;
             else {
-               sinc_table [i][ii]  = (real)sin (iShf * PI) / (iShf * PI);
+               sinc_table [i][ii]  = (real)sin (iShf * M_PI) / (iShf * M_PI);
                sinc_table [i][ii] *= (real)0.5 * (1. +
-                         cos (2.*PI * iShf / (real)INTERP_SAMPLES));
+                         cos (2.*M_PI * iShf / (real)INTERP_SAMPLES));
             }
          }
       lookup = new sbyt4 [(ubyt4)(AuO.frq / MIN_SPEED)];
@@ -332,3 +335,5 @@ public:
       }
    }
 };
+
+#endif
