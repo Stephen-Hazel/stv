@@ -38,9 +38,12 @@ private:
 class Timer: public QThread {
    Q_OBJECT
 
+public:
+   ubyt4 _tempo;
+
+private:
    bool  _run, _pause;                 // pausing?  (not bumping msec,time)
    ubyt4 _msec,           _msecSig,    // msec accumulator, msec to sig on or 0
-         _tempo,
          _time, _timeErr, _timeSig,    // songtime, fractional accumulator,
                              _pSig;    // time to sig on or 0;  prv for dbg'n
    void run () override

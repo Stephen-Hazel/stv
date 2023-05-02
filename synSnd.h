@@ -1,5 +1,8 @@
 // synSnd.h - sound (.WAV) part of syn
 
+#ifndef SYNSND_H
+#define SYNSND_H
+
 typedef struct {             // stereo wavs get split to 2 samples
    TStr  fn;                 // wav fn (_k,_v prefix n _l/_r suffix)
    ubyt4 pos, lpBgn, len;    // where it's at in AudO.Smp[] in samples
@@ -24,6 +27,8 @@ typedef struct {             // stereo wavs get split to 2 samples
    }
 } Sample;                              // ...stereo .WAV makes 2 of these
 
+#define MAX_SAMP (88*20*2)             // max #stereo WAVs per sound
+                                       // all piano keys - 20 velo grps
 extern TStr   WavFn [MAX_SAMP*2];      // hold it while we load it :/
 extern Sample TSmp  [MAX_SAMP];
 
@@ -36,7 +41,7 @@ inline int TSmCmp (void *p1, void *p2)
    return  s1->lr    - s2->lr;
 }
 
-const real MAXSL = 2147483648.;
+const real MAXS4 = 2147483648.;
 
 #include "wav.h"
 
@@ -96,7 +101,7 @@ DBG("Sound::LoadDat  no WAV data chunk in `s", fn);
                   case 2:  smp |= *p++ << 16;   smp |= (*p++ << 24);   break;
                   case 4:  smp = *((sbyt4 *)p);   p += 4;              break;
                }
-               sr = (real)smp / MAXSL;
+               sr = (real)smp / MAXS4;
             }
             if (fabs (sr) > _max)  _max = fabs (sr);
             AuO.smp [pos++] = sr;
@@ -119,7 +124,7 @@ DBG("Sound::LoadDat  no WAV data chunk in `s", fn);
                      case 2:  smp |= *p++ << 16;   smp |= (*p++ << 24);   break;
                      case 4:  smp = *((sbyt4 *)p);   p += 4;              break;
                   }
-                  sr = (real)smp / MAXSL;
+                  sr = (real)smp / MAXS4;
                }
                if (fabs (sr) > _max)  _max = fabs (sr);
                AuO.smp [pos++] = sr;
@@ -409,3 +414,5 @@ TRC("} Sound::Sound - nSmp=`d", _nSmp);
 //    DBG("      dir=`s", _pa);
    }
 };
+
+#endif

@@ -2,7 +2,7 @@
 // 06/04/98 new;  03/04/04 rewrite to toss exceptions;  12/01/20 win=>linux
 
 #include "os.h"
-#include <math.h>
+#include <math.h>                      // for NowMS :/
 
 AppBase App;
 
