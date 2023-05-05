@@ -26,8 +26,8 @@ void InitInterp ()
       for (ubyt2 j = 0; j < MAX_INTERP; j++) {
          iShf = (real)i - (7. / 2.) + (real)j / (real)MAX_INTERP;
          if (fabs (iShf) <= 0.000001)  v = 1.;
-         else {v = sin (iShf * PI) / (PI * iShf);
-               v *= 0.5 * (1. + cos (2.*PI * iShf / 7.));}
+         else {v = sin (iShf * M_PI) / (M_PI * iShf);
+               v *= 0.5 * (1. + cos (2.*M_PI * iShf / 7.));}
          Interp [MAX_INTERP-1 - j][i] = v;
       }
 }
@@ -80,7 +80,7 @@ void InitLookup (void)
   real  x;
    for (i = 0;  i < BITS (Cnv_ct2hz);  i++)
       Cnv_ct2hz [i] = (real) pow (2., (real) i / 1200.);
-   x = PI/2. / (BITS (Cnv_pan) - 1.);
+   x = M_PI/2. / (BITS (Cnv_pan) - 1.);
    for (i = 0;  i < BITS (Cnv_pan);  i++)  Cnv_pan [i] = (real) sin (i * x);
 //TStr ts;
 //for (i = 0; i < BITS (Cnv_pan); i++)

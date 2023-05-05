@@ -92,7 +92,7 @@ struct ModCurv {
 
 
 // audio out specs
-struct AuODef {ubyt2 bufLn;   ubyte bits;   bool flt;   real frq;
+struct AuODef {ubyt2 bufLn;   real frq;
                real *smp;     ubyt4 nSmp, *tmpo;   ModCurv crv;};
 extern AuODef  AuO;
 
@@ -525,24 +525,19 @@ public:
            *_mixL, *_mixR,                  // output buf of audio to GOooo
             _maxLvl;
    ubyt4    _ntID,  _dth,       _maxVc;     // note# n dither pos we're on
-   FxP      _fxP;                           // params for fx (sorry bout namin)
-   Chorus  *_chP;                           // fx processors
+   FxP      _fxP;                           // fx params
+   Chorus  *_chP;                           // fx processors (chorus, reverb)
    Reverb  *_rvP;
    ubyt4    _cur;                           // hack fer writin .WAV :/
-   bool     _quit;                          // we wanna shut down?
 
-   Syn (ubyt4 *tmpo, ubyt2 bufLn = 64, ubyte bits = 16, bool flt = false,
-        real ofrq = 44100., ubyt2 nvc = 256)
-   // note - only ONE of me - no multiple instances...
+   Syn (ubyt4 *tmpo, ubyt2 bufLn = 64, ubyt4 ofrq = 44100, ubyt2 nvc = 256)
    { ubyt2 c;
      TStr  s1;
-      _quit = true;
-DBG("{ Syn::Syn bufLn=`d bits=`d flt=`b ofrq=`s nvc=`d",
-bufLn, bits, flt, R2Str (ofrq, s1), nvc);
-      AuO.bufLn = bufLn;      AuO.bits = bits;      // ...globalize em :(
-      AuO.flt   = flt;        AuO.frq  = ofrq;
-      AuO.smp   = nullptr;    AuO.nSmp = 0;      AuO.tmpo = tmpo;
-      AuO.crv.Init ();
+DBG("{ Syn::Syn bufLn=`d ofrq=`s nvc=`d",
+bufLn, R2Str (ofrq, s1), nvc);
+      AuO.bufLn = bufLn;               // ...globalize em :(
+      AuO.frq   = ofrq;   AuO.smp = nullptr;   AuO.nSmp = 0;
+      AuO.tmpo  = tmpo;   AuO.crv.Init ();
       InitLookup ();
       MemSet (_snd, 0, sizeof (_snd));   _nSnd = 0;
       MemSet (_drm, 0, sizeof (_drm));
@@ -553,15 +548,12 @@ bufLn, bits, flt, R2Str (ofrq, s1), nvc);
       _chor = new real [AuO.bufLn];   _rvrb = new real [AuO.bufLn];
       _chP  = new Chorus ();          _rvP  = new Reverb ();
       _fxP.Init (_chP, _rvP);
-      _quit = false;
       _maxLvl = 1.0;   _maxVc = 0;   _cur = 0;
-      start ();
 DBG("} Syn::Syn");
    }
 
   ~Syn ()
-   {  wait ();
-      WipeSound ();                         delete    _rvP;    delete    _chP;
+   {  WipeSound ();                         delete    _rvP;    delete    _chP;
       delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;   delete [] _chor;
       delete [] _vc;
    }
@@ -842,7 +834,8 @@ TRC(" AllCh ch=`d `c/`s", ch, todo,
 
 // -----------------------------------------------------------------------------
 // =MY= main api...
-   void Put (char *cmd, ubyte ch, ubyt2 c, ubyte v, ubyte v2)
+   void Put (char *cmd,
+             ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0)
    // setup a chan's voices with CC else start/stop a voice with note
    // only drum notes,CCs of ANOFF,ASOFF,ACOFF should be on ch 9
    // rest should have hi bit set in chn, drum note in LS7bits
@@ -943,13 +936,11 @@ DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
       return (float)r;
    }
 
-   void run ()  override
-// void PutAuO (void *out)
+   void SndBuf (void *out)
    // live rendering...  send 16 bit output
    { ubyt4 o, len = AuO.bufLn,  sz = len * sizeof (real);
      ubyt2 i;
      sbyt2 *o16 = (sbyt2 *)out;
-     float *ofl = (float *)out;
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
       MemSet (_chor, 0, sz);   MemSet (_rvrb, 0, sz);
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix (_mixL, _mixR, _chor, _rvrb);
@@ -965,16 +956,8 @@ DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
             else _chn [i].rPoz--;
          }
       for (o = 0;  o < len;  o++) {
-         if (AuO.flt) {
-            *ofl++ = r2f (_mixL [o], Dither [0][_dth]);
-            *ofl++ = r2f (_mixR [o], Dither [1][_dth]);
-         }
-         else {
-            if (AuO.bits > 16)  *o16++ = 0;
-                                *o16++ = r2i (_mixL [o], Dither [0][_dth]);
-            if (AuO.bits > 16)  *o16++ = 0;
-                                *o16++ = r2i (_mixR [o], Dither [1][_dth]);
-         }
+         *o16++ = r2i (_mixL [o], Dither [0][_dth]);
+         *o16++ = r2i (_mixR [o], Dither [1][_dth]);
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
    }
