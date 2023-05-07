@@ -48,8 +48,8 @@ char *MidiDevLst::DoRec (char *buf, ubyt2 len, ubyt4 pos, void *ptr)
    StrCp (m->_lst [m->_len].name,  ss.Col [0]);
    StrCp (m->_lst [m->_len].type,  ss.Col [1]);
    StrCp (m->_lst [m->_len].desc,  ss.Col [2]);
-   StrCp (m->_lst [m->_len].dev,   CC("?"));
-   m->_len++;
+   StrCp (m->_lst [m->_len].dev, CC(StrCm (ss.Col [1], CC("syn")) ? "?" : "!"));
+   m->_len++;                          // syn needs no IS IT ON check
    return NULL;
 }
 
