@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <sys/errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -420,6 +421,7 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
    }
 
    bool IsOpen ()  {return (_f >= 0) ? true : false;}
+   int Hnd ()      {return  _f;}
 
    ubyt4 Get (void *buf, ubyt4 len)  {return read  (_f, buf, len);}
    ubyt4 Put (void *buf, ubyt4 len)  {return write (_f, buf, len);}
@@ -447,6 +449,38 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
 private:
    int  _f;
    TStr _fn;
+};
+
+
+//______________________________________________________________________________
+class MemFile {
+public:
+   void *Open (char *fn)
+   { File f;
+      _mem = nullptr;   _sz = 0;
+      if (! f.Open (fn, "r"))  return nullptr;
+      _sz  = f.Size (fn);
+      _mem = mmap (NULL, _sz, PROT_READ, MAP_PRIVATE, f.Hnd (), 0);
+      if (_mem == MAP_FAILED) {
+DBG("mmap `s died", fn);
+         f.Shut ();   _mem = nullptr;   _sz = 0;
+         return nullptr;
+      }
+      f.Shut ();
+      return _mem;
+   }
+
+   void *Mem  ()  {return _mem;}
+   ubyt4 Size ()  {return _sz;}
+
+   void Shut ()
+   { int e;
+      if ((e = munmap (_mem, _sz)) == 0)
+DBG("munmap died");
+   }
+private:
+   void *_mem;
+   ubyt4 _sz;
 };
 
 

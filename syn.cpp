@@ -6,9 +6,7 @@ SndO Sn;
 Syn  Sy;                               // welp, that's everything...
 
 
-//______________________________________________________________________________
-// lookup stuffsss
-char *R2Str (real f, char *s)
+char *R2Str (real f, char *s)          // fer dbg
 { bool neg;
   int  i, ln;
   TStr t;
@@ -20,6 +18,8 @@ char *R2Str (real f, char *s)
 }
 
 
+//______________________________________________________________________________
+// lookup stuffsss
 real     Interp [MAX_INTERP][7];       // interpolation coefficients
 void InitInterp ()
 { real v, iShf;
@@ -75,7 +75,6 @@ real Pan (ubyte c, ubyte lr)
    return Cnv_pan [c-1];
 }
 
-
 void InitLookup (void)
 { sbyt4 i;
   real  x;
@@ -95,8 +94,24 @@ void InitLookup (void)
 #define EVEN(n)     ((n)&0xFFFFFFFE)
 #define EVEN_UP(n)  EVEN((n)+1)
 
-TStr   WavFn [MAX_SAMP*2];
-Sample TSmp  [MAX_SAMP];
+const  real   MAXS4 = 2147483648.;
+
+static TStr   WavFn [MAX_SAMP*2];      // hold sounds' wavs while loading
+static Sample TSmp  [MAX_SAMP];        // sample is mostly just a data struct
+                                       // (little code to it)
+
+void Sample::Dump (bool dr)
+{ TStr s1, s2;
+   DBG("   smp=`s", fn);
+   DBG("       mnKey=`d/`s mxKey=`d/`s mnVel=`d mxVel=`d",
+       mnKey, dr ? MDrm2Str(s1,mnKey) : MKey2Str(s1,mnKey),
+       mxKey, dr ? MDrm2Str(s2,mxKey) : MKey2Str(s2,mxKey), mnVel, mxVel);
+   DBG("       len=`d lpBgn=`d lr=`d pos=`d",
+       len, lpBgn, lr, pos);
+   DBG("       frq=`s key=`d/`s cnt=`d bytes=`d chans=`d",
+       R2Str (frq, s1), key, dr ? MDrm2Str(s2,key) : MKey2Str(s2,key),
+       cnt, bytes, chans);
+}
 
 
 static int TSmCmp (void *p1, void *p2)
@@ -108,7 +123,14 @@ static int TSmCmp (void *p1, void *p2)
    return  s1->lr    - s2->lr;
 }
 
-const real MAXS4 = 2147483648.;
+
+//______________________________________________________________________________
+void Sound::Dump ()
+{  DBG("   snd=`s nSmp=`d xFrq=`b xRls=`b siz=`d mxDat=`d",
+       _nm, _nSmp, _xFrq, _xRls, _siz, _mxDat);
+//    DBG("      dir=`s", _pa);
+}
+
 
 ubyt4 Sound::LoadDat (ubyte *dat, ubyt4 pos)
 // actually load each .WAV we found into smp buffer n offset our poss by len
@@ -193,7 +215,6 @@ TRC("} Sound::LoadDat  new pos=`d", pos);
 }
 
 
-//______________________________________________________________________________
 bool Sound::LoadFmt (char *wfn, ubyte ky, ubyte vl)
 // load a .WAV file header's fmt chunk into Sample
 // _L, _R suffix means they're mono but should be paired up for stereo
@@ -214,7 +235,7 @@ bool Sound::LoadFmt (char *wfn, ubyte ky, ubyte vl)
   } smpl;
   Sample *s = & TSmp [_nSmp];
    StrCp (fn, _pa);   StrAp (fn, wfn);   StrCp (s->fn, wfn);
-   if (! f.Open (fn, "r"))          // _pa always ends w '\'
+   if (! f.Open (fn, "r"))          // _pa always ends w '/'
       {DBG ("Sound::LoadFmt  can't read `s", fn);           return false;}
    if ( (f.Get (& chk, sizeof (chk)) != sizeof (chk)) ||
          MemCm (chk.tag, CC("RIFF"), 4, 'x') )
@@ -327,7 +348,7 @@ TRC("SndDir bgn _nm=`s dss=`s dds=`s", snd, dss, dds);
       StrFmt (& _pa [StrLn (_pa)], "`s/Drum/`s/`s`s", ss, ds, dr, mn);
    }
 
-// melodic etc  etc|sampset\name
+// melodic etc  etc|sampset/name
    else if (! MemCm (_nm, CC("etc|"), 4)) {
       StrCp (ss, & _nm [4]);
       if (! (p = StrCh (ss, '/'))) {
@@ -342,7 +363,7 @@ DBG("Sound::SndDir  no / in `s", _nm);
    else {
       StrCp (dr, _nm);
    // split off /more if got
-      if (! (p = StrCh (dr, '/'))) {     // 1st \ BETTER be there
+      if (! (p = StrCh (dr, '/'))) {     // 1st / BETTER be there
 DBG("no / in `s", _nm);
          return false;
       }
@@ -462,13 +483,6 @@ TRC("} Sound::Sound - nSmp=`d", _nSmp);
 Sound::~Sound ()  {delete [] _smp;}
 
 
-void Sound::Dump ()
-{  DBG("   snd=`s nSmp=`d xFrq=`b xRls=`b siz=`d mxDat=`d",
-       _nm, _nSmp, _xFrq, _xRls, _siz, _mxDat);
-//    DBG("      dir=`s", _pa);
-}
-
-
 //______________________________________________________________________________
 // filter,fx classes fer syn
 
@@ -548,23 +562,11 @@ const ubyt4 LEN_COMB [NUM_COMB] =
                                {1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617};
 const ubyt4 LEN_ALLP [NUM_ALLP] = {556, 441, 341, 225};
 
-Reverb::Reverb ()
-{ ubyt4 i;
-  real  lenSc = Sn._frq / 44100.0;
-   for (i = 0;  i < NUM_COMB;  i++) {
-      combL [i] = new Comb    ((sbyt4)( LEN_COMB [i]             * lenSc));
-      combR [i] = new Comb    ((sbyt4)((LEN_COMB [i]+STEREO_SPR) * lenSc));
-   }
-   for (i = 0;  i < NUM_ALLP;  i++) {
-      allpL [i] = new Allpass ((sbyt4)( LEN_ALLP [i]             * lenSc));
-      allpR [i] = new Allpass ((sbyt4)((LEN_ALLP [i]+STEREO_SPR) * lenSc));
-   }
-}
-
-Reverb::~Reverb ()
-{ ubyt4 i;
-   for (i = 0;  i < NUM_COMB;  i++)  {delete combL [i];   delete combR [i];}
-   for (i = 0;  i < NUM_ALLP;  i++)  {delete allpL [i];   delete allpR [i];}
+void Reverb::Update ()                 // reinit given new params
+{  wet1 = wet * (width / 2 + 0.5f);   wet2 = wet * ((1 - width) / 2);
+   for (sbyt4 i = 0;  i < NUM_COMB;  i++)
+      {combL [i]->setfeedback (room);   combL [i]->setdamp (damp);
+       combR [i]->setfeedback (room);   combR [i]->setdamp (damp);}
 }
 
 void Reverb::Mix (real *in, real *mixL, real *mixR)
@@ -582,6 +584,26 @@ void Reverb::Mix (real *in, real *mixL, real *mixR)
       mixL [k] += outL * wet1 + outR * wet2;
       mixR [k] += outR * wet1 + outL * wet2;
    }
+}
+
+Reverb::Reverb ()
+{ ubyt4 i;
+  real  lenSc = Sn._frq / 44100.0;
+   for (i = 0;  i < NUM_COMB;  i++) {
+      combL [i] = new Comb    ((sbyt4)( LEN_COMB [i]             * lenSc));
+      combR [i] = new Comb    ((sbyt4)((LEN_COMB [i]+STEREO_SPR) * lenSc));
+   }
+   for (i = 0;  i < NUM_ALLP;  i++) {
+      allpL [i] = new Allpass ((sbyt4)( LEN_ALLP [i]             * lenSc));
+      allpR [i] = new Allpass ((sbyt4)((LEN_ALLP [i]+STEREO_SPR) * lenSc));
+   }
+   Set ();
+}
+
+Reverb::~Reverb ()
+{ ubyt4 i;
+   for (i = 0;  i < NUM_COMB;  i++)  {delete combL [i];   delete combR [i];}
+   for (i = 0;  i < NUM_ALLP;  i++)  {delete allpL [i];   delete allpR [i];}
 }
 
 
@@ -872,8 +894,7 @@ void Syn::DumpSnd ()
 { ubyte s;
   ubyt2 i;
   TStr  ds;
-  Sample *sm;
-// first the sounds...
+  Sample *sm;                          // first melo, then drum sounds...
    for (s = 0;  s < _nSnd;  s++) {
       DBG("Snd=`d/`d:", s, _nSnd);             _snd [s]->Dump ();
       for (i = 0, sm = _snd [s]->_smp;  i < _snd [s]->_nSmp;  i++, sm++)
@@ -886,18 +907,19 @@ void Syn::DumpSnd ()
    }
 }
 
-void Syn::WipeSound ()
+void Syn::WipeSnd ()
 { ubyt2 s;
-   for (s = 0;  s <   128;  s++)  AllCh ((ubyte)s, 'e');     // 9s kill drums
+TRC("   Syn::WipeSnd");
+   for (s = 0;  s <   128;  s++)  AllCh ((ubyte)s, 'e');   // 9 kills drums too
    for (s = 0;  s < _nSnd;  s++)     {delete _snd [s];   _snd [s] = nullptr;}
    _nSnd = 0;
    for (s = 0;  s <   128;  s++)  if (_drm [s])
                                      {delete _drm [s];   _drm [s] = nullptr;}
    delete [] _smp;   _smp = nullptr;   _nSmp = 0;
-   _maxLvl = 1.0;   _maxVc = 0;   _cur = 0;
+   _maxLvl = 1.0;   _maxVc = 0;
 }
 
-void Syn::LoadSound ()
+void Syn::LoadSnd ()
 { TStr  fn, ts;
   File  f;
   char  lst [256*sizeof (TStr)], *pc;
@@ -906,11 +928,8 @@ void Syn::LoadSound ()
   ubyte s;
   ubyt8 sz;
   TStr  sSetM, sSetD, dSet;         // default sampsets n drumset
-   { TStr s;   App.CfgGet (CC("tracesyn"), s);  // special-ish kinda UpdTrc()
-      App.trc = (*s == 'y') ? true : false;
-   }
-TRC("{ Syn::LoadSound");
-   WipeSound ();
+TRC("Syn::LoadSnd");
+   WipeSnd ();
 
 // get default melo n drum sampsets n drumset
    App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/sound.txt"));
@@ -923,7 +942,7 @@ TRC("{ Syn::LoadSound");
          *pc++ = '\0';       StrCp (sSetM, lst);   StrCp (lst, pc);
          if ((pc = StrCh (lst, ' '))) {
             *pc++ = '\0';    StrCp (sSetD, lst);   StrCp (lst, pc);
-            if ((pc = StrCh (lst, '\r'))) {
+            if ((pc = StrCh (lst, '\n'))) {
                *pc = '\0';   StrCp (dSet,  lst);
 TRC("ssetM=`s ssetD=`s dset=`s", sSetM, sSetD, dSet);
             }
@@ -940,20 +959,19 @@ TRC("ssetM=`s ssetD=`s dset=`s", sSetM, sSetD, dSet);
    len = f.Load (fn, lst, sizeof (lst));   f.Kill (fn);
 TRC("soundbank.txt loaded n del'd");
    if (len >= sizeof (lst)) {
-DBG("Syn::LoadSound  SoundBank.txt too big :(", fn);
+DBG("Syn::LoadSnd  SoundBank.txt too big :(", fn);
       return;
    }
    lst [len] = '\0';
    if (! len)
-      DBG("Syn::LoadSound: can't load device/syn/SoundBank.txt :(");
+      DBG("Syn::LoadSnd: can't load device/syn/SoundBank.txt :(");
    for (p = 0;  p < len;) {
       p = NextLn (ts, lst, len, p);      // parse buf into seq of strs
 TRC("p=`d/`d: `s", p, len, ts);
       if (! StrCm (ts, CC("Drum")))  {melo = false;   continue;}
       if (melo) {                   // drum marks when melodic sounds end
          if (_nSnd >= 128) {
-DBG("Syn::LoadSound  tooo many sounds");
-TRC("} Syn::LoadSound");
+DBG("Syn::LoadSnd  tooo many sounds");
             return;
          }
 TRC("pgm=`d snd=`s", _nSnd, ts);
@@ -963,8 +981,7 @@ TRC("pgm=`d snd=`s", _nSnd, ts);
          ts [4] = '\0';
          s = MDrm (ts);
          if (s == 128) {
-DBG("Syn::LoadSound - bad drum note=`s", ts);
-TRC("} Syn::LoadSound");
+DBG("Syn::LoadSnd - bad drum note=`s", ts);
             return;
          }
 TRC("drm=`d snd=`s", s, & ts [5]);
@@ -981,29 +998,26 @@ TRC("drm=`d snd=`s", s, & ts [5]);
       {if (_drm [s]->_mxDat > ld)  ld = _drm [s]->_mxDat;
        sz +=                            _drm [s]->_siz;}
    if ((sz * sizeof (real)) >= 4294967295) {
-DBG("Syn::LoadSound  tooo many samples (`d) :(",  sz);
+DBG("Syn::LoadSnd  tooo many samples (`d) :(",  sz);
       for (s = 0; s < _nSnd; s++)  DBG("   Snd `s siz=`d mxDat=`d",
                             _snd [s]->_nm, _snd [s]->_siz, _snd [s]->_mxDat);
       for (s = 0; s < 128; s++) if (_drm [s])
                                    DBG("   Drm `s siz=`d mxDat=`d",
                             _drm [s]->_nm, _drm [s]->_siz, _drm [s]->_mxDat);
-      WipeSound ();
-TRC("} Syn::LoadSound");
+      WipeSnd ();
       return;
    }
 TRC("alloc dat n smp");
    _smp = new real [sz];   _nSmp = (ubyt4)sz;   len = 0;
   ubyte *dat = new ubyte [ld];
    if ((dat == nullptr) || (_smp == nullptr)) {
-DBG("Syn::LoadSound  Outa memory - `d samples => `d bytes :(",
-_nSmp, _nSmp*8);
+DBG("Syn::LoadSnd  Outa memory - `d samples => `d bytes :(", _nSmp, _nSmp*8);
       for (s = 0; s < _nSnd; s++)  DBG("   Snd `s siz=`d mxDat=`d",
                             _snd [s]->_nm, _snd [s]->_siz, _snd [s]->_mxDat);
       for (s = 0; s < 128; s++) if (_drm [s])
                                    DBG("   Drm `s siz=`d mxDat=`d",
                             _drm [s]->_nm, _drm [s]->_siz, _drm [s]->_mxDat);
-      delete [] dat;   WipeSound ();
-TRC("} Syn::LoadSound");
+      delete [] dat;   WipeSnd ();
       return;
    }
 TRC("load snd n drm");
@@ -1012,7 +1026,7 @@ TRC("load snd n drm");
                                      len = _drm [s]->LoadDat (dat, len);
 TRC("free dat");
    delete [] dat;                   // just need it fer loadin
-TRC("} Syn::LoadSound at end");
+TRC("Syn::LoadSnd end");
 }
 
 
@@ -1123,7 +1137,6 @@ TRC(" AllCh ch=`d `c/`s", ch, todo,
    if (todo == 'i') {               // reset all CCs is kinda different
       _chn [ch].Rset ();
       if (dr)  for (ch = 0;  ch < 128;  ch++)  _chn [0x80 | ch].Rset ();
-      _fxP.Init (_rvP);
       _maxLvl = 1.0;
       return;
    }                                // else we're dealing with just on vcs
@@ -1140,7 +1153,7 @@ TRC(" AllCh ch=`d `c/`s", ch, todo,
 
 //______________________________________________________________________________
 // =MY= main api...
-void Syn::Put (char *cmd, ubyte ch, ubyt2 c, ubyte v, ubyte v2)
+void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // setup a chan's voices with CC else start/stop a voice with note
 // only drum notes,CCs of ANOFF,ASOFF,ACOFF should be on ch 9
 // rest should have hi bit set in chn, drum note in LS7bits
@@ -1162,42 +1175,42 @@ ch & 0x7F, MDrm2Str(t1,ch & 0x7F), c, c, v, v, v2, v2);
       return;
    }
                                        // else do CC
-   if ((v >= 128) && (c != MC_PROG))       // let prog thru
+   if ((v >= 128) && (c != MC_PROG))   // let prog thru
       {DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch, c, v);  return;}
    switch (c) {
-   case MC_PROG:
-      if (_chn [ch].Drum () || _chn [ch].DrCh () || (v > _nSnd))
-            DBG("Syn::Put  Prog on drum chan or too high "
-                "ch=`d prog=`d nProg=`d",  ch, v, _nSnd);
-      else  _chn [ch].snd = v;
-      return;
-   case MC_CC|M_ANOFF: re = 'r';   break;       // release em
-   case MC_CC|M_ASOFF: re = 'e';   break;       // end em
-   case MC_CC|M_ACOFF: re = 'i';   break;       // reset all CCs
+      case MC_PROG:
+         if (_chn [ch].Drum () || _chn [ch].DrCh () || (v > _nSnd))
+               DBG("Syn::Put  Prog on drum chan or too high "
+                   "ch=`d prog=`d nProg=`d",  ch, v, _nSnd);
+         else  _chn [ch].snd = v;
+         return;
+      case MC_CC|M_ANOFF: re = 'r';   break;   // release em
+      case MC_CC|M_ASOFF: re = 'e';   break;   // end em
+      case MC_CC|M_ACOFF: re = 'i';   break;   // reset all CCs
 
-// ...better not be any chan 9s after this
-   case MC_CC|M_HOLD:  if ((_chn [ch].hold = v) < 64)  UnHold (ch);
-                       return;
-// above ones don't do voice recalc;  below ones do
-   case MC_PBND:       _chn [ch].pbnd = v << 7 | v2;   re = 'n';   break;
-   case MC_CC|16:      _chn [ch].pbnr = v;             re = 'n';   break;
-   case MC_CC|17:      _chn [ch].vCut = v;             re = 'f';   break;
-   case MC_CC|18:      _chn [ch].cut  = v;             re = 'f';   break;
-   case MC_CC|19:      _chn [ch].res  = v;             re = 'f';   break;
-   case MC_CC|M_VOL:   _chn [ch].vol  = v;             re = 'a';   break;
-   case MC_CC|M_PAN:   _chn [ch].pan  = v;             re = 'p';   break;
-/* reverb fixed till i find algos that don't suck
-** case MC_CC|24:      _chn [ch].rvrb = v;             re = 'p';   break;
-**
-** // not channel specific fx params
-** case MC_CC|30:      _fxP.rRoom  = v;                re = 'x';   break;
-** case MC_CC|31:      _fxP.rDamp  = v;                re = 'x';   break;
-** case MC_CC|32:      _fxP.rWidth = v;                re = 'x';   break;
-** case MC_CC|33:      _fxP.rLevel = v;                re = 'x';   break;
-*/
-   default:            return;
+   // ...better not be any chan 9s after this
+      case MC_CC|M_HOLD:  if ((_chn [ch].hold = v) < 64)  UnHold (ch);
+                          return;
+   // above ones don't do voice recalc;  below ones do
+      case MC_PBND:       _chn [ch].pbnd = v << 7 | v2;   re = 'n';   break;
+      case MC_CC|16:      _chn [ch].pbnr = v;             re = 'n';   break;
+      case MC_CC|17:      _chn [ch].vCut = v;             re = 'f';   break;
+      case MC_CC|18:      _chn [ch].cut  = v;             re = 'f';   break;
+      case MC_CC|19:      _chn [ch].res  = v;             re = 'f';   break;
+      case MC_CC|M_VOL:   _chn [ch].vol  = v;             re = 'a';   break;
+      case MC_CC|M_PAN:   _chn [ch].pan  = v;             re = 'p';   break;
+   /* reverb fixed till i find algos that don't suck
+   ** case MC_CC|24:      _chn [ch].rvrb = v;             re = 'p';   break;
+   **
+   ** // not channel specific fx params
+   ** case MC_CC|30:      _fxP.rRoom  = v;                re = 'x';   break;
+   ** case MC_CC|31:      _fxP.rDamp  = v;                re = 'x';   break;
+   ** case MC_CC|32:      _fxP.rWidth = v;                re = 'x';   break;
+   ** case MC_CC|33:      _fxP.rLevel = v;                re = 'x';   break;
+   */
+      default:            return;
    }
-   if (re == 'x') _fxP.Updt ();   else AllCh (ch, re);
+   AllCh (ch, re);
 }
 
 void Syn::DumpChn ()  {for (ubyt2 c = 0;  c < 256;  c++)  _chn [c].Dump ();}
@@ -1208,18 +1221,18 @@ void Syn::DumpVc ()
       _vc [i].Dump (StrFmt (ts, "  vc=`d/`d", i, _nVc));
 }
 
-void Syn::Dump ()  {DumpSnd ();   DumpVc ();   DumpChn ();}//   _fxP.Dump ();}
+void Syn::Dump ()  {DumpSnd ();   DumpVc ();   DumpChn ();}
 
 
 //______________________________________________________________________________
 sbyt2 Syn::r2i (real r, real dth)
 { TStr ts;
-   if (fabs (r) > _maxLvl) {        // keep track of max level EVER
+   if (fabs (r) > _maxLvl) {           // keep track of max level EVER
       _maxLvl = fabs (r);
 DBG("Syn: maxLevel=>`s", R2Str (_maxLvl, ts));
    }
-   r = r * 32766.0 / _maxLvl + dth;      // scale to sample width n dither
-   if (r >= 0.)  return (sbyt2)(r+0.5);  // round to sbyt2 -32767..32767
+   r = r * 32766.0 / _maxLvl + dth;         // scale to sample width n dither
+   if (r >= 0.)  return (sbyt2)(r+0.5);     // round to sbyt2 -32767..32767
                  return (sbyt2)(r-0.5);
 }
 
@@ -1234,43 +1247,38 @@ void Syn::run ()
       out = & _out [per*Sn._nFr];   per = per ? 0 : 1;     // double bufferin
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);   MemSet (_rvrb, 0, sz);
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix (_mixL, _mixR, _rvrb);
-      _rvP->Mix (_rvrb, _mixL, _mixR);
+      _rvP.Mix (_rvrb, _mixL, _mixR);
       for (i = 0;  i < Sn._nFr;  i++) {
          out [i][0] = r2i (_mixL [i], Dither [0][_dth]);
          out [i][1] = r2i (_mixR [i], Dither [1][_dth]);
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
-      Sn.Put ((sbyt2 *)out);        // which'll block us usually
+      Sn.Put ((sbyt2 *)out);           // this'll block us on 2nd call and on
    }
 }
 
 
 Syn::Syn ()
 {
-DBG("Syn::Syn");                       // double buffer so
-   _out = new sbyt2 [2*Sn._nFr][2];    // 2 periods of nFr frames of
-   InitLookup ();                      // interleaved stereo sbyt2 samples
+DBG("Syn::Syn");
+   InitLookup ();
    MemSet (_snd, 0, sizeof (_snd));   _nSnd = 0;
    MemSet (_drm, 0, sizeof (_drm));
    for (ubyt2 c = 0;  c < 256;  c++)  _chn [c].Init ((ubyte)c);
-   _vc = new Voice [_xVc = 256];   _nVc = 0;
-   _ntID = _dth = 0;
+   _vc = new Voice [_xVc = 256];   _nVc = 0;   _maxVc  = 0;
+   _ntID = _dth = 0;                           _maxLvl = 1.0;
    _mixL = new real [Sn._nFr];   _mixR = new real [Sn._nFr];
-   _rvrb = new real [Sn._nFr];
-   _rvP  = new Reverb ();
-   _fxP.Init (_rvP);
-   _maxLvl = 1.0;   _maxVc = 0;   _cur = 0;
-   _run = true;
-   start ();
+                                 _rvrb = new real [Sn._nFr];
+   _out = new sbyt2 [2*Sn._nFr][2];    // 2 periods of nFr frames of interleaved
+   _run = true;   start ();            // stereo sbyt2 (to double buffer)
 DBG("} Syn::Syn");
 }
 
 
 Syn::~Syn ()
-{  _run = false;
-   wait ();
-   WipeSound ();                         delete    _rvP;
-   delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;
+{  _run = false;   wait ();
+   WipeSnd ();
    delete [] _vc;
-   delete [] _smp;
+   delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;
+   delete [] _out;
 }
