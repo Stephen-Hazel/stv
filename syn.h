@@ -40,6 +40,8 @@ typedef ubyt8  Phase;
 
 //______________________________________________________________________________
 // sound (.WAV) part of syn
+#define MAX_SAMP (88*20*2)             // max #stereo WAVs per sound
+                                       // all piano keys - 20 velo grps
 class Sample {                         // stereo .WAVs get split to 2 samples
 public:
    TStr  fn;                 // wav fn (_k,_v prefix n _l/_r suffix)
@@ -53,16 +55,10 @@ public:
    void Dump (bool dr);
 };
 
-#define MAX_SAMP (88*20*2)             // max #stereo WAVs per sound
-                                       // all piano keys - 20 velo grps
-extern TStr   WavFn [MAX_SAMP*2];      // hold it while we load it :/
-extern Sample TSmp  [MAX_SAMP];
-
-
 class Sound {                          // a dir of stereo or mono .WAV files
 public:
-   TStr  _nm,                // Piano\AcousticGrand_acouPno|sampset
-         _pa;                // c:...\syn\sampset\Piano\AcousticGrand_acouPno\ .
+   TStr  _nm,                // Piano/AcousticGrand_acouPno|sampset
+         _pa;                // ../syn/sampset/Piano/AcousticGrand_acouPno/ .
    ubyt4 _siz,  _mxDat;      // #samples of all WAVs, max DAT buf in bytes needd
    real  _max;               // max sample range of all WAVs
    bool  _xFrq, _xRls;       // unpitched;  no release on ntUp (can't be looped)
@@ -71,7 +67,7 @@ public:
 
    ubyt4 LoadDat (ubyte *dat, ubyt4 pos);
    bool  LoadFmt (char *wfn, ubyte ky, ubyte vl);
-   bool  SndDir (char *snd, char *dss, char *dds);
+   bool  SndDir  (char *snd, char *dss, char *dds);
 
    Sound (char *snd, ubyte dKey = 128, char *dss = CC(""), char *dds = CC(""));
   ~Sound ();
@@ -126,7 +122,6 @@ public:                                // used by reverb to do it's thing
    }
 };
 
-
 class Comb {
 public:
    real *buf, feedback, damp1, damp2, store;
@@ -171,14 +166,21 @@ public:
    Allpass *allpL [NUM_ALLP], *allpR [NUM_ALLP];
    real     room, damp, wet, width,  wet1, wet2;
 
-   void Update ();
    void SetRoom  (real val)  {room  = (val * SCALE_ROOM) + OFFSET_ROOM;}
    void SetDamp  (real val)  {damp  =  val * SCALE_DAMP;}
-   void SetLevel (real val)  {CLIP (val, 0., 1.);   wet = val * SCALE_WET;}
    void SetWidth (real val)  {width =  val;}
+   void SetLevel (real val)  {CLIP (val, 0., 1.);   wet = val * SCALE_WET;}
+   void Update ();
+
+   void Set (ubyte r = 64, ubyte d = 25, ubyte w = 127, ubyte l = 127)
+   {  SetRoom (r / 127.);   SetDamp  (d / 127.);   SetWidth (w / 127.);
+                            SetLevel (l / 127.);   Update ();
+   }
+
+   void Mix (real *in, real *mixL, real *mixR);
+
    Reverb ();
   ~Reverb ();
-   void Mix (real *in, real *mixL, real *mixR);
 };
 
 
@@ -253,61 +255,28 @@ public:
 
 
 //______________________________________________________________________________
-class FxPDef {
-public:
-   Reverb *rvP;
-   ubyte   rRoom, rDamp,  rWidth, rLevel;
-
-   void Updt ()
-   {  rvP->SetRoom    (rRoom  / 127.);
-      rvP->SetDamp    (rDamp  / 127.);
-      rvP->SetWidth   (rWidth / 127.);
-      rvP->SetLevel   (rLevel / 127.);
-      rvP->Update ();
-   }
-
-   void Init (Reverb *rv)
-   {  rvP = rv;       // dflt range
-      rRoom  =  64;               // 0.2  0.-1.   reverb params:
-      rDamp  =  25;               // 0.   0.-1.
-      rWidth = 127;               // 0.5  0.-1.
-      rLevel = 127;               // 0.9  0.-1.
-      Updt ();
-   }
-
-   void Dump ()
-   {  DBG("FxP: rRoom=`d rDamp=`d rWidth=`d rLevel=`d",
-          rRoom, rDamp, rWidth, rLevel);
-   }
-};
-extern FxPDef FxP;
-
-
-//______________________________________________________________________________
 class Syn: public QThread {
    Q_OBJECT
 
 public:
-   sbyt2  (*_out)[2];                       // device sample buffer
-   Sound   *_snd [128];   ubyte _nSnd;      // melodic sounds (pitched)
    real    *_smp;         ubyt4 _nSmp;      // buf o samples from inst wavs
+   Sound   *_snd [128];   ubyte _nSnd;      // melodic sounds (pitched)
    Sound   *_drm [128];                     // percussive   (UNpitched)
+   Reverb   _rvP;                           // reverb fx processor
    Channel  _chn [256];                     // midi chans: "canvases" for voices
-   Voice   *_vc;          ubyt2 _nVc, _xVc; // each playin a note's samples
-   real    *_rvrb,                          // fx bufs
+   Voice   *_vc;                            // voice per (mono) sample in use
+   ubyt2   _nVc, _xVc, _maxVc;              // #used, #max, max we ever used
+   real    *_rvrb,                          // fx buf
            *_mixL, *_mixR,                  // output buf of audio to GOooo
-            _maxLvl;
-   ubyt4    _ntID,  _dth,       _maxVc;     // note# n dither pos we're on
-   FxPDef   _fxP;                           // fx params
-   Reverb  *_rvP;                           // fx processor (reverb)
-   bool     _run;
-   ubyt4    _cur;                           // hack fer writin .WAV :/
+            _maxLvl;                        // max level we ever did
+   ubyt4    _ntID, _dth;                    // note# n dither pos we're on
+   bool     _run;                           // spin our sample writin thread?
+   sbyt2  (*_out)[2];                       // sound device sample buffer
 
    Syn ();
   ~Syn ();
-   void DumpSnd ();
-   void WipeSound ();
-   void LoadSound ();
+   void WipeSnd ();
+   void LoadSnd ();
 
    void NOff (ubyte ch, ubyte key, ubyte vel);
    void NtOn (ubyte ch, ubyte key, ubyte vel);
@@ -315,8 +284,8 @@ public:
    void UnHold (ubyte ch);
    void AllCh  (ubyte ch, char todo);
 
-   void Put (char *cmd,
-             ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0);
+   void Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0);
+   void DumpSnd ();
    void DumpChn ();
    void DumpVc  ();
    void Dump    ();

@@ -5,16 +5,18 @@
 #define EVEN(n)     ((n)&0xFFFFFFFE)
 #define EVEN_UP(n)  EVEN((n)+1)
 
-#define WAVE_FORMAT_PCM	 0x0001
+#define WAVE_FORMAT_PCM  0x0001
 
-typedef struct GUID {
+typedef ubyt4 ID;
+
+struct GUID {
    ubyt4 Data1;
    ubyt2 Data2;
    ubyt2 Data3;
    ubyte Data4 [8];
-} GUID;
+};
 
-typedef struct {
+struct WAVEFORMATEX {
    sbyt2 wFormatTag;
    sbyt2 nChannels;
    sbyt4 nSamplesPerSec;
@@ -22,9 +24,9 @@ typedef struct {
    sbyt2 nBlockAlign;
    sbyt2 wBitsPerSample;
    sbyt2 cbSize;
-} WAVEFORMATEX;
+};
 
-typedef struct {
+struct WAVEFORMATEXTENSIBLE {
    WAVEFORMATEX Format;
    union {
       sbyt2 wValidBitsPerSample;
@@ -33,26 +35,26 @@ typedef struct {
    } Samples;
    sbyt4    dwChannelMask;
    GUID     SubFormat;
-} WAVEFORMATEXTENSIBLE;
+};
 
-typedef struct {
+struct WAVESMPL {
    ubyt4 manuf;  ubyt4 prod;  ubyt4 per;  ubyt4 key;  ubyt4 cnt;
    ubyt4 sfmt;   ubyt4 sofs;  ubyt4 num;  ubyt4 dat;  ubyt4 cue;
    ubyt4 loop;   ubyt4 bgn;   ubyt4 end;  ubyt4 frc;  ubyt4 times;
-} WAVESMPL;
-/*
+};
+
 #define SamplerID  'smpl'
 
-typedef struct {
+struct SampleLoop {
    sbyt4 dwIdentifier;
    sbyt4 dwType;
    sbyt4 dwStart;
    sbyt4 dwEnd;
    sbyt4 dwFraction;
    sbyt4 dwPlayCount;
-} SampleLoop;
+};
 
-typedef struct {
+struct SamplerChunk {
    ID    chunkID;
    sbyt4 chunkSize;
    sbyt4 dwManufacturer;
@@ -64,8 +66,8 @@ typedef struct {
    sbyt4 dwSMPTEOffset;
    sbyt4 cSampleLoops;
    sbyt4 cbSamplerData;
-   struct SampleLoop Loops [];
-} SamplerChunk;
+   SampleLoop Loops [];
+};
 
 class Wav {
 public:
@@ -86,4 +88,3 @@ public:
    ubyt4                _fmtSz;
    WAVESMPL            *_smp;
 };
-*/
