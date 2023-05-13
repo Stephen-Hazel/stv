@@ -1260,7 +1260,7 @@ void Syn::run ()
 
 Syn::Syn ()
 {
-DBG("Syn::Syn");
+DBG("Syn::Syn bgn");
    InitLookup ();
    MemSet (_snd, 0, sizeof (_snd));   _nSnd = 0;
    MemSet (_drm, 0, sizeof (_drm));
@@ -1271,14 +1271,17 @@ DBG("Syn::Syn");
                                  _rvrb = new real [Sn._nFr];
    _out = new sbyt2 [2*Sn._nFr][2];    // 2 periods of nFr frames of interleaved
    _run = true;   start ();            // stereo sbyt2 (to double buffer)
-DBG("} Syn::Syn");
+DBG("Syn::Syn end");
 }
 
 
 Syn::~Syn ()
-{  _run = false;   wait ();
+{
+DBG("Syn::~Syn bgn");
+   _run = false;   wait ();
    WipeSnd ();
    delete [] _vc;
    delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;
    delete [] _out;
+DBG("Syn::~Syn end");
 }
