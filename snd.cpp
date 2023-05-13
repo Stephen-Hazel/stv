@@ -193,6 +193,7 @@ SndO::SndO (ubyt4 nFr, ubyt4 frq)      // frames in 1 period, frequency
   ubyt4 nPer = 2;
    _frq = frq;   _nFr = nFr;           // what we get: may change
    _hnd = nullptr;
+   if (*App.grp == '\0')  StrCp (App.grp, CC("pcheetah"));      // sigh
    App.CfgGet (CC("syn"), _desc);
 TRC("SndO desc=`s", _desc);
    Snd.Load ();   StrCp (_dev, Snd.Get (_desc));

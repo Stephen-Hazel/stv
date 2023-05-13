@@ -457,30 +457,30 @@ class MemFile {
 public:
    void *Open (char *fn)
    { File f;
-      _mem = nullptr;   _sz = 0;
+      _mem = nullptr;   _len = 0;
       if (! f.Open (fn, "r"))  return nullptr;
-      _sz  = f.Size (fn);
-      _mem = mmap (NULL, _sz, PROT_READ, MAP_PRIVATE, f.Hnd (), 0);
+      _len = f.Size (fn);
+      _mem = mmap (NULL, _len, PROT_READ, MAP_PRIVATE, f.Hnd (), 0);
       if (_mem == MAP_FAILED) {
 DBG("mmap `s died", fn);
-         f.Shut ();   _mem = nullptr;   _sz = 0;
+         f.Shut ();   _mem = nullptr;   _len = 0;
          return nullptr;
       }
       f.Shut ();
       return _mem;
    }
 
-   void *Mem  ()  {return _mem;}
-   ubyt4 Size ()  {return _sz;}
+   void *Mem ()  {return _mem;}
+   ubyt4 Len ()  {return _len;}
 
    void Shut ()
    { int e;
-      if ((e = munmap (_mem, _sz)) == 0)
+      if ((e = munmap (_mem, _len)) == 0)
 DBG("munmap died");
    }
 private:
    void *_mem;
-   ubyt4 _sz;
+   ubyt4 _len;
 };
 
 
