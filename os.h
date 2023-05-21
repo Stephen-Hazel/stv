@@ -223,6 +223,7 @@ private:
 
 //______________________________________________________________________________
 // parses a record with columns separated by (usually) spaces - handy for files
+// NOTE - your Rec string is used as a buffer and will be WRECKED upon return !!
 class ColSep {
 public:
    char *Col [90];
@@ -474,9 +475,10 @@ DBG("mmap `s died", fn);
    ubyt4 Len ()  {return _len;}
 
    void Shut ()
-   { int e;
-      if ((e = munmap (_mem, _len)) == 0)
+   {  if (_mem == nullptr)  return;
+      if ((munmap (_mem, _len)))
 DBG("munmap died");
+      _mem = nullptr;   _len = 0;
    }
 private:
    void *_mem;
