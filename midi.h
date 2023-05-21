@@ -264,7 +264,7 @@ extern ubyte   NMDrum;
 
 extern ubyte MDrm     (char *s);            // str to key
 extern char *MDrm2Str (char *s, ubyte b);   // key to str
-extern char *MDrm2StG (char *s, ubyte b);   // key to Drum\grp\str
+extern char *MDrm2StG (char *s, ubyte b);   // key to Drum/grp_str
 extern ubyte MDrm2Grp (ubyte b);            // key to grp #
 
 extern ubyt2 MCtl     (char *s);
