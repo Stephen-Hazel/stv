@@ -57,21 +57,19 @@ public:
 
 class Sound {                          // a dir of stereo or mono .WAV files
 public:
-   TStr  _nm,                // Piano/AcousticGrand_acouPno|sampset
-         _pa;                // ../syn/sampset/Piano/AcousticGrand_acouPno/ .
-   ubyt4 _siz,  _mxDat;      // #samples of all WAVs, max DAT buf in bytes needd
+   TStr  _nm,                //                     Piano_AcousticGrand_Bank
+         _pa;                // .../device/syn/Bank/Piano_AcousticGrand
+   ubyt4 _siz;               // #samples of all WAVs
    real  _max;               // max sample range of all WAVs
    bool  _xFrq, _xRls;       // unpitched;  no release on ntUp (can't be looped)
    Sample *_smp;             // alloc'd
    ubyt2  _nSmp;
 
-   ubyt4 LoadDat (ubyte *dat, ubyt4 pos);
-   bool  LoadFmt (char *wfn, ubyte ky, ubyte vl);
-   bool  SndDir  (char *snd, char *dss, char *dds);
-
-   Sound (char *snd, ubyte dKey = 128, char *dss = CC(""), char *dds = CC(""));
+   Sound (char *snd, ubyte dKey = 128);
   ~Sound ();
-   void Dump ();
+   void  Dump ();
+   bool  LoadFmt (char *wfn, ubyte ky, ubyte vl);
+   ubyt4 LoadDat (ubyt4 pos);
 };
 
 

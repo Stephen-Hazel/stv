@@ -5,16 +5,19 @@
 #define EVEN(n)     ((n)&0xFFFFFFFE)
 #define EVEN_UP(n)  EVEN((n)+1)
 
-#define WAVE_FORMAT_PCM  0x0001
+const sbyt2 WAVE_FORMAT_PCM        = 0x0001;
+const sbyt2 WAVE_FORMAT_IEEE_FLOAT = 0x0003;
+const sbyt2 WAVE_FORMAT_EXTENSIBLE = 0xFFFE;
 
-typedef ubyt4 ID;
-
-struct GUID {
+struct GUID {                          // so dumbb
    ubyt4 Data1;
    ubyt2 Data2;
    ubyt2 Data3;
    ubyte Data4 [8];
 };
+
+extern GUID KSDATAFORMAT_SUBTYPE_PCM;
+extern GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 
 struct WAVEFORMATEX {
    sbyt2 wFormatTag;
@@ -37,15 +40,22 @@ struct WAVEFORMATEXTENSIBLE {
    GUID     SubFormat;
 };
 
+typedef char ID [4];
+
+struct CHUNK {
+   ID    tag;
+   ubyt4 siz;
+};
+
+#define SamplerID  'smpl'
+
 struct WAVESMPL {
    ubyt4 manuf;  ubyt4 prod;  ubyt4 per;  ubyt4 key;  ubyt4 cnt;
    ubyt4 sfmt;   ubyt4 sofs;  ubyt4 num;  ubyt4 dat;  ubyt4 cue;
    ubyt4 loop;   ubyt4 bgn;   ubyt4 end;  ubyt4 frc;  ubyt4 times;
 };
 
-#define SamplerID  'smpl'
-
-struct SampleLoop {
+struct SampleLoop {                    // ...nawww gonna just use WAVESMPL
    sbyt4 dwIdentifier;
    sbyt4 dwType;
    sbyt4 dwStart;
@@ -54,7 +64,7 @@ struct SampleLoop {
    sbyt4 dwPlayCount;
 };
 
-struct SamplerChunk {
+struct SamplerChunk {                  // (see above)
    ID    chunkID;
    sbyt4 chunkSize;
    sbyt4 dwManufacturer;
@@ -76,15 +86,17 @@ public:
    void  Wipe ();
    char *Load (char *fn);
    void  Save (char *fn);
-   TStr    _name;
-   MemFile _mf;
-   void   *_mem;                       // wav sample data - ptr sbyte/sbyt2[1/2]
-   bool    _mono, _loop;
-   ubyte   _byts;                      // 1,2,3,4
-   ubyte   _bits, _key, _cnt;          // 8,16,24,32;  sampled key n cent tuning
-   ubyt4   _len,  _frq,                // num samples, frequency,
-           _bgn, _end, _lBgn, _lEnd;   // bgn/end loop point bgn/end
+   TStr  _name;
+   void *_mem;                       // wav sample data - of whatever kinda
+   ubyt4 _len;                       // len of it in bytes
+   bool  _mono, _real, _loop;
+   ubyt4 _frq;                       // frequency,
+   ubyte _byts;                      // 1,2,3,4,8
+   ubyte _bits, _key, _cnt;          // 8,16,24,32;  sampled key n cent tuning
+   ubyt4 _bgn, _end, _lBgn, _lEnd;   // bgn/end loop point bgn/end
+private:
+   MemFile              _mf;           // don't be messin w deez
    WAVEFORMATEXTENSIBLE _fmt;
    ubyt4                _fmtSz;
-   WAVESMPL            *_smp;
+   WAVESMPL             _smp;
 };
