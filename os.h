@@ -21,7 +21,8 @@
 #define MAX_PATH     (240)             // 4k is just too big :(
 #define BITS(a)      (sizeof(a)/sizeof(a[0]))
 #define RECOFS(s,f)  ((ubyte *)(& s.f) - (ubyte *)(& s))
-#define SC(t,x)      (static_cast<t>(x))
+#define SC(t,x)      (static_cast<t>(x))         // too looong !
+#define RC(t,x)      (reinterpret_cast<t>(x))
 #define CC(s)        (const_cast<char *>(s))
 
 
@@ -227,6 +228,7 @@ private:
 class ColSep {
 public:
    char *Col [90];
+   ubyte Len;
    ColSep (char *Rec, ubyte Pre, char Sp = ' ')
    { ubyt2 p, c;
       if (Pre >= BITS (Col))  Pre = BITS (Col) - 1;  // just to be sorta safe
@@ -247,6 +249,7 @@ public:
    // leftover goes into next Col, rest of Cols point at the last \0
       Col [c++] = & Rec [p];
       while (c < BITS (Col))  Col [c++] = & Rec [StrLn (Rec)];
+      for (Len = 0;  Len < 90;  Len++)  if (Col [Len][0] == '\0')  break;
    }
 };
 
@@ -276,14 +279,17 @@ DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
       _dir = dir;
       _d = opendir (_dir);             // Got() made sure it won't be null
       df = Next (fn);
-      if (! df)  Shut ();              // sigh - make it ez on user
+      if (! df)  {Shut ();             // sigh - make it ez on user
+DBG("FDir::Open just 1 so auto Shut");}
       return df;
    }
 
    char Next (char *fn)
    { TStr s;
-      if (_d == nullptr)                   return *fn = '\0';
-      if ((_e = readdir (_d)) == nullptr)  return *fn = '\0';
+      if (_d == nullptr)                    return *fn = '\0';
+//DBG("FDir::Next was null:(");}
+      if ((_e = readdir (_d)) == nullptr)   return *fn = '\0';
+//DBG("FDir::Next readdir came back null");}
       StrCp (s, _e->d_name);
       if ((StrLn (_dir) + 1 + StrLn (s)) >= sizeof (TStr)) {
 DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
@@ -292,9 +298,12 @@ DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
       }
       StrFmt (fn, "`s/`s", _dir, s);
       if (StrCm (s, CC(".")) && StrCm (s, CC("..")) && StrCm (s, CC(".git"))) {
-         if (_e->d_type == DT_REG)  return 'f';
-         if (_e->d_type == DT_DIR)  return 'd';
+        struct stat s;
+         if (stat (fn, & s))
+DBG("FDir::Next stat(`s) died", fn);
+         return S_ISDIR (s.st_mode) ? 'd' : 'f';
       }
+//DBG("FDir::Next skip '`s' in dir", s);
       return Next (fn);                // IGNORE FIFO,SOCK,CHR,BLK,LNK !!
    }
 

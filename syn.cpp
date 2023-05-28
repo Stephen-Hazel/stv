@@ -90,16 +90,11 @@ void InitLookup (void)
 
 
 //______________________________________________________________________________
-// sound (.WAV) part of syn
-#define EVEN(n)     ((n)&0xFFFFFFFE)
-#define EVEN_UP(n)  EVEN((n)+1)
-
+// sound (.WAV) part of syn - can't have a synth without samples :)
 const  real   MAXS4 = 2147483648.;
-
 static TStr   WavFn [MAX_SAMP*2];      // hold sounds' wavs while loading
 static Sample TSmp  [MAX_SAMP];        // sample is mostly just a data struct
                                        // (little code to it)
-
 void Sample::Dump (bool dr)
 { TStr s1, s2;
    DBG("   smp=`s", fn);
@@ -124,18 +119,17 @@ static int TSmCmp (void *p1, void *p2)
 }
 
 
-//______________________________________________________________________________
 void Sound::Dump ()
-{  DBG("   snd=`s nSmp=`d xFrq=`b xRls=`b siz=`d mxDat=`d",
-       _nm, _nSmp, _xFrq, _xRls, _siz, _mxDat);
+{  DBG("   snd=`s nSmp=`d xFrq=`b xRls=`b siz=`d",
+       _nm, _nSmp, _xFrq, _xRls, _siz);
 //    DBG("      dir=`s", _pa);
 }
 
 
-ubyt4 Sound::LoadDat (ubyte *dat, ubyt4 pos)
+ubyt4 Sound::LoadDat (ubyt4 pos)
 // actually load each .WAV we found into smp buffer n offset our poss by len
-{ TStr  fn;
-  File  f;
+{ TStr fn;
+  Wav  w;
   sbyt4 smp;
   ubyt4 lenD, s, p1 = pos;
   ubyt2 i;
@@ -144,29 +138,14 @@ ubyt4 Sound::LoadDat (ubyte *dat, ubyt4 pos)
   bool  got;
   struct {char tag [4];  ubyt4 siz;} ch;
   char          id [4];
-TRC("{ Sound::LoadDat  pos=`d", pos);
+DBG("Sound::LoadDat pos=`d", pos);
    for (i = 0;  i < _nSmp;  i++) {
       _max = 0.0;
-      got = false;
-      StrCp (fn, _pa);   StrAp (fn, _smp [i].fn);  // already know it opens
-//TRC("i=`d/`d fn=.../`s'", i, _nSmp, _smp [i].fn);
-      f.Open (fn, "r");   f.Get (& ch, sizeof (ch));
-                          f.Get (id,   sizeof (id));
-      while (f.Get (& ch, sizeof (ch)) == sizeof (ch)) {
-         if (! MemCm (ch.tag, CC("data"), 4, 'x'))
-             {lenD = ch.siz;   if (f.Get (dat, lenD) == lenD)  got = true;}
-         else f.Seek (EVEN_UP (ch.siz), CC("."));  // skip other Chunks
-      }
-      f.Shut ();
-      if (! got) {
-DBG("Sound::LoadDat  no WAV data chunk in `s", fn);
-         return 0;
-      }
-//TRC("lenD=`d", lenD);
-   // got it, so convert it to real samples now
+      StrCp (fn, _smp [i].fn);
+      w.Load (fn);                     // already know it's solid
       nch = _smp [i].chans;   nby = _smp [i].bytes;   flo = _smp [i].flopt;
       _smp [i].pos = pos;
-      for (p = dat, s = 0;  s < _smp [i].len;  s++) {
+      for (p = SC(ubyte *,w._mem), s = 0;  s < _smp [i].len;  s++) {
          if (flo)  {sr = (nby <= 4) ? *((float *)p) : *((double *)p);
                     p +=  nby;}
          else {
@@ -181,15 +160,14 @@ DBG("Sound::LoadDat  no WAV data chunk in `s", fn);
          }
          if (fabs (sr) > _max)  _max = fabs (sr);
          Sy._smp [pos++] = sr;
-         p += (nby*(nch-1));        // skip smps in any unused chans
       }
 
    // check if this file does 2 _smp[] entries (stereo r side)
       if ( (i+1 < _nSmp) && (! StrCm (_smp [i+1].fn, _smp [i].fn)) &&
                                      (_smp [i+1].lr == 1) ) {
-//TRC("got 2nd smp i=`d/`d pos=`d", i+1, _nSmp, pos);
+DBG("got 2nd smp i=`d/`d pos=`d", i+1, _nSmp, pos);
          _smp [++i].pos = pos;
-         for (p = & dat [nby], s = 0;  s < _smp [i].len;  s++) {
+         for (p = & SC(ubyte *,w._mem) [nby], s = 0;  s < _smp [i].len;  s++) {
             if (flo)  {sr = (nby <= 4) ? *((float *)p) : *((double *)p);
                        p +=  nby;}
             else {
@@ -204,13 +182,12 @@ DBG("Sound::LoadDat  no WAV data chunk in `s", fn);
             }
             if (fabs (sr) > _max)  _max = fabs (sr);
             Sy._smp [pos++] = sr;
-            p += (nby*(nch-1));        // skip smps in any unused chans
          }
       }
    // ok, scale them samples so ALL sounds have a max range of +-1.0
       for (;  p1 < pos;  p1++)  Sy._smp [p1] *= (1.0 / _max);
    }
-TRC("} Sound::LoadDat  new pos=`d", pos);
+DBG("Sound::LoadDat  new pos=`d", pos);
    return pos;
 }
 
@@ -221,208 +198,69 @@ bool Sound::LoadFmt (char *wfn, ubyte ky, ubyte vl)
 // if there's only one sample (or one _L, one _R),
 // it's 0-127 for both key and vel (max) range
 { TStr  fn;
-  File  f;
-  ubyt4 ln, lenD;
-  ubyte bt, ch;
-  real  fr;
-  struct {char tag [4];  ubyt4 siz;} chk;
-  char          id [4], got [3];
-  WAVEFORMATEXTENSIBLE  wf;
-  struct {
-     ubyt4 manuf;  ubyt4 prod;  ubyt4 per;  ubyt4 note;  ubyt4 frac;
-     ubyt4 sfmt;   ubyt4 sofs;  ubyt4 num;  ubyt4 dat;   ubyt4 cue;
-     ubyt4 loop;   ubyt4 bgn;   ubyt4 end;  ubyt4 frc;   ubyt4 times;
-  } smpl;
+  char *e;
+  Wav   w;
   Sample *s = & TSmp [_nSmp];
-   StrCp (fn, _pa);   StrAp (fn, wfn);   StrCp (s->fn, wfn);
-   if (! f.Open (fn, "r"))          // _pa always ends w '/'
-      {DBG ("Sound::LoadFmt  can't read `s", fn);           return false;}
-   if ( (f.Get (& chk, sizeof (chk)) != sizeof (chk)) ||
-         MemCm (chk.tag, CC("RIFF"), 4, 'x') )
-      {DBG ("Sound::LoadFmt  bad WAV file `s", fn);         return false;}
-   if ( (f.Get (id, sizeof (id)) != sizeof (id)) ||
-         MemCm (id,     CC("WAVE"), 4, 'x') )
-      {DBG ("Sound::LoadFmt  bad WAV file 2 `s", fn);       return false;}
-   MemSet (got, 0, sizeof (got));
-   while (f.Get (& chk, sizeof (chk)) == sizeof (chk)) {
-      if      (! MemCm (chk.tag, CC("fmt "), 4, 'x')) {
-         got [0] = 'y';
-         if (chk.siz > sizeof(wf))
-            {DBG ("Sound::LoadFmt  bad WAV fmt `s", fn);    return false;}
-         if (f.Get (& wf, chk.siz) != chk.siz)
-            {DBG ("Sound::LoadFmt  eof in fmt `s", fn);     return false;}
-      }
-      else if (! MemCm (chk.tag, CC("data"), 4, 'x')) {
-         got [1] = 'y';
-         lenD = chk.siz;
-         f.Seek (EVEN_UP (chk.siz), CC("."));     // skip fer now
-      }
-      else if (! MemCm (chk.tag, CC("smpl"), 4, 'x')) {
-         got [2] = 'y';
-         if (chk.siz > sizeof(smpl)) {
-            if (f.Get (& smpl, sizeof(smpl)) != sizeof(smpl))
-               {DBG ("Sound::LoadFmt  eof1 in smpl `s", fn); return false;}
-            f.Seek (EVEN_UP(chk.siz - sizeof(smpl)), CC("."));
-         }
-         else
-            if (f.Get (& smpl, chk.siz) != chk.siz)
-               {DBG ("Sound::LoadFmt  eof2 in smpl `s", fn); return false;}
-      }
-      else
-         f.Seek (EVEN_UP (chk.siz), CC("."));      // skip unused Chunks
+   StrFmt (fn, "`s/`s", _pa, wfn);   StrCp (s->fn, fn);
+   if ((e = w.Load (fn)) != nullptr) {
+DBG("Song::LoadFmt `s: `s", fn, e);   return false;
    }
-   f.Shut ();
-   if (! got [0])  {DBG ("Sound::LoadFmt  no WAV fmt", fn);   return false;}
-   if (! got [1])  {DBG ("Sound::LoadFmt  no WAV data",fn);   return false;}
-   if (! got [2])  {MemSet (& smpl, 0, sizeof (smpl));
-                    smpl.note = 60;   smpl.bgn = smpl.end = lenD;}
-   fr = (real)   wf.Format.nSamplesPerSec;    // ^ no smpl chunk - no loopin
-   ch = (ubyte)  wf.Format.nChannels;         // falls into loop check below
-   bt = (ubyte) (wf.Format.nBlockAlign / ch);
-   ln = lenD / (ch * bt);
-   if ((smpl.bgn >= ln) || (smpl.end > ln) || (smpl.end <= smpl.bgn)) {
-//DBG("loop off for `s (len=`d lpBgn=`d lpEnd=`d)", fn,ln,smpl.bgn,smpl.end);
-      smpl.bgn = ln;
-   }
-   if ((_nSmp + ch) > BITS (TSmp))
+   if ((_nSmp + (w._mono?1:2)) > BITS (TSmp))
       {DBG ("Sound::LoadFmt  too many samples `s", fn);   return false;}
-
-   s->bytes = bt;   s->chans = ch;   s->pos = 0;   s->len = ln;
-   s->frq   = fr;
-   if      (_xFrq || _xRls)              s->lpBgn = ln;
-   else if ((s->lpBgn = smpl.bgn) < ln)  s->len = ln = smpl.end;
-
-   if      (wf.Format.wFormatTag == WAVE_FORMAT_PCM)        s->flopt = false;
-/* else if (wf.Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT) s->flopt = true;
-** else if (wf.Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
-**    if      (wf.SubFormat == KSDATAFORMAT_SUBTYPE_PCM)    s->flopt = false;
-**    else if (wf.SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)
-**                                                          s->flopt = true;
-**    else  {DBG ("Sound::LoadFmt  unknown format", fn);   return false;}
-** }
-*/
-   else     {DBG ("Sound::LoadFmt  unknown format", fn);   return false;}
-
-   s->key = (ubyte)smpl.note;
-   s->cnt = (ubyte)((ubyt4)smpl.frac / ((ubyt4)0x80000000/50));
+   s->frq   = w._frq;
+   s->bytes = w._byts;
+   s->chans = w._mono?1:2;
+   s->pos   = 0;
+   s->len   = w._len;
+   if      (_xFrq || _xRls)                 s->lpBgn = s->len;
+   else if ((s->lpBgn = w._lBgn) < w._len)  s->len = w._lEnd;
+   s->key = w._key;
+   s->cnt = w._cnt;
    s->mxKey = ky;   s->mxVel = vl;
-   _siz += ln;   if (lenD > _mxDat)  _mxDat = lenD;
+   _siz += s->len;
    _nSmp++;
-   if (ch == 1)                     // mono
+   if (w._mono)
       s->lr = StrSt (wfn, CC("_L.WAV")) ? 0 :
              (StrSt (wfn, CC("_R.WAV")) ? 1 : 2);
-   else {                           // stereo
+   else {
       MemCp (s+1, s, sizeof (TSmp[0]));
-      s->lr = 0;   s++;   s->lr = 1;   _siz += ln;   _nSmp++;
+      s->lr = 0;   s++;   s->lr = 1;   _siz += s->len;   _nSmp++;
    }
    return true;
 }
 
 
-bool Sound::SndDir (char *snd, char *dss, char *dds)
-// split out sampset,drumset and make _pa (actual sound dir in filesys)
-// set _xFrq,_xRls too
-// lookin up defaults if needed.  _pa doesn't end w / YET !!  that's later
-{ TStr  dr, ss, ds, mn, dfd [1024];
+Sound::Sound (char *snd, ubyte dKey)
+// list .WAVs of snd dir into WavFn[].  load each hdr  (load samples later)
+{ Path  pa;
+  ubyt4 nw,  i, ln;
+  TStr  s, s2, bnk;
+  ubyte ky, vl, k1;
+  ubyt2 ns = 0;
   char *p;
-  ubyt4 i, j, ig;
-  FDir  d;
-  Path  pa;
-  File  f;
-TRC("SndDir bgn _nm=`s dss=`s dds=`s", snd, dss, dds);
-   StrCp (_nm, snd);   App.Path (_pa, 'd');
-                       StrAp (_pa, CC("/device/syn/"));
-   ig = StrLn (_pa);                // don't care bout that part o path
+TRC("Sound::Sound `s dKey=`d", snd, dKey);
+   _siz = 0;   _max = 0.0;
+   _xFrq = _xRls = false;              // default to pitching/looping
+   _nSmp = 0;   MemSet (TSmp, 0, sizeof (TSmp));
 
-// drum - pretty rough
-   if      (! MemCm (_nm, CC("Drum/"), 5)) {
-      StrCp (dr, & _nm [5]);   *ss = *ds = *mn = '\0';
-      if ((p = StrCh (dr, ':'))) {
-         *p++ = '\0';   StrCp (ds, p);
-         if ((p = StrCh (ds, '/')))
-            {*p++ = '\0';   *mn = '_';   StrCp (& mn [1], p);}
-      }
-      if ((p = StrCh (dr, '|')))  {*p++ = '\0';   StrCp (ss, p);}
-      if (*ss == '\0')  StrCp (ss, dss);
-      if (*ds == '\0')  StrCp (ds, dds);
-      StrFmt (& _pa [StrLn (_pa)], "`s/Drum/`s/`s`s", ss, ds, dr, mn);
-   }
-
-// melodic etc  etc|sampset/name
-   else if (! MemCm (_nm, CC("etc|"), 4)) {
-      StrCp (ss, & _nm [4]);
-      if (! (p = StrCh (ss, '/'))) {
-DBG("Sound::SndDir  no / in `s", _nm);
-         return false;
-      }
-      *p++ = '\0';
-      StrFmt (& _pa [StrLn (_pa)], "`s/etc/`s", ss, p);
-   }
-
-// melodic gm  gmDir/gmSnd[|sset][/more]
-   else {
-      StrCp (dr, _nm);
-   // split off /more if got
-      if (! (p = StrCh (dr, '/'))) {     // 1st / BETTER be there
-DBG("no / in `s", _nm);
-         return false;
-      }
-      if ((p = StrCh (++p, '/')))
-         {*p++ = '\0';   *mn = '_';   StrCp (& mn [1], p);}
-      else               *mn = '\0';
-   // split off |sset if got
-      if ((p = StrCh (dr, '|')))  {*p++ = '\0';   StrCp (ss, p);}
-      else                                        StrCp (ss, dss);
-   // ok, got path now
-      StrFmt (& _pa [StrLn (_pa)], "`s/`s`s", ss, dr, mn);
-   }
-
-   _xFrq = _xRls = false;           // no pitching/no release on noteUp
-   i = StrLn (_pa);                 // special sound suffix - drum,hold,clip
+// set _nm,_pa n _xFrq,_xRls
+   StrCp (_nm, snd);
+   StrCp (s,   snd);
+  ColSep c (s, 8, '_');
+   StrCp (bnk, c.Col [c.Len-1]);
+   StrCp (s, snd);   s [StrLn (s) - StrLn (bnk)] = '\0';
+   StrFmt (_pa, "`s/device/syn/`s/`s", App.Path (s2, 'd'), bnk, s);
+   i = StrLn (_pa);                    // special sound suffix - drum,hold,clip
    if (i > 5) {
+   // snd w _hold suffix=> no release ramp on ntUp, _drum suffix=> un-pitched
+   // _clip suffix for both ^                    (or in a drum dir ^ )
       if ((! MemCm (_nm, CC("Drum/"), 5)) ||
           (! MemCm (& _pa [i-5], CC("_drum"), 5))) _xFrq = true;
       if  (! MemCm (& _pa [i-5], CC("_hold"), 5))  _xRls = true;
       if  (! MemCm (& _pa [i-5], CC("_clip"), 5))  _xFrq = _xRls = true;
    }
-// if default sampset, look for it with any _morename
-   if ( (! d.Got (_pa)) && (! StrCm (ss, dss)) ) {
-TRC(" resolving path=`s for GM", _pa);
-      StrCp (dr, _pa);   Fn2Path (dr);   // dr has par dir
-      StrCp (_pa, & _pa [StrLn (dr)+1]); // _pa has just fn prefix
-      i = pa.DLst (dr, dfd, (ubyt2)BITS (dfd));
-      for (j = 0;  j < i;  j++)  if (! MemCm (dfd [j], _pa, StrLn (_pa)))
-         {StrFmt (_pa, "`s/`s", dr, dfd [j]);   break;}
-      if (j >= i) {
-DBG("SndDir can't resolve GM snd `s in dir `s", _pa, dr);
-         return false;
-      }
-   }
-TRC("SndDir end _pa=`s xFrq=`b xRls=`b", & _pa [ig], _xFrq, _xRls);
-   return true;
-}
+TRC("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
 
-
-Sound::Sound (char *snd, ubyte dKey, char *dss, char *dds)
-// list dir of .WAVs into w[] and load each wav hdr  (load samples later)
-// snd w _hold suffix=> no release ramp on ntUp, _drum suffix=> un-pitched
-// _clip suffix for both ^                    (or in a drum dir ^ )
-{ Path  pa;
-  ubyt4 nw,  i, ln;
-  TStr  ts;
-  ubyte ky, vl, k1;
-  ubyt2 ns = 0;
-  char *p;
-TRC("{ Sound::Sound `s dKey=`d dss=`s dds=`s", snd, dKey, dss, dds);
-   _nSmp = 0;   MemSet (TSmp, 0, sizeof (TSmp));
-   _siz = _mxDat = 0;   _max = 0.0;
-
-   if (! SndDir (snd, dss, dds)) {       // set _nm,_pa n _xFrq,_xRls
-TRC("} Sound::Sound - no sampset for snd");
-DBG("Sound::SndDir couldn't turn `s into a dir :(", snd);
-      _smp = new Sample [1];
-      return;
-   }
 // go thru each .WAV of the snd dir
 // _k<note>_ in fn gives max key range
 // _v<velo>_ in fn gives optional max velocity range
@@ -430,25 +268,24 @@ DBG("Sound::SndDir couldn't turn `s into a dir :(", snd);
    StrAp (_pa, CC("/"));
    for (i = 0;  i < nw;  i++) {     // pull overrd smpKey,maxVel from WAV fns
       ky = vl = 0xFF;
-      StrCp (ts, WavFn [i]);   ln = StrLn (ts);
-      for (p = ts;  *p;  p++)  if ( (StrLn (p) >= 4) &&
-                                    (! MemCm (p, CC("_k"), 2)) &&
-                                    (p [2] >= '0') && (p [2] <= '9') )
-         {if ((k1 = MKey          (& p [2])) > 0)  ky = k1;
-          break;}
+      StrCp (s, WavFn [i]);   ln = StrLn (s);
+      for (p = s;  *p;  p++)
+         if ( (StrLn (p) >= 5) && (! MemCm (p, CC("_k"), 2)) &&
+                                  (p [2] >= '0') && (p [2] <= '9') )
+            {if ((k1 =           MKey (& p [2])) > 0)  ky = k1;   break;}
       if (dKey < 128)  ky = dKey;
-      for (p = ts;  *p;  p++)  if ( (StrLn (p) >= 3) &&
-                                    (! MemCm (p, CC("_v"), 2)) &&
-                                    (p [2] >= '0') && (p [2] <= '9') )
-         {if ((k1 = (ubyte)Str2Int (& p [2])) > 0)  vl = k1;
-          break;}
-      if (! LoadFmt (ts, ky, vl)) { // dang, shut this down to 0 samples
-TRC("} Sound::Sound - LoadFmt failed");
-         _smp = new Sample [1];   _nSmp = 0;   _siz = _mxDat = 0;
+      for (p = s;  *p;  p++)
+         if ( (StrLn (p) >= 6) && (! MemCm (p, CC("_v"), 2)) &&
+                                  (p [2] >= '0') && (p [2] <= '9') )
+            {if ((k1 = (ubyte)Str2Int (& p [2])) > 0)  vl = k1;   break;}
+
+      if (! LoadFmt (s, ky, vl)) {     // rats!  shut this down to 0 samples
+TRC("Sound::Sound - LoadFmt failed w snd=`s wav=`s", _nm, s);
+         _smp = new Sample [1];   _nSmp = _siz = 0;
          return;
       }
    }
-// make key,vel ranges after sorting
+// sort then make key,vel ranges
    Sort (TSmp, _nSmp, sizeof (TSmp[0]), TSmCmp);
    for (i = 0;  i < _nSmp;  i++) {  // make key,vel ranges
       if (dKey < 128) {             // drums are ez (just velo rng)
@@ -922,60 +759,26 @@ TRC("   Syn::WipeSnd");
 void Syn::LoadSnd ()
 { TStr  fn, ts;
   File  f;
-  char  lst [256*sizeof (TStr)], *pc;
-  bool  melo = true;
-  ubyt4 p, len, ld;
+  char  lst [256*sizeof (TStr)];
+  ubyt4 p, len;
   ubyte s;
   ubyt8 sz;
-  TStr  sSetM, sSetD, dSet;         // default sampsets n drumset
 TRC("Syn::LoadSnd");
    WipeSnd ();
 
-// get default melo n drum sampsets n drumset
-   App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/sound.txt"));
-   len = f.Load (fn, lst, sizeof (TStr)*3);
-   lst [len] = '\0';
-   *sSetM = *sSetD = *dSet = '\0';
-   if (! MemCm (lst, CC("#SS "), 4)) {
-      StrCp (lst, & lst [4]);
-      if ((pc = StrCh (lst, ' '))) {
-         *pc++ = '\0';       StrCp (sSetM, lst);   StrCp (lst, pc);
-         if ((pc = StrCh (lst, ' '))) {
-            *pc++ = '\0';    StrCp (sSetD, lst);   StrCp (lst, pc);
-            if ((pc = StrCh (lst, '\n'))) {
-               *pc = '\0';   StrCp (dSet,  lst);
-TRC("ssetM=`s ssetD=`s dset=`s", sSetM, sSetD, dSet);
-            }
-            else DBG ("no default drum set");
-         }
-         else DBG ("no default drum sample set");
-      }
-      else DBG ("no default melodic sample set");
-   }
-   else DBG ("no #SS rec");
-
 // load SoundBank.txt with melodic, then drum sounds (dirs of .WAV samples)
    App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/SoundBank.txt"));
-   len = f.Load (fn, lst, sizeof (lst));   f.Kill (fn);
-TRC("soundbank.txt loaded n del'd");
-   if (len >= sizeof (lst)) {
-DBG("Syn::LoadSnd  SoundBank.txt too big :(", fn);
-      return;
-   }
-   lst [len] = '\0';
-   if (! len)
-      DBG("Syn::LoadSnd: can't load device/syn/SoundBank.txt :(");
+   lst [len = f.Load (fn, lst, sizeof (lst))] = '\0';   f.Kill (fn);
    for (p = 0;  p < len;) {
       p = NextLn (ts, lst, len, p);      // parse buf into seq of strs
 TRC("p=`d/`d: `s", p, len, ts);
-      if (! StrCm (ts, CC("Drum")))  {melo = false;   continue;}
-      if (melo) {                   // drum marks when melodic sounds end
+      if (StrCm (ts, CC("drum"))) {
          if (_nSnd >= 128) {
-DBG("Syn::LoadSnd  tooo many sounds");
+DBG("Syn::LoadSnd  stoppin at 128 melo sounds");
             return;
          }
 TRC("pgm=`d snd=`s", _nSnd, ts);
-         _snd [_nSnd++] = new Sound (ts, 128, sSetM, CC(""));
+         _snd [_nSnd++] = new Sound (ts);
       }
       else {                        // loading drum sounds now
          ts [4] = '\0';
@@ -985,47 +788,28 @@ DBG("Syn::LoadSnd - bad drum note=`s", ts);
             return;
          }
 TRC("drm=`d snd=`s", s, & ts [5]);
-         _drm [s] = new Sound (& ts [5], s, sSetD, dSet);
+         _drm [s] = new Sound (& ts [5], s);
       }
    }
 
-// load in all .WAV files' samples n convert em to real
-   sz = ld = 0;                     // get ALL samples' len, max WAV DAT len
-   for (s = 0;  s < _nSnd;  s++)
-      {if (_snd [s]->_mxDat > ld)  ld = _snd [s]->_mxDat;
-       sz +=                            _snd [s]->_siz;}
-   for (s = 0;  s <   128;  s++)  if  (_drm [s])
-      {if (_drm [s]->_mxDat > ld)  ld = _drm [s]->_mxDat;
-       sz +=                            _drm [s]->_siz;}
-   if ((sz * sizeof (real)) >= 4294967295) {
-DBG("Syn::LoadSnd  tooo many samples (`d) :(",  sz);
-      for (s = 0; s < _nSnd; s++)  DBG("   Snd `s siz=`d mxDat=`d",
-                            _snd [s]->_nm, _snd [s]->_siz, _snd [s]->_mxDat);
+// convert -all- .WAV files' samples to real
+   sz = 0;                             // get ALL samples' len
+   for (s = 0;  s < _nSnd;  s++)                 sz += _snd [s]->_siz;
+   for (s = 0;  s <   128;  s++)  if (_drm [s])  sz += _drm [s]->_siz;
+TRC("alloc dat n smp");
+   _smp = new real [sz];   _nSmp = (ubyt4)sz;   len = 0;
+   if (_smp == nullptr) {
+DBG("Syn::LoadSnd  Outa memory - `d samples => `d bytes :(", _nSmp, _nSmp*8);
+      for (s = 0; s < _nSnd; s++)
+DBG("   Snd `s siz=`d", _snd [s]->_nm, _snd [s]->_siz);
       for (s = 0; s < 128; s++) if (_drm [s])
-                                   DBG("   Drm `s siz=`d mxDat=`d",
-                            _drm [s]->_nm, _drm [s]->_siz, _drm [s]->_mxDat);
+DBG("   Drm `s siz=`d", _drm [s]->_nm, _drm [s]->_siz);
       WipeSnd ();
       return;
    }
-TRC("alloc dat n smp");
-   _smp = new real [sz];   _nSmp = (ubyt4)sz;   len = 0;
-  ubyte *dat = new ubyte [ld];
-   if ((dat == nullptr) || (_smp == nullptr)) {
-DBG("Syn::LoadSnd  Outa memory - `d samples => `d bytes :(", _nSmp, _nSmp*8);
-      for (s = 0; s < _nSnd; s++)  DBG("   Snd `s siz=`d mxDat=`d",
-                            _snd [s]->_nm, _snd [s]->_siz, _snd [s]->_mxDat);
-      for (s = 0; s < 128; s++) if (_drm [s])
-                                   DBG("   Drm `s siz=`d mxDat=`d",
-                            _drm [s]->_nm, _drm [s]->_siz, _drm [s]->_mxDat);
-      delete [] dat;   WipeSnd ();
-      return;
-   }
 TRC("load snd n drm");
-   for (s = 0;  s < _nSnd;  s++)     len = _snd [s]->LoadDat (dat, len);
-   for (s = 0;  s <   128;  s++)  if (_drm [s])
-                                     len = _drm [s]->LoadDat (dat, len);
-TRC("free dat");
-   delete [] dat;                   // just need it fer loadin
+   for (s = 0;  s < _nSnd;  s++)                 len = _snd [s]->LoadDat (len);
+   for (s = 0;  s <   128;  s++)  if (_drm [s])  len = _drm [s]->LoadDat (len);
 TRC("Syn::LoadSnd end");
 }
 

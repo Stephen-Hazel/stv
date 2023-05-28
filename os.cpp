@@ -695,20 +695,24 @@ void File::DoDir (char *dir, void *ptr, FDoDirFunc func, char *skip)
 //DBG("File::DoDir `s", dir);
    if      (func (ptr, 'd', dir))  naw = true;
    else if ((df = d.Open (fn, dir))) {
-      do {
+      do {                             // do all my files first
+//if(df=='f')DBG("  f=`s", fn);
          if (df == 'f')  {if      (skip && (! StrCm (fn, skip)))  naw = true;
                           else if (func (ptr, 'f', fn))           naw = true;}
       }  while ((! naw) && (df = d.Next (fn)));
       d.Shut ();
    }
-   if (! naw) {
+//DBG("   naw=`b dir=`s", naw, dir);
+   if (! naw) {                        // do all my kid dirs next if not naw
       df  = d.Open (fn, dir);
       do {
+//if(df=='d')DBG("  d=`s", fn);
          if (df == 'd')  DoDir (fn, ptr, func, skip);
       }  while ((df = d.Next (fn)));
       d.Shut ();
    }
    func (ptr, 'x', dir);
+//DBG("did x");
 }
 
 
