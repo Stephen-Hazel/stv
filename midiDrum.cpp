@@ -10,7 +10,7 @@ MDGrpDef MDGrp [] = {
    {"Toms", 6},
    {"Latn", 22},
    {"Misc", 23},
-   {"x",    0}
+   {"X",    0}
 };
 ubyte   NMDGrp = BITS (MDGrp);
 
@@ -108,10 +108,10 @@ char *MDrm2Str (char *s, ubyte b)      // key int to str 'Kik2'
    return s;
 }
 
-char *MDrm2StG (char *s, ubyte b)      // key int to str w grp  'drum/Kick_Kik2'
-{  StrFmt (s, "drum/x_`03d", b);       // default it
+char *MDrm2StG (char *s, ubyte b)      // key int to str w grp  'Drum/Kick_Kik2'
+{  StrFmt (s, "Drum/x_`03d", b);       // default it
    for (ubyte i = 0;  i < NMDrum;  i++)  if (MKey (MDrum [i].key) == b)
-      {StrFmt (s, "drum/`s_`s", MDGrp [MDrum [i].grp].sym, MDrum [i].sym);
+      {StrFmt (s, "Drum/`s_`s", MDGrp [MDrum [i].grp].sym, MDrum [i].sym);
        break;}
    return s;
 }
