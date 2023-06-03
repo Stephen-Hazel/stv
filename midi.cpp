@@ -427,15 +427,20 @@ void CtlX2Val (TrkEv *e, char *cs, char *s)
 MidiO::MidiO (char *name, char noinit)
 { int err;
    _hnd = nullptr;   StrCp (_name, name);   MemSet (_ntOn, 0, sizeof (_ntOn));
+   _syn = false;
 TRC("MidiO `s", _name);
    if (! Midi.Get ('o', _name, _type, _desc, _dev))
       {DBG("MidiO no device name=`s",  _name);   return;}
    if (*_dev == '?')
       {DBG("MidiO device `s isn't on", _name);   return;}
-TRC("   type=`s desc=`s dev=`s", _type, _desc, _dev);
-   if ((err = ::snd_rawmidi_open (nullptr, & _hnd, _dev, SND_RAWMIDI_NONBLOCK)))
-      {DBG("snd_rawmidi_open o `s failed: `s", _name, ::snd_strerror (err));
-       _hnd = nullptr;   return;}
+TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
+   if (! StrCm (_type, CC("syn")))
+      {_syn = true;   _hnd = (snd_rawmidi_t *)1;}
+   else                                // ^ fake handle so Dead() dun't trigger
+      if ((err = ::snd_rawmidi_open (nullptr, & _hnd, _dev,
+                                     SND_RAWMIDI_NONBLOCK)))
+         {DBG("snd_rawmidi_open o `s failed: `s", _name, ::snd_strerror (err));
+          _hnd = nullptr;   return;}
    if (! noinit)  GMInit ();
 }
 
@@ -446,6 +451,8 @@ MidiO::~MidiO (void)
 TRC("~MidiO `s", (*_name) ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
    for (ubyte c = 0;  c < 16;  c++)  Put (c, MC_CC|M_ASOFF);
+   if (! StrCm (_type, CC("syn")))  {_hnd = nullptr;   return;}
+
    if ((err = ::snd_rawmidi_drain (_hnd)))
       DBG("snd_rawmidi_drain o `s failed: `s", _name, ::snd_strerror (err));
    if ((err = ::snd_rawmidi_close (_hnd)))
@@ -530,7 +537,11 @@ void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // build a midi event given args
 // do notes (note/nprs/noff - keepin track of which chan/notes are on),
 {
-//DBG("MidiO::Put on `s ch=`d c=`d v=`d v2=`d", _name, ch, c, v, v2);
+//DBG("MidiO::Put on `s.`s ch=`d c=`d v=`d v2=`d", _name, _type, ch, c, v, v2);
+#ifdef SYN_H
+   if (_syn)  return Sy.Put (ch, c, v, v2);
+#endif
+
   ubyte mev [4], p, ln = 3;
   ubyt4 m;
   ubyte mvol [8] = {0xF0,0x7F,0x7F,0x04,0x01,0,0,0xF7};
@@ -584,7 +595,16 @@ void MidiO::NotesOff ()
 { ubyte p, mev [4], hoff [4];
   ubyt4 m;
   TStr  ts;
-TRC("NotesOff on `s/`s/`s", _name, _type, _desc);
+TRC("NotesOff on `s.`s", _name, _type);
+#ifdef SYN_H
+   if (_syn) {
+      for (ubyte i = 0; i < 16; i++)
+         {Sy.Put (i, MC_CC|M_ASOFF, 0, 0);
+          Sy.Put (i, MC_CC|M_HOLD,  0, 0);}
+      MemSet (_ntOn, 0, sizeof (_ntOn));
+      return;
+   }
+#endif
    hoff [1] = M_HOLD;  hoff [2] = 0;
    for (ubyte ch = 0;  ch < 16;  ch++) {
       for (ubyte nt = 0;  nt < 128;  nt++) {
@@ -605,10 +625,10 @@ void MidiO::DumpOns ()
 { ubyte p;
   ubyt4 m;
   TStr  ts;
-TRC("DumpOns on `s/`s/`s", _name, _type, _desc);
+TRC("DumpOns on `s.`s", _name, _type);
    for (ubyte ch = 0; ch < 16; ch++)  for (ubyte nt = 0; nt < 128; nt++) {
-         p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
-         if (_ntOn [p] & m)
+      p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
+      if (_ntOn [p] & m)
 TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
    }
 }
@@ -616,7 +636,7 @@ TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
 
 void MidiO::GMInit ()
 {
-TRC("GMInit on `s/`s/`s", _name, _type, _desc);
+TRC("GMInit on `s.`s", _name, _type);
    Put (0, MC_MVOL, 127);
    Put (0, MC_MBAL, 64);         // non chan
    for (ubyte c = 0; c < 16; c++) {
@@ -635,13 +655,21 @@ TRC("GMInit on `s/`s/`s", _name, _type, _desc);
 }
 
 
+void MidiO::SynBnk (TStr *bnk, ubyte maxch)
+{
+#ifdef SYN_H
+   if (_syn)  Sy.LoadSnd (bnk, maxch);
+#endif
+}
+
+
 //______________________________________________________________________________
 void MidiI::run ()                     // poll loop runnin in sep thread
 { ubyte buf [256];
   ubyt2 re;
   int   i, ln, err, npf;
   struct pollfd *pf;
-TRC("run bgn `s", _name);
+TRC("run bgn `s.`s", _name, _type);
    snd_rawmidi_read (_hnd, nullptr, 0);      // trigger reading
    npf = snd_rawmidi_poll_descriptors_count (_hnd);
    pf  = (struct pollfd *)alloca (npf * sizeof (struct pollfd));
@@ -766,7 +794,7 @@ TRC("MidiI `s", _name);
       {DBG("MidiI no device name=`s",  _name);   return;}
    if (*_dev == '?')
       {DBG("MidiI device `s isn't on", _name);   return;}
-TRC("   type=`s desc=`s dev=`s", _type, _desc, _dev);
+TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
    if ((err = ::snd_rawmidi_open (& _hnd, nullptr, _dev, SND_RAWMIDI_NONBLOCK)))
       {DBG("snd_rawmidi_open i `s failed: `s", _name, ::snd_strerror (err));
        _hnd = nullptr;   return;}

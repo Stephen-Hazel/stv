@@ -187,14 +187,17 @@ public:
    char *Type ()  {return _type;}
    char *Desc ()  {return _desc;}
    char *Dev  ()  {return _dev;}
+   bool  Syn  ()  {return _syn;}
    void  NotesOff (),  DumpOns ();
    void  GMInit ();
+   void  SynBnk (TStr  *bnk, ubyte maxch);
    void  PutMEv (ubyte *mev, ubyte len = 3);
    void  Put    (ubyte chan, ubyt2 ctrl, ubyte valu = 0, ubyte val2 = 0);
    ubyte _MVol, _MBal;
 private:
    snd_rawmidi_t *_hnd;
    TStr  _name, _type, _desc, _dev;
+   bool  _syn;
    ubyt4 _ntOn [16*4];
 };
 

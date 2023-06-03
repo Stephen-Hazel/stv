@@ -8,12 +8,12 @@
 #include "midi.h"
 #include "snd.h"
 #include "wav.h"
-#include "math.h"                      // no gettin round reals with synths
+#include "math.h"                      // no gettin around reals with synths
 
 #define MID14  ((ubyt2)(64 << 7))      // mid point of a midi 14 bit int
 
-char *R2Str (real f, char *s);
-
+char *R2Str (real f, char *s);         // my StrFmt doesn't do real
+                                       // n i don't want it to...
 // conversion tables
 extern void InitLookup (void);
 extern real Ct2Hz      (real cents);             // cents to hz
@@ -25,13 +25,13 @@ extern real Dither [2][MAX_DITHER];    // per l/r channel
 
 extern SndO Sn;                        // sound output device picked by MidiCfg
 
-// sample interpolation position+fraction  ...just a uhuge w hilong=int,lo=frac
+// sample interpolation position+fraction  ...just a ubyt8 w HIubyt4=int,LO=frac
 typedef ubyt8  Phase;
 #define MAXU4  (4294967296.)           // max ubyt4 as real
 #define LONG2PHASE(a)   (((Phase)(a))<<32)
 #define REAL2PHASE(a)  ((((Phase)(a))<<32) | (Phase)(((a)-((ubyt4)(a)))*MAXU4))
 
-// hi ubyt4=>index;  lo ubyt4/MAXULONG=>fract
+// hi ubyt4=>index;  lo ubyt4/MAXU4=>fract
 #define PHASE_INDEX(x)  ((ubyt4)((x) >> 32))               // just int part
 
 // phase to array pos in Interp[]
@@ -79,7 +79,7 @@ public:
 #define CLIP(_val,_min,_max) \
 {(_val) = ((_val)<(_min))?(_min):(((_val)>(_max))?(_max):(_val));}
 
-class LPF {                            // low pass filter
+class LPF {                            // low pass filter (per voice)
    bool  init;
    ubyt4 inc;
    real  cut,  res,                    // cutoff frequency, resonance params
@@ -96,6 +96,7 @@ public:
 };
 
 
+// this reverb ain't that great...  but, until i can get it better sigh...
 #define DC_OFFSET         (1e-8)       // initial value for all effects' bufs
 #define ALLPASS_FEEDBACK  (0.5)        // allpass has fixed feedback
 
@@ -257,24 +258,25 @@ class Syn: public QThread {
    Q_OBJECT
 
 public:
-   real    *_smp;         ubyt4 _nSmp;      // buf o samples from inst wavs
-   Sound   *_snd [128];   ubyte _nSnd;      // melodic sounds (pitched)
-   Sound   *_drm [128];                     // percussive   (UNpitched)
-   Reverb   _rvP;                           // reverb fx processor
-   Channel  _chn [256];                     // midi chans: "canvases" for voices
-   Voice   *_vc;                            // voice per (mono) sample in use
-   ubyt2   _nVc, _xVc, _maxVc;              // #used, #max, max we ever used
-   real    *_rvrb,                          // fx buf
-           *_mixL, *_mixR,                  // output buf of audio to GOooo
-            _maxLvl;                        // max level we ever did
-   ubyt4    _ntID, _dth;                    // note# n dither pos we're on
-   bool     _run;                           // spin our sample writin thread?
-   sbyt2  (*_out)[2];                       // sound device sample buffer
+   real    *_smp;         ubyt4 _nSmp; // buf o samples from inst wavs
+   Sound   *_snd [128];   ubyte _nSnd; // melodic sounds (pitched)
+   Sound   *_drm [128];                // percussive   (UNpitched)
+   Reverb   _rvP;                      // reverb fx processor
+   ubyte    _chnX;                     // max channel we'll use (from sequencer)
+   Channel  _chn [256];                // midi chans: "canvases" for voices
+   Voice   *_vc;                       // voice per (mono) sample in use
+   ubyt2   _nVc, _xVc, _maxVc;         // #used, #max, max we ever used
+   real    *_rvrb,                     // fx buf
+           *_mixL, *_mixR,             // output buf of audio to GOooo
+            _maxLvl;                   // max level we ever did
+   ubyt4    _ntID, _dth;               // note# n dither pos we're on
+   bool     _run;                      // spin our sample writin thread?
+   sbyt2  (*_out)[2];                  // sound device sample buffer
 
    Syn ();
   ~Syn ();
    void WipeSnd ();
-   void LoadSnd ();
+   void LoadSnd (TStr *snd, ubyte maxch);
 
    void NOff (ubyte ch, ubyte key, ubyte vel);
    void NtOn (ubyte ch, ubyte key, ubyte vel);
@@ -291,6 +293,6 @@ public:
    sbyt2 r2i (real r, real dth);
    void  run ()  override;
 };
-extern Syn Sy;                         // our top
+extern Syn Sy;                         // that's me
 
 #endif
