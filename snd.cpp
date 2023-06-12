@@ -100,6 +100,34 @@ after example hw init:
    exact rate       = 44100/1 bps
    significant bits = 16
 
+now:
+   PCM handle name  = 'hw:3,0'
+   PCM state        = PREPARED
+   access type      = RW_INTERLEAVED
+   format           = 'S16_LE' (Signed 16 bit Little Endian)
+   subformat        = 'STD' (Standard)
+   channels         = 2
+   rate             = 44100 bps
+   period time      = 1451 us
+   period size      = 64 frames
+   buffer time      = 2902 us
+   buffer size      = 128 frames
+   periods per buffer = 2 frames
+   exact rate       = 44100/1 bps
+   significant bits = 16
+   is batch         = 1
+   is block transfer = 1
+   is double        = 0
+   is half duplex   = 0
+   is joint duplex  = 0
+   can overrange    = 0
+   can mmap         = 1
+   can pause        = 1
+   can resume       = 0
+   can sync start   = 0
+______________________________________________________________________________*/
+
+
 void SndO::Dump (snd_pcm_hw_params_t *hw)
 { unsigned int val, val2;
   int          dir;
@@ -182,22 +210,22 @@ void SndO::Dump (snd_pcm_hw_params_t *hw)
    val = snd_pcm_hw_params_can_sync_start (hw);
    DBG("can sync start = `d", val);
 }
-______________________________________________________________________________*/
 
 
-SndO::SndO (ubyt4 nFr, ubyt4 frq)      // frames in 1 period, frequency
+SndO::SndO (ubyt4 inFr, ubyt4 ifrq)    // frames in 1 period, frequency
 // open up our alsa pcm device (audio out)
 // always 2 periods of nFr frames - interleaved stereo s16
+: _nFr (inFr), _frq (ifrq)             // what we ask fer.  what we get may diff
 { int   e;  // error
   sbyt4 dir  = 0;
-  ubyt4 nPer = 2;
-   _frq = frq;   _nFr = nFr;           // what we get: may change
+  ubyt4 nPer = 2, nFr = inFr, frq = ifrq;
+DBG("a _frq=`d", _frq);
    _hnd = nullptr;
    if (*App.grp == '\0')  StrCp (App.grp, CC("pcheetah"));      // sigh
    App.CfgGet (CC("syn"), _desc);
-TRC("SndO desc=`s", _desc);
+DBG("SndO desc=`s", _desc);
    Snd.Load ();   StrCp (_dev, Snd.Get (_desc));
-TRC("     dev =`s", _dev);
+DBG("     dev =`s", _dev);
    if (*_dev == '\0')
       {DBG("SndO no device for desc=`s", _desc);   return;}
    if (*_dev == '?')
@@ -230,18 +258,19 @@ DBG("pcm_channels stereo died - `s", snd_strerror (e));
       snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
 
-   if ((e = snd_pcm_hw_params_set_rate_near (_hnd, hw, & _frq, 0)) < 0) {
+   if ((e = snd_pcm_hw_params_set_rate_near (_hnd, hw, & frq, 0)) < 0) {
 DBG("pcm_rate 44100 died - `s", snd_strerror (e));
       snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-   if (_frq != frq)  DBG("pcm_rate is `d not `d :/", _frq, frq);
-
+   if (_frq != frq)  DBG("pcm_rate wanted `d got `d :/", _frq, frq);
+DBG("b _frq=`d", _frq);
+                                       // THIS sets my _frq to 0 - why ??
    if ((e = snd_pcm_hw_params_set_period_size_near (_hnd, hw,
-                                   (snd_pcm_uframes_t *)(& _nFr), & dir)) < 0) {
+                                   (snd_pcm_uframes_t *)(& nFr), & dir)) < 0) {
 DBG("pcm_period died - `s", snd_strerror (e));
       snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-   if (_nFr != nFr)  DBG("pcm_period is `d not `d :/", _nFr, nFr);
+   if (_nFr != nFr)  DBG("pcm_period wanted `d got `d :/", _nFr, nFr);
 
    if ((e = snd_pcm_hw_params_set_periods_near (_hnd, hw, & nPer, & dir)) < 0) {
 DBG("pcm_periods died - `s", snd_strerror (e));
@@ -313,7 +342,7 @@ void SndO::Put (sbyt2 *buf)
 
 SndO::~SndO (void)
 { int e;
-TRC("~SndO `s", *_desc ? _desc : "?");
+DBG("~SndO `s", *_desc ? _desc : "?");
    if (Dead ())  {DBG("...was dead");   return;}
    if ((e = snd_pcm_close (_hnd)) < 0)
 DBG("snd_pcm_close died - `s", snd_strerror (e));

@@ -23,7 +23,6 @@ extern real Interp    [MAX_INTERP][7];
 #define                MAX_DITHER  (48000)
 extern real Dither [2][MAX_DITHER];    // per l/r channel
 
-extern SndO Sn;                        // sound output device picked by MidiCfg
 
 // sample interpolation position+fraction  ...just a ubyt8 w HIubyt4=int,LO=frac
 typedef ubyt8  Phase;
@@ -293,6 +292,7 @@ public:
    sbyt2 r2i (real r, real dth);
    void  run ()  override;
 };
-extern Syn Sy;                         // that's me
+extern SndO *Sn;                       // sound output device picked by MidiCfg
+extern Syn  *Sy;                       // that's me
 
 #endif
