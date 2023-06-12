@@ -189,7 +189,7 @@ public:
    char *Dev  ()  {return _dev;}
    bool  Syn  ()  {return _syn;}
    void  NotesOff (),  DumpOns ();
-   void  GMInit ();
+   void  GMInit (ubyte nch = 16);
    void  SynBnk (TStr  *bnk, ubyte maxch);
    void  PutMEv (ubyte *mev, ubyte len = 3);
    void  Put    (ubyte chan, ubyt2 ctrl, ubyte valu = 0, ubyte val2 = 0);

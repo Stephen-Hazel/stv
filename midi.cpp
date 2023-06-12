@@ -3,6 +3,9 @@
 #include "midi.h"
 #include "midiProg.cpp"                // eh, just always...
 #include "midiDrum.cpp"
+#ifdef USE_SYN
+#include "syn.h"
+#endif
 
 char MKeyStr  [12][3] =
         {"c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"},
@@ -430,17 +433,19 @@ MidiO::MidiO (char *name, char noinit)
    _syn = false;
 TRC("MidiO `s", _name);
    if (! Midi.Get ('o', _name, _type, _desc, _dev))
-      {DBG("MidiO no device name=`s",  _name);   return;}
+      {DBG("MidiO no device name=`s",  _name);    return;}
+
    if (*_dev == '?')
-      {DBG("MidiO device `s isn't on", _name);   return;}
+      {DBG("MidiO device `s isn't on", _name);    return;}
+
 TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
-   if (! StrCm (_type, CC("syn")))
-      {_syn = true;   _hnd = (snd_rawmidi_t *)1;}
-   else                                // ^ fake handle so Dead() dun't trigger
-      if ((err = ::snd_rawmidi_open (nullptr, & _hnd, _dev,
-                                     SND_RAWMIDI_NONBLOCK)))
-         {DBG("snd_rawmidi_open o `s failed: `s", _name, ::snd_strerror (err));
-          _hnd = nullptr;   return;}
+   if (! StrCm (_type, CC("syn"))) {   // fake handle just so not Dead()
+      _syn = true;   _hnd = (snd_rawmidi_t *)1;
+      return;                          // GMInit in SynBnk ();
+   }
+   if ((err = ::snd_rawmidi_open (nullptr, & _hnd, _dev, SND_RAWMIDI_NONBLOCK)))
+      {DBG("snd_rawmidi_open o `s failed: `s", _name, ::snd_strerror (err));
+       _hnd = nullptr;   return;}
    if (! noinit)  GMInit ();
 }
 
@@ -451,8 +456,8 @@ MidiO::~MidiO (void)
 TRC("~MidiO `s", (*_name) ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
    for (ubyte c = 0;  c < 16;  c++)  Put (c, MC_CC|M_ASOFF);
-   if (! StrCm (_type, CC("syn")))  {_hnd = nullptr;   return;}
-
+   if (! StrCm (_type, CC("syn")))
+      {_hnd = nullptr;   return;}
    if ((err = ::snd_rawmidi_drain (_hnd)))
       DBG("snd_rawmidi_drain o `s failed: `s", _name, ::snd_strerror (err));
    if ((err = ::snd_rawmidi_close (_hnd)))
@@ -538,8 +543,8 @@ void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // do notes (note/nprs/noff - keepin track of which chan/notes are on),
 {
 //DBG("MidiO::Put on `s.`s ch=`d c=`d v=`d v2=`d", _name, _type, ch, c, v, v2);
-#ifdef SYN_H
-   if (_syn)  return Sy.Put (ch, c, v, v2);
+#ifdef USE_SYN
+   if (_syn)  return Sy->Put (ch, c, v, v2);
 #endif
 
   ubyte mev [4], p, ln = 3;
@@ -596,11 +601,11 @@ void MidiO::NotesOff ()
   ubyt4 m;
   TStr  ts;
 TRC("NotesOff on `s.`s", _name, _type);
-#ifdef SYN_H
+#ifdef USE_SYN
    if (_syn) {
       for (ubyte i = 0; i < 16; i++)
-         {Sy.Put (i, MC_CC|M_ASOFF, 0, 0);
-          Sy.Put (i, MC_CC|M_HOLD,  0, 0);}
+         {Sy->Put (i, MC_CC|M_ASOFF, 0, 0);
+          Sy->Put (i, MC_CC|M_HOLD,  0, 0);}
       MemSet (_ntOn, 0, sizeof (_ntOn));
       return;
    }
@@ -634,12 +639,12 @@ TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
 }
 
 
-void MidiO::GMInit ()
+void MidiO::GMInit (ubyte nch)
 {
-TRC("GMInit on `s.`s", _name, _type);
+TRC("GMInit on `s.`s nch=`d", _name, _type, nch);
    Put (0, MC_MVOL, 127);
    Put (0, MC_MBAL, 64);         // non chan
-   for (ubyte c = 0; c < 16; c++) {
+   for (ubyte c = 0; c < nch; c++) {
       if (c != 9)  Put (c, MC_PROG);
       Put (c, MC_CC|M_BANK);           Put (c, MC_CC|M_BNKL);
       Put (c, MC_PRSS);                Put (c, MC_CC|M_MOD);    // valu=0
@@ -657,8 +662,8 @@ TRC("GMInit on `s.`s", _name, _type);
 
 void MidiO::SynBnk (TStr *bnk, ubyte maxch)
 {
-#ifdef SYN_H
-   if (_syn)  Sy.LoadSnd (bnk, maxch);
+#ifdef USE_SYN
+   Sy->LoadSnd (bnk, maxch);   GMInit (maxch+1);
 #endif
 }
 

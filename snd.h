@@ -27,6 +27,7 @@ public:
    bool  Dead ()  {return (_hnd == nullptr) ? true : false;}
    char *Desc ()  {return _desc;}
    char *Dev  ()  {return _dev;}
+   void  Dump (snd_pcm_hw_params_t *hw);
    void  Put  (sbyt2 *buf);
 
 private:

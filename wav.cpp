@@ -29,7 +29,7 @@ char *Wav::Load (char *fn)
   TStr   ts;
   bool   got [3];
   static BStr out;
-DBG("Wav::Load `s", fn);
+//TRC("Wav::Load `s", fn);
    Wipe ();
    *out = '\0';
    StrCp (_name, fn);   MemSet (got, 0, sizeof (got));
@@ -115,9 +115,9 @@ DBG("Wav::Load `s", fn);
       _loop = false;   _lBgn = 0;   _lEnd = _end;
       _key = MNt (CC("4c"));
    }
-DBG("_frq=`d _bits=`d _mono=`b _len=`d lBgn=`d lEnd=`d key=`d cnt=`d",
-           _frq, _bits, _mono, _len, _lBgn, _lEnd, MKey2Str (ts, _key), _cnt);
-   return out;
+DBG("   fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
+FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
+   return nullptr;
 }
 
 
