@@ -97,15 +97,14 @@ static Sample TSmp  [MAX_SAMP];        // sample is mostly just a data struct
                                        // (little code to it)
 void Sample::Dump (bool dr)
 { TStr s1, s2;
-   DBG("   smp=`s", fn);
-   DBG("       mnKey=`d/`s mxKey=`d/`s mnVel=`d mxVel=`d",
-       mnKey, dr ? MDrm2Str(s1,mnKey) : MKey2Str(s1,mnKey),
-       mxKey, dr ? MDrm2Str(s2,mxKey) : MKey2Str(s2,mxKey), mnVel, mxVel);
-   DBG("       len=`d lpBgn=`d lr=`d pos=`d",
-       len, lpBgn, lr, pos);
-   DBG("       frq=`s key=`d/`s cnt=`d bytes=`d chans=`d",
-       R2Str (frq, s1), key, dr ? MDrm2Str(s2,key) : MKey2Str(s2,key),
-       cnt, bytes, chans);
+   DBG("       fn=`s",  fn);
+   DBG("       mnKey=`s mxKey=`s mnVel=`d mxVel=`d",
+       dr ? MDrm2Str(s1,mnKey) : MKey2Str(s1,mnKey),
+       dr ? MDrm2Str(s2,mxKey) : MKey2Str(s2,mxKey), mnVel, mxVel);
+   DBG("       len=`d lpBgn=`d lr=`d pos=`d",  len, lpBgn, lr, pos);
+   DBG("       frq=`s key=`s cnt=`d bytes=`d chans=`d",
+       R2Str (frq, s1), dr ? MDrm2Str(s2,key) : MKey2Str(s2,key), cnt, bytes,
+                                                                         chans);
 }
 
 
@@ -120,9 +119,9 @@ static int TSmCmp (void *p1, void *p2)
 
 
 void Sound::Dump ()
-{  DBG("   snd=`s nSmp=`d xFrq=`b xRls=`b siz=`d",
-       _nm, _nSmp, _xFrq, _xRls, _siz);
-// DBG("      pa=`s", _pa);
+{  DBG("   snd=`s nSmp=`d xFrq=`b xRls=`b siz=`d",  _nm, _nSmp, _xFrq, _xRls,
+                                                                          _siz);
+// DBG("   pa=`s",  _pa);
 }
 
 
@@ -141,8 +140,8 @@ ubyt4 Sound::LoadDat (ubyt4 pos)
 DBG("Sound::LoadDat pos=`d", pos);
    for (i = 0;  i < _nSmp;  i++) {
       _max = 0.0;
-      StrCp (fn, _smp [i].fn);
-      w.Load (fn);                     // already know it's solid
+      StrFmt (fn, "`s/device/syn/`s/`s",  App.Path (s1, 'd'), _pa, _smp [i].fn);
+      w.Load (fn);                     // already know it's there n ok
       nby = _smp [i].bytes;   flo = _smp [i].flopt;
       _smp [i].pos = pos;
 DBG("   got smp `d/`d pos=`d", i+1, _nSmp, pos);
@@ -200,16 +199,17 @@ bool Sound::LoadFmt (char *wfn, ubyte ky, ubyte vl)
 // _L, _R suffix means they're mono but should be paired up for stereo
 // if there's only one sample (or one _L, one _R),
 // it's 0-127 for both key and vel (max) range
-{ TStr  fn;
+{ TStr  fn, s1;
   char *e;
   Wav   w;
   Sample *s = & TSmp [_nSmp];
-   StrFmt (fn, "`s/`s", _pa, wfn);   StrCp (s->fn, fn);
+   StrCp (s->fn, wfn);
+   StrFmt (fn, "`s/device/syn/`s/`s",  App.Path (s1, 'd'), _pa, s->fn);
    if ((e = w.Load (fn)) != nullptr) {
 DBG("Song::LoadFmt `s: `s", fn, e);   return false;
    }
    if ((_nSmp + (w._mono?1:2)) > BITS (TSmp))
-      {DBG("Sound::LoadFmt  too many samples `s", fn);   return false;}
+      {DBG("Sound::LoadFmt  too many samples upon `s", fn);   return false;}
    s->frq   = w._frq;
    s->bytes = w._byts;
    s->chans = w._mono?1:2;
@@ -246,12 +246,12 @@ Sound::Sound (char *snd, ubyte dKey)
    _nSmp = 0;   MemSet (TSmp, 0, sizeof (TSmp));
 
 // set _nm,_pa n _xFrq,_xRls
-   StrCp (_nm, snd);
+   StrCp (_nm, snd);                   // ex: Piano_Clavinet_ssAria
    StrCp (s,   snd);
   ColSep c (s, 8, '_');
-   StrCp (bnk, c.Col [c.Len-1]);
+   StrCp (bnk, c.Col [c.Len-1]);       // last _ split thingy is bank
    StrCp (s, snd);   s [StrLn (s) - StrLn (bnk) - 1] = '\0';
-   StrFmt (_pa, "`s/device/syn/`s/`s", App.Path (s2, 'd'), bnk, s);
+   StrFmt (_pa, "`s/`s", bnk, s);      // ex: ssAria/Piano_Clavinet
    i = StrLn (_pa);                    // special sound suffix - drum,hold,clip
    if (i > 5) {
    // snd w _hold suffix=> no release ramp on ntUp, _drum suffix=> un-pitched
@@ -266,7 +266,8 @@ DBG("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
 // go thru each .WAV of the snd dir
 // _k<note>_ in fn gives max key range
 // _v<velo>_ in fn gives optional max velocity range
-   nw = pa.FLst (_pa, WavFn, (ubyt2)BITS (WavFn));
+   nw = pa.FLst (StrFmt (s, "`s/device/syn/`s", App.Path (s2, 'd'), _pa),
+                 WavFn, (ubyt2)BITS (WavFn));
    for (i = 0;  i < nw;  i++) {     // pull overrd smpKey,maxVel from WAV fns
       ky = vl = 0xFF;
       StrCp (s, WavFn [i]);
@@ -287,15 +288,15 @@ DBG("Sound::Sound - LoadFmt failed w snd=`s wav=`s", _nm, s);
       }
    }
 // sort then make key,vel ranges
-   Sort (TSmp, _nSmp, sizeof (TSmp[0]), TSmCmp);
+   Sort (TSmp, _nSmp, sizeof (TSmp [0]), TSmCmp);
    for (i = 0;  i < _nSmp;  i++) {  // make key,vel ranges
       if (dKey < 128) {             // drums are ez (just velo rng)
          TSmp [i].mnKey = TSmp [i].mxKey = dKey;
          if      (i == 0)
-               TSmp [i].mnVel = 0;
+              TSmp [i].mnVel = 0;
          else if (TSmp [i-1].mxVel == TSmp [i].mxVel)
-               TSmp [i].mnVel = TSmp [i-1].mnVel;
-         else  TSmp [i].mnVel = TSmp [i-1].mxVel+1;
+              TSmp [i].mnVel = TSmp [i-1].mnVel;
+         else TSmp [i].mnVel = TSmp [i-1].mxVel+1;
       }
       else {                        // melodic is finicky
          if (i && (TSmp [i-1].mxKey == TSmp [i].mxKey)) {
@@ -455,8 +456,7 @@ void Voice::ReFrq ()
 // set frq - inc based on note frq versus root sample frq (drums not pitched)
 { real t;
   TStr s;
-DBG("Voice::ReFrq smp=`s snd=`d nfr=`d",
-R2Str (_smp->frq,s), Sn->_frq, Sn->_nFr);
+DBG("Voice::ReFrq smp=`s snd=`d",  R2Str (_smp->frq,s), Sn->_frq);
    t = _smp->frq / (real)Sn->_frq;     // plus pbnd
    if (! _snd->_xFrq)
       t *= ( Ct2Hz ( _key * 100. +
@@ -487,12 +487,12 @@ _chn->vCut, _vel, (int)cMin, (int)cRng,
 
 
 void Voice::ReAmp ()                   // set amp - based on vol cc n velo
-{  _amp  = (_chn->vol / 127.) * (_vel / 127.);  }
+{  _amp  = Sy->_vol * (_chn->vol / 127.) * (_vel / 127.);  }
 
 
 void Voice::RePan ()                   // set pan - pan cc
-{  _panL = (_smp->lr == 1) ? 0. : Pan (_chn->pan, true);
-   _panR = (_smp->lr == 0) ? 0. : Pan (_chn->pan, false);
+{  _panL = (_smp->lr == 1) ? 0. : Pan (_chn->pan, 0);
+   _panR = (_smp->lr == 0) ? 0. : Pan (_chn->pan, 1);
 }
 
 
@@ -900,7 +900,7 @@ if (_nVc<j) DBG("  vc shrink `d=>`d", j, _nVc);
 // stuff used by CCs
 void Syn::UnHold (ubyte ch)            // release all sust'd vcs on chn
 {
-DBG(" UnHold ch=`d", ch);
+DBG(" UnHold ch=`d", ch+1);
    for (ubyt2 i = 0;  i < _nVc;  i++)
       if (_vc [i].Sust () && _vc [i]._chn && (_vc [i]._chn->id == ch))
          _vc [i].Release ();
@@ -908,7 +908,7 @@ DBG(" UnHold ch=`d", ch);
 
 void Syn::AllCh (ubyte ch, char todo)  // mod all vcs on channel
 { ubyte dr = _chn [ch].Drum () ? 0x80 : 0;
-DBG(" AllCh ch=`d `c/`s", ch, todo,
+DBG(" AllCh ch=`d `c/`s", ch+1, todo,
 (todo=='i')?"init": ( (todo=='e')?"endNow": ((todo=='r')?"release":"redo") ) );
    if (todo == 'i') {               // reset all CCs is kinda different
       _chn [ch].Rset ();
@@ -935,6 +935,7 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // rest should have hi bit set in chn, drum note in LS7bits
 { char re = '\0';
   TStr s;
+   _lok.Grab ();
 if (c & 0xFF80) DBG("Syn::Put ch=`d `s v=`d v2=`d",
                     ch+1, MCtl2Str(s,c,'r'), v, v2);
 else            DBG("Syn::Put ch=`d `s`c`d",
@@ -944,31 +945,32 @@ else            DBG("Syn::Put ch=`d `s`c`d",
 DBG(" ch=drum `s", MDrm2Str(s,ch & 0x7F));
       if (! _drm [ch & 0x7F]) {
 DBG("   drum ch=`s but no drum sound loaded", MDrm2Str(s,ch & 0x7F));
-         return;
+         _lok.Toss ();   return;
       }
    }
    if (! (c & 0xFF80)) {               // do note  on/off  (NPrs some day?)
       if (v & 0x80)  NtOn (ch, c, v & 0x7F);
       else           NOff (ch, c, v);
-      return;
+      _lok.Toss ();   return;
    }
 // else do CC - check valu but always let prog thru
    if ((v >= 128) && (c != MC_PROG))
-      {DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch, c, v);  return;}
+      {DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch, c, v);
+       _lok.Toss ();   return;}
    switch (c) {
       case MC_PROG:
          if (_chn [ch].Drum () || _chn [ch].DrCh () || (v > _nSnd))
                DBG("Syn::Put  Prog on drum chan or too high "
                    "ch=`d prog=`d nProg=`d",  ch, v, _nSnd);
          else  _chn [ch].snd = v;
-         return;
+         _lok.Toss ();   return;
       case MC_CC|M_ANOFF: re = 'r';   break;   // release em
       case MC_CC|M_ASOFF: re = 'e';   break;   // end em
       case MC_CC|M_ACOFF: re = 'i';   break;   // reset all CCs
 
    // ...better not be any chan 9s after this
       case MC_CC|M_HOLD:  if ((_chn [ch].hold = v) < 64)  UnHold (ch);
-                          return;
+                          _lok.Toss ();   return;
    // above ones don't do voice recalc;  below ones do
       case MC_PBND:       _chn [ch].pbnd = v << 7 | v2;   re = 'n';   break;
       case MC_CC|16:      _chn [ch].pbnr = v;             re = 'n';   break;
@@ -986,9 +988,10 @@ DBG("   drum ch=`s but no drum sound loaded", MDrm2Str(s,ch & 0x7F));
    ** case MC_CC|32:      _fxP.rWidth = v;                re = 'x';   break;
    ** case MC_CC|33:      _fxP.rLevel = v;                re = 'x';   break;
    */
-      default:            return;
+      default:            _lok.Toss ();   return;
    }
    AllCh (ch, re);
+   _lok.Toss ();
 }
 
 void Syn::DumpChn ()  {for (ubyt2 c = 0;  c <= _chnX;  c++)  _chn [c].Dump ();}
@@ -1029,6 +1032,7 @@ void Syn::run ()
   sbyt2 (*out)[2];
    while (_run) {
 //DBG("runin nvc=`d", _nVc);
+      _lok.Grab ();
       out = & _out [per*Sn->_nFr];   per = per ? 0 : 1;     // double bufferin
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);   MemSet (_rvrb, 0, sz);
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix (_mixL, _mixR, _rvrb);
@@ -1038,8 +1042,9 @@ void Syn::run ()
          out [i][1] = r2i (_mixR [i], Dither [1][_dth]);
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
+      _lok.Toss ();
       Sn->Put ((sbyt2 *)out);           // this'll block us on 2nd call and on
-   }
+   }                                    // and then main thread can goo
 }
 
 
@@ -1048,6 +1053,7 @@ Syn::Syn ()
 DBG("Syn::Syn nFr=`d frq=`d", Sn->_nFr, Sn->_frq);
    InitLookup ();
    _smp = nullptr;
+   _vol = 0.05;                        // alsa always does volume=100% :)
    MemSet (_snd, 0, sizeof (_snd));   _nSnd = 0;
    MemSet (_drm, 0, sizeof (_drm));
    for (ubyt2 c = 0;  c < 256;  c++)  _chn [c].Init ((ubyte)c);
