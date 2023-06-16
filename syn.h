@@ -257,6 +257,7 @@ class Syn: public QThread {
    Q_OBJECT
 
 public:
+   real     _vol;                      // global volume (not midi controlled)
    real    *_smp;         ubyt4 _nSmp; // buf o samples from inst wavs
    Sound   *_snd [128];   ubyte _nSnd; // melodic sounds (pitched)
    Sound   *_drm [128];                // percussive   (UNpitched)
@@ -271,6 +272,7 @@ public:
    ubyt4    _ntID, _dth;               // note# n dither pos we're on
    bool     _run;                      // spin our sample writin thread?
    sbyt2  (*_out)[2];                  // sound device sample buffer
+   ThLock   _lok;
 
    Syn ();
   ~Syn ();

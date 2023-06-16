@@ -11,12 +11,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/sendfile.h>
+
 
 #define MAX_PATH     (240)             // 4k is just too big :(
 #define BITS(a)      (sizeof(a)/sizeof(a[0]))
@@ -736,6 +738,17 @@ public:
          DBG(d);
       }
    }
+};
+
+
+class ThLock {                         // thread lock - less typin'
+public:
+   ThLock ()     {pthread_mutex_init    (& _mutex, nullptr);}
+  ~ThLock ()     {pthread_mutex_destroy (& _mutex);}
+   void Grab ()  {pthread_mutex_lock    (& _mutex);}
+   void Toss ()  {pthread_mutex_unlock  (& _mutex);}
+private:
+   pthread_mutex_t _mutex;
 };
 
 
