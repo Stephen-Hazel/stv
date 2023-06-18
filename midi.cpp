@@ -596,42 +596,12 @@ void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 }
 
 
-void MidiO::NotesOff ()
-{ ubyte p, mev [4], hoff [4];
-  ubyt4 m;
-  TStr  ts;
-TRC("NotesOff on `s.`s", _name, _type);
-#ifdef USE_SYN
-   if (_syn) {
-      for (ubyte i = 0; i < 16; i++)
-         {Sy->Put (i, MC_CC|M_ASOFF, 0, 0);
-          Sy->Put (i, MC_CC|M_HOLD,  0, 0);}
-      MemSet (_ntOn, 0, sizeof (_ntOn));
-      return;
-   }
-#endif
-   hoff [1] = M_HOLD;  hoff [2] = 0;
-   for (ubyte ch = 0;  ch < 16;  ch++) {
-      for (ubyte nt = 0;  nt < 128;  nt++) {
-         p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
-         if (_ntOn [p] & m) {
-TRC(" ch=`d `s", ch+1, MKey2Str (ts, nt));
-            mev [0] = M_NOFF | ch;   mev [1] = nt;  mev [2] = 0;
-            PutMEv (mev);
-         }
-      }
-      hoff [0] = M_CTRL | ch;   PutMEv (hoff);     // hold to OFF, too
-   }
-   MemSet (_ntOn, 0, sizeof (_ntOn));
-}
-
-
 void MidiO::DumpOns ()
 { ubyte p;
   ubyt4 m;
   TStr  ts;
 TRC("DumpOns on `s.`s", _name, _type);
-   for (ubyte ch = 0; ch < 16; ch++)  for (ubyte nt = 0; nt < 128; nt++) {
+   for (ubyte ch = 0;  ch < 16;  ch++)  for (ubyte nt = 0;  nt < 128;  nt++) {
       p = (ch << 2) | (nt >> 5);   m = 1 << (nt & 0x1F);
       if (_ntOn [p] & m)
 TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
@@ -639,12 +609,22 @@ TRC("   ch=`d nt=`s", ch, MKey2Str(ts, nt));
 }
 
 
+void MidiO::NotesOff (ubyte nch)
+{ ubyte c = 9;
+TRC("NotesOff on `s.`s", _name, _type);
+   Put     (c, MC_CC|M_ASOFF, 0, 0);   Put (c, MC_CC|M_HOLD, 0, 0);
+   for (ubyte c = 0;  c < nch;  c++)
+      {Put (c, MC_CC|M_ASOFF, 0, 0);   Put (c, MC_CC|M_HOLD, 0, 0);}
+   MemSet (_ntOn, 0, sizeof (_ntOn));
+}
+
+
 void MidiO::GMInit (ubyte nch)
-{
+{ ubyte c = 9;
 TRC("GMInit on `s.`s nch=`d", _name, _type, nch);
    Put (0, MC_MVOL, 127);
    Put (0, MC_MBAL, 64);         // non chan
-   for (ubyte c = 0; c < nch; c++) {
+   for (ubyte c = 0;  c < nch;  c++) {
       if (c != 9)  Put (c, MC_PROG);
       Put (c, MC_CC|M_BANK);           Put (c, MC_CC|M_BNKL);
       Put (c, MC_PRSS);                Put (c, MC_CC|M_MOD);    // valu=0
@@ -657,14 +637,17 @@ TRC("GMInit on `s.`s nch=`d", _name, _type, nch);
       Put (c, MC_CC|M_VOL,  100);
       Put (c, MC_CC|M_EXPR, 127);                                    // 127
    }
-}
-
-
-void MidiO::SynBnk (TStr *bnk, ubyte maxch)
-{
-#ifdef USE_SYN
-   Sy->LoadSnd (bnk, maxch);   GMInit (maxch+1);
-#endif
+   c = 9;
+      Put (c, MC_CC|M_BANK);           Put (c, MC_CC|M_BNKL);
+      Put (c, MC_PRSS);                Put (c, MC_CC|M_MOD);    // valu=0
+      Put (c, MC_CC|M_HOLD);           Put (c, MC_CC|M_HLD2);
+      Put (c, MC_CC|M_SOFT);           Put (c, MC_CC|M_SUST);
+      Put (c, MC_CC|M_LEGA);
+      Put (c, MC_PBNR,        2);                                    // 2
+      Put (c, MC_PBND,       64);      Put (c, MC_TUNE,     64);     // 64
+      Put (c, MC_CC|M_PAN,   64);      Put (c, MC_CC|M_BAL, 64);
+      Put (c, MC_CC|M_VOL,  100);
+      Put (c, MC_CC|M_EXPR, 127);                                    // 127
 }
 
 
