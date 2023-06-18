@@ -1,5 +1,4 @@
-// wav.cpp
-// mostly for my sample editor "waver" - gotta make MemFile first
+// wav.cpp - mostly for my sample editor waver.  actually mostly Syn these days.
 
 #include "wav.h"
 #include "midi.h"
@@ -115,7 +114,7 @@ char *Wav::Load (char *fn)
       _loop = false;   _lBgn = 0;   _lEnd = _end;
       _key = MNt (CC("4c"));
    }
-DBG("   fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
+TRC("   fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
 FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
    return nullptr;
 }
@@ -125,8 +124,8 @@ FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
 // (_mono,_bits,_byts,_len can't be updated)
 
 
-void Wav::Save (char *fni)             // eh, this needs work sigh...:/
-{ File  f;
+void Wav::Save (char *fni)             // eh, this is broke now sigh...:/
+{ File  f;                             // ...l8r when i get Waver done
   TStr  fn;
   ubyt4 ln1, ln2, ln3, ln4;
   WAVESMPL smp;
