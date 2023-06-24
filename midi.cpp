@@ -625,8 +625,9 @@ TRC("GMInit on `s.`s nch=`d", _name, _type, nch);
    Put (0, MC_MVOL, 127);
    Put (0, MC_MBAL, 64);         // non chan
    for (ubyte c = 0;  c < nch;  c++) {
-      if (c != 9)  Put (c, MC_PROG);
-      Put (c, MC_CC|M_BANK);           Put (c, MC_CC|M_BNKL);
+      if (c != 9)
+      {Put (c, MC_PROG);
+      Put (c, MC_CC|M_BANK);           Put (c, MC_CC|M_BNKL);}
       Put (c, MC_PRSS);                Put (c, MC_CC|M_MOD);    // valu=0
       Put (c, MC_CC|M_HOLD);           Put (c, MC_CC|M_HLD2);
       Put (c, MC_CC|M_SOFT);           Put (c, MC_CC|M_SUST);
@@ -638,7 +639,6 @@ TRC("GMInit on `s.`s nch=`d", _name, _type, nch);
       Put (c, MC_CC|M_EXPR, 127);                                    // 127
    }
    c = 9;
-      Put (c, MC_CC|M_BANK);           Put (c, MC_CC|M_BNKL);
       Put (c, MC_PRSS);                Put (c, MC_CC|M_MOD);    // valu=0
       Put (c, MC_CC|M_HOLD);           Put (c, MC_CC|M_HLD2);
       Put (c, MC_CC|M_SOFT);           Put (c, MC_CC|M_SUST);
