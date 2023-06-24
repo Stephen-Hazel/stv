@@ -88,9 +88,9 @@ class LPF {                            // low pass filter (per voice)
          hist1, hist2;                 // buffer past calcs
 
 public:
-   void Res (real r);
-   void Cut (real c);
    void Init ();
+   void Cut (real c);
+   void Res (real r);
    real Cvt (real smp);
 };
 

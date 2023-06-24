@@ -332,21 +332,6 @@ Sound::~Sound ()  {delete [] _smp;}
 //______________________________________________________________________________
 // filter,fx classes fer syn
 
-#define CLIP(_val,_min,_max) \
-{(_val) = ((_val)<(_min))?(_min):(((_val)>(_max))?(_max):(_val));}
-
-void LPF::Res (real r)                   // resonance (0-960 cB => 0-96 dB)
-{  if ((fabs (res - pRes) <= 0.01))  return;
-  real x = r / 10.;                 // x is q_dB
-   if      (x <  0.)  x =  0.;
-   else if (x > 96.)  x = 96.;
-   x -= 3.01;
-   res  = pow (10., x / 20.);
-   gain = 1. / sqrt (res);
-   pRes = r;
-   pCut = -1.;                      // force a cut re-Calc, too
-}
-
 void LPF::Cut (real c)                   // cutoff frequency in absolute cents
 // limit cut range n convert from cents to hz  (called once per buffer)
 // rebuild coefficients if necessary           (1500-13500 ct => 20-20K hz)
@@ -380,6 +365,18 @@ void LPF::Cut (real c)                   // cutoff frequency in absolute cents
       b2Inc = (b2New-b2) / Sn->_nFr;   b1Inc = (b1New-b1) / Sn->_nFr;
    }
    pCut = cut;
+}
+
+void LPF::Res (real r)                   // resonance (0-960 cB => 0-96 dB)
+{  if ((fabs (res - pRes) <= 0.01))  return;
+  real x = r / 10.;                 // x is q_dB
+   if      (x <  0.)  x =  0.;
+   else if (x > 96.)  x = 96.;
+   x -= 3.01;
+   res  = pow (10., x / 20.);
+   gain = 1. / sqrt (res);
+   pRes = r;
+   pCut = -1.;                      // force a cut re-Calc, too
 }
 
 void LPF::Init ()
@@ -458,14 +455,18 @@ void Voice::ReFrq ()
 // set frq - inc based on note frq versus root sample frq (drums not pitched)
 { real t;
   TStr s;
-DBG("Voice::ReFrq smp=`s snd=`d",  R2Str (_smp->frq,s), Sn->_frq);
-   t = _smp->frq / (real)Sn->_frq;     // plus pbnd
-   if (! _snd->_xFrq)
+DBG("Voice::ReFrq smp=`s dev=`d",  R2Str (_smp->frq,s), Sn->_frq);
+   t = _smp->frq / (real)Sn->_frq;
+   if (! _snd->_xFrq) {
+DBG("   key=`d pbnd=`d vs smpKey=`d smpCnt=`d",
+_key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt);
       t *= ( Ct2Hz ( _key * 100. +
                      (_chn->pbnr * 100. *
                       ((real)(_chn->pbnd - MID14) / (real)MID14) // -1..1
                      ) ) /
              Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
+   }
+DBG("   phInc=`s", R2Str(t,s));
    _phInc = REAL2PHASE (t);
 }
 
@@ -480,8 +481,8 @@ _chn->cut,(int)(_chn->cut / 127. * 9500. + 4000.));
    else {                              // else use velo min'd at vCut
      real cMin = _chn->vCut / 127. * 9500.;
      real cRng = 9500. - cMin;
-DBG("ReFlt vCut=`d vel=`d cMin=`d cRng=`d frq=`d",
-_chn->vCut, _vel, (int)cMin, (int)cRng,
+DBG("ReFlt vel=`d vCut=`d cMin=`d cRng=`d frq=`d",
+_vel, _chn->vCut, (int)cMin, (int)cRng,
 (int)(          _vel * cRng / 127. + cMin + 4000.));
       _flt.Cut (_vel * cRng / 127. + cMin + 4000.);
    }
@@ -694,9 +695,10 @@ void Voice::Mix (real *mixL, real *mixR, real *rvrb)    // da GUTS :)
 //DBG("pre  L=`s R=`s  panL=`s panR=`s",
 //R2Str(mixL [0],ts), R2Str(mixR [0],t2), R2Str(_panL,t4), R2Str(_panR,t5));
    for (i = 0;  i < len;  i++)  {
-     real s = _flt.Cvt (_buf [i]);            // filter it
-      s *= _amp;                              // amp it
-      mixL [i] += (s * _panL);                // pan,mix it
+//   real s = _flt.Cvt (_buf [i]);     // filter it
+     real s = _buf [i];                // DON'T filter it
+      s *= _amp;                       // amp it
+      mixL [i] += (s * _panL);         // pan,mix it
       mixR [i] += (s * _panR);
       rvrb [i] += (s * _chn->rvrb/127.);
       if (_rels) {
@@ -1042,7 +1044,8 @@ void Syn::run ()
       out = & _out [per*Sn->_nFr];   per = per ? 0 : 1;     // double bufferin
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);   MemSet (_rvrb, 0, sz);
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix (_mixL, _mixR, _rvrb);
-      _rvP.Mix (_rvrb, _mixL, _mixR);
+// no reverb fer now :/
+//    _rvP.Mix (_rvrb, _mixL, _mixR);
       for (i = 0;  i < Sn->_nFr;  i++) {
          out [i][0] = r2i (_mixL [i], Dither [0][_dth]);
          out [i][1] = r2i (_mixR [i], Dither [1][_dth]);

@@ -219,7 +219,6 @@ SndO::SndO (ubyt4 inFr, ubyt4 ifrq)    // frames in 1 period, frequency
 { int   e;  // error
   sbyt4 dir  = 0;
   ubyt4 nPer = 2, nFr = inFr, frq = ifrq;
-DBG("a _frq=`d", _frq);
    _hnd = nullptr;
    if (*App.grp == '\0')  StrCp (App.grp, CC("pcheetah"));      // sigh
    App.CfgGet (CC("syn"), _desc);
@@ -263,8 +262,7 @@ DBG("pcm_rate 44100 died - `s", snd_strerror (e));
       snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
    if (_frq != frq)  DBG("pcm_rate wanted `d got `d :/", _frq, frq);
-DBG("b _frq=`d", _frq);
-                                       // THIS sets my _frq to 0 - why ??
+
    if ((e = snd_pcm_hw_params_set_period_size_near (_hnd, hw,
                                    (snd_pcm_uframes_t *)(& nFr), & dir)) < 0) {
 DBG("pcm_period died - `s", snd_strerror (e));
