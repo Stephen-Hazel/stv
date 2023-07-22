@@ -423,15 +423,15 @@ char *FnName (char *nm, char *fn)
    return nm;
 }
 
-char *FnFix (char *fn)
+char *FnFix (char *fn, char to)
 { char *p;
    for (p = fn; *p; p++)
       if ((*p <= ' ') || (*p >  '~') ||
           (*p == '*') || (*p == '?') || (*p == '/') || (*p == '\\') ||
           (*p == ':') || (*p == '"') || (*p == '>') || (*p == '<' ) ||
           (*p == '|'))
-         *p = '_';
-   for (; *fn && (fn [StrLn (fn)-1] == '_');)  StrAp (fn, CC(""), 1);
+         *p = to;
+   while (*fn && (fn [StrLn (fn)-1] == to))  StrAp (fn, CC(""), 1);
    return fn;
 }
 

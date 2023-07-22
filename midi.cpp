@@ -261,25 +261,23 @@ MCC [i].s, MCC [i].typ, MCC [i].dflt, MCtl2Str (s, MCC [i].raw));
 ubyt4 Tm (char *st)
 // convert 2 int - absolute time (no timesig stuff)
 { char *p;
-  ubyt4 b, q = 0, s = 0, t = 0;
-   b = Str2Int (st, & p);   if (b)  --b;
+  ubyt4 b, q = 0, x = 0;
+   b = Str2Int (st, & p);      if (b)  --b;      // cuz 1 based
    if (*p == '.') {
-      p++;   q = (*p - '0');  if (q)  --q;
-      p++;   s = (*p - '0');  if (s)  --s;
-      p++;
-      if (*p == '.')  t = Str2Int (++p);
+      p++;   q = (*p - '0');   if (q)  --q;      // samez
+      if (*p == '.')  x = Str2Int (++p);         // x are 0 based tho !
    }
-   return b*M_WHOLE + q*(M_WHOLE/4) + s*(M_WHOLE/16) + t;
+   return b*M_WHOLE + q*(M_WHOLE/4) + x;
 }
 
 char *TmS (char *st, ubyt4 t)
 // convert 2 str - absolute time (no timesig stuff)
-{ ubyt4 b, q, s;
+{ ubyt4 b, q, x;
    b = t /  M_WHOLE + 1;       t %=  M_WHOLE;    // 1 based :/
-   q = t / (M_WHOLE/4) + 1;    t %= (M_WHOLE/4);
-   s = t / (M_WHOLE/16) + 1;   t %= (M_WHOLE/16);
+   q = t / (M_WHOLE/4) + 1;    t %= (M_WHOLE/4); // 1 based
+   x = t % (M_WHOLE/4);                          // 0 based !!
    if (b > 99999)  return CC("SKIP");
-   return StrFmt (st, "`04d.`d`d.`02d", b, q, s, t);
+   return StrFmt (st, "`04d.`d.`03d", b, q, x);
 }
 
 ubyte MNt (char *s)

@@ -326,7 +326,7 @@ char *CtlTabl::Get (ubyt2 r, ubyte c)  {return UnQS (_t->item (r, c)->text ());}
 void  CtlTabl::Set (ubyt2 r, ubyte c, char *s)
 { QTableWidgetItem *it = _t->item (r, c);
   TStr ico;
-DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
+//DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
    _t->blockSignals (true);
    if (_ju [c] != '*')      it->setText (s);
    else {
@@ -356,6 +356,7 @@ void CtlTabl::Open ()
    _t->hide ();   _t->blockSignals (true);
    _t->clearContents ();   _t->setRowCount (0);
    _nr = 0;
+//DBG("CtlTabl::Open end");
 }
 
 void CtlTabl::Put (char **rp)
@@ -386,9 +387,13 @@ void CtlTabl::Put (char **rp)
    _nr++;
 }
 
-void CtlTabl::Shut ()
-{  _t->show ();
-   HopTo (_tr, _tc);                   // in 6 on CLOSE, ed sets value again:(
+void CtlTabl::Shut (bool rehop)
+{
+//DBG("CtlTabl::Shut show");
+   _t->show ();
+//DBG("CtlTabl::Shut HopTo");
+   if (rehop)  HopTo (_tr, _tc);       // in 6 on CLOSE, ed sets value again:(
+//DBG("CtlTabl::Shut blockSignals(false)");
    _t->blockSignals (false);
 //DBG("CtlTabl::Shut end");
 }

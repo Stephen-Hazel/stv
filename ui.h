@@ -277,12 +277,26 @@ class SID_EvF: public QObject {
 protected:
    bool eventFilter (QObject *ob, QEvent *ev) override
    { QComboBox *cb = qobject_cast<QComboBox *>(ob);
-      if (cb && (ev->type() == QEvent::HoverEnter))
-         {cb->showPopup ();   return true;}
+      if (cb && (ev->type() == QEvent::HoverEnter))  {cb->showPopup ();
+                                                      return true;}
       return false;
    }
 };
 
+
+//______________________________________________________________________________
+// when a table cell with an editor gets clicked on:
+//    createEditor, updateEditorGeometry, setEditorData, and tons of paints
+// when a CtlList/combo gets PICKED:
+//    cbChanged
+//       emit commitData
+//          setModelData calls mod->setData which calls setEditorData
+//       emit closeEditor
+//          does it remove editor i hope?
+// but when I update a table cell...  AGAIN...
+//    createEditor, updateEditorGeometry, setEditorData, and tons of paints, AND
+//          setModelData calls mod->SetData which calls setEditorData
+//______________________________________________________________________________
 class SIDlg: public QStyledItemDelegate {
    Q_OBJECT
 private:
@@ -294,19 +308,32 @@ public:
    SIDlg (QObject *par, char *ed, ppop pop)
    : QStyledItemDelegate (par)
    {  _ed = ed;   _pop = pop;  _ef = new SID_EvF;}
-
   ~SIDlg ()  {}
 
-   void paint (QPainter *p, const QStyleOptionViewItem &opt,
-                            const QModelIndex &ind)  const override
+
+   void     paint         (QPainter *p, const QStyleOptionViewItem &opt,
+                                        const QModelIndex &ind)  const override
    {  if (! opt.icon.isNull ())
            {p->save ();   opt.icon.paint (p, opt.rect);
             p->restore ();}
       else  QStyledItemDelegate::paint (p, opt, ind);
    }
-// _____________________________________________________________________________
+
+
+   void     updateEditorGeometry (
+                           QWidget *ed, const QStyleOptionViewItem &opt,
+                                        const QModelIndex &ind)  const override
+   { QComboBox *cb = qobject_cast<QComboBox *>(ed);
+//DBG("SIDlg::updateEditorGeometry bgn");
+      if (cb)  cb->setGeometry (opt.rect);
+      else  QStyledItemDelegate::updateEditorGeometry (ed, opt, ind);
+//DBG("SIDlg::updateEditorGeometry end");
+   }
+
+
    QWidget *createEditor  (QWidget *tb, const QStyleOptionViewItem &opt,
                                         const QModelIndex &ind)  const override
+   // table cell w an editor got clicked
    { BStr bs;
      char *s;
 //DBG("SIDlg::createEditor row=`d col=`d _ed=`c",
@@ -332,7 +359,8 @@ public:
       }
       return    QStyledItemDelegate::createEditor (tb, opt, ind);
    }
-// _____________________________________________________________________________
+
+
    void     setEditorData (QWidget *ed, const QModelIndex &ind)  const override
    { QComboBox *cb = qobject_cast<QComboBox *>(ed);
       if (cb) {
@@ -349,88 +377,30 @@ public:
          }
          cb->setCurrentIndex (i);
 //       cb->move (opt.rect.x (), opt.rect.y ());
-//       cb->showPopup ();             // and doesn't work so tryin eventFilter
+//       cb->showPopup ();          // and doesn't work so tryin eventFilter
 //DBG("SIDlg::setEditorData ^ end");
       }
       else  QStyledItemDelegate::setEditorData (ed, ind);
    }
-// _____________________________________________________________________________
+
+
    void     setModelData  (QWidget *ed, QAbstractItemModel *mod,
                                         const QModelIndex &ind)  const override
    { QComboBox *cb = qobject_cast<QComboBox *>(ed);
 //DBG("SIDlg::setModelData `s", cb?"^":"_");
       if (cb) {
-//DBG(" r=`d c=`d s=`s", ind.row (), ind.column (), UnQS (cb->currentText ()));
+//DBG("   r=`d c=`d s=`s",
+//ind.row (), ind.column (), UnQS (cb->currentText ()));
          mod->setData (ind, cb->currentText (), Qt::EditRole);
+//DBG("   back from mod->setData");
       }
       else  QStyledItemDelegate::setModelData (ed, mod, ind);
 //DBG("SIDlg::setModelData end");
    }
-// _____________________________________________________________________________
-   void updateEditorGeometry (QWidget *ed, const QStyleOptionViewItem &opt,
-                              const QModelIndex &ind) const override
-   { QComboBox *cb = qobject_cast<QComboBox *>(ed);
-      if (cb)  cb->setGeometry (opt.rect);
-      else  QStyledItemDelegate::updateEditorGeometry (ed, opt, ind);
-   }
-/*
-   void paint (QPainter *painter, const QStyleOptionViewItem &option,
-                                  const QModelIndex& index) const
-   { auto o = option;
-      initStyleOption(&o, index);
-      o.decorationSize.setWidth(o.rect.width());
-     auto style = o.widget ? o.widget->style() : QApplication::style();
-      style->drawControl(QStyle::CE_ItemViewItem, &o, painter, o.widget);
-   }
 
-
-class SpinBoxDelegate: public QStyledItemDelegate {
-   Q_OBJECT
-public:
-   SpinBoxDelegate(QObject *parent = nullptr);
-   QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option,
-                         const QModelIndex &index) const override;
-   void setEditorData(QWidget *editor, const QModelIndex &index) const override;
-   void setModelData(QWidget *editor, QAbstractItemModel *model,
-                     const QModelIndex &index) const override;
-   void updateEditorGeometry(QWidget *editor,
-                             const QStyleOptionViewItem &option,
-                             const QModelIndex &index) const override;
-};
-SpinBoxDelegate::SpinBoxDelegate(QObject *parent)
-: QStyledItemDelegate(parent)
-{}
-QWidget *SpinBoxDelegate::createEditor(QWidget *parent,
-                                       const QStyleOptionViewItem &option,
-                                       const QModelIndex &index) const
-{ QSpinBox *editor = new QSpinBox (parent);
-   editor->setFrame (false);
-   editor->setMinimum (0);
-   editor->setMaximum (100);
-   return editor;
-}
-void SpinBoxDelegate::setEditorData(QWidget *editor,
-                                    const QModelIndex &index) const
-{ int value = index.model()->data(index, Qt::EditRole).toInt();
-  QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
-   spinBox->setValue(value);
-}
-void SpinBoxDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
-                                   const QModelIndex &index) const
-{ QSpinBox *spinBox = static_cast<QSpinBox*>(editor);
-   spinBox->interpretText ();
-  int value = spinBox->value ();
-   model->setData (index, value, Qt::EditRole);
-}
-void SpinBoxDelegate::updateEditorGeometry(QWidget *editor,
-                                           const QStyleOptionViewItem &option,
-                                           const QModelIndex &index) const
-{  editor->setGeometry (option.rect);  }
-*/
 
 public slots:
-// _____________________________________________________________________________
-   void cbChanged ()
+   void cbChanged ()                   // got a pick !
    { QComboBox *cb = qobject_cast<QComboBox *>(sender ());
 //DBG("SIDlg::cbChanged commitData");
       emit commitData  (cb);
@@ -465,7 +435,7 @@ public:
 
    void  Open    ();
    void  Put     (char **rp);
-   void  Shut    ();
+   void  Shut    (bool rehop = false);
 
 private:
    QTableWidget *_t;

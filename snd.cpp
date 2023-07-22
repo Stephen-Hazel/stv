@@ -222,9 +222,9 @@ SndO::SndO (ubyt4 inFr, ubyt4 ifrq)    // frames in 1 period, frequency
    _hnd = nullptr;
    if (*App.grp == '\0')  StrCp (App.grp, CC("pcheetah"));      // sigh
    App.CfgGet (CC("syn"), _desc);
-DBG("SndO desc=`s", _desc);
+TRC("SndO desc=`s", _desc);
    Snd.Load ();   StrCp (_dev, Snd.Get (_desc));
-DBG("     dev =`s", _dev);
+TRC("     dev =`s", _dev);
    if (*_dev == '\0')
       {DBG("SndO no device for desc=`s", _desc);   return;}
    if (*_dev == '?')
@@ -340,7 +340,7 @@ void SndO::Put (sbyt2 *buf)
 
 SndO::~SndO (void)
 { int e;
-DBG("~SndO `s", *_desc ? _desc : "?");
+TRC("~SndO `s", *_desc ? _desc : "?");
    if (Dead ())  {DBG("...was dead");   return;}
    if ((e = snd_pcm_close (_hnd)) < 0)
 DBG("snd_pcm_close died - `s", snd_strerror (e));
