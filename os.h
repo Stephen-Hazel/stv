@@ -101,7 +101,7 @@ char *Fn2Name (char *fn);              // strip .ext leaving path/name
 char *Fn2Path (char *fn);              // strip name.ext leaving path
 char *FnExt   (char *ext, char *fn);   // return just ext
 char *FnName  (char *nm,  char *fn);   // return just name.ext
-char *FnFix   (char *fn);              // remove special chars
+char *FnFix   (char *fn,  char to = '_');   // remove special chars
 
 const ubyt2 RANDMAX = 0x7FFF;
 void  RandInit ();                     // seed w current millisec
@@ -282,7 +282,8 @@ DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
       _d = opendir (_dir);             // Got() made sure it won't be null
       df = Next (fn);
       if (! df)  {Shut ();             // sigh - make it ez on user
-DBG("FDir::Open just 1 so auto Shut");}
+//DBG("FDir::Open just 1 so auto Shut");
+      }
       return df;
    }
 
@@ -841,6 +842,9 @@ public:
 
 extern AppBase App;
 
+
+// duuumb - don't use me :/
+inline void Die (char const *s)  {DBG("DIED cuz `s", s);   exit (99);}
 
 inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
 // come on linux, where's my InternetOpenUrl ??  don't want no curl deps :(

@@ -241,8 +241,10 @@ typedef struct {ubyt4 time;  ubyte ctrl, valu, val2, x;} TrkEv;
 #define MNTUP(m)  (MNOTE(m) && MUP(m))
 
 inline bool FnMid (char *fn)
+// or .mod - files i know how ta convert into .song
 { ubyt2 ln = StrLn (fn);
    return ( (ln > 4) && ((! StrCm (& fn [ln-4], CC(".mid"))) ||
+                         (! StrCm (& fn [ln-4], CC(".mod"))) ||
                          (! StrCm (& fn [ln-4], CC(".kar"))) ||
                          (! StrCm (& fn [ln-4], CC(".rmi")))) ) ? true : false;
 }

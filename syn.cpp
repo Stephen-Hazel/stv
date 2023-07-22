@@ -205,9 +205,8 @@ bool Sound::LoadFmt (char *wfn, ubyte ky, ubyte vl)
   Sample *s = & TSmp [_nSmp];
    StrCp (s->fn, wfn);
    StrFmt (fn, "`s/device/syn/`s/`s",  App.Path (s1, 'd'), _pa, s->fn);
-   if ((e = w.Load (fn)) != nullptr) {
-DBG("Song::LoadFmt `s: `s", fn, e);   return false;
-   }
+   if ((e = w.Load (fn)) != nullptr)
+      {DBG("Sound::LoadFmt `s: `s", fn, e);                   return false;}
    if ((_nSmp + (w._mono?1:2)) > BITS (TSmp))
       {DBG("Sound::LoadFmt  too many samples upon `s", fn);   return false;}
    s->frq   = w._frq;
@@ -215,7 +214,7 @@ DBG("Song::LoadFmt `s: `s", fn, e);   return false;
    s->chans = w._mono?1:2;
    s->pos   = 0;
    s->len   = w._len;
-   if      (_xFrq || _xRls)                 s->lpBgn = s->len;
+   if      (_xRls)                          s->lpBgn = s->len;
    else if ((s->lpBgn = w._lBgn) < w._len)  s->len = w._lEnd;
    s->key = w._key;
    s->cnt = w._cnt;
@@ -244,7 +243,7 @@ Sound::Sound (char *snd, ubyte dKey)
 TRC("Sound::Sound _nSnd=`d snd=`s dKey=`s",
 Sy->_nSnd, snd, (dKey==128)?"(melo)":MDrm2Str(s2,dKey));
    _siz  = 0;   _max = 0.0;
-   _xFrq = _xRls = false;              // default to pitching/looping
+   _xFrq = _xRls = false;              // default to pitching n looping
    _nSmp = 0;   _smp = nullptr;   MemSet (TSmp, 0, sizeof (TSmp));
 
 // set _nm,_pa n _xFrq,_xRls
@@ -256,12 +255,12 @@ Sy->_nSnd, snd, (dKey==128)?"(melo)":MDrm2Str(s2,dKey));
    StrFmt (_pa, "`s/`s", bnk, s);      // ex: ssAria/Piano_Clavinet
    i = StrLn (_pa);                    // special sound suffix - drum,hold,clip
    if (i > 5) {
-   // snd w _hold suffix=> no release ramp on ntUp, _drum suffix=> un-pitched
-   // _clip suffix for both ^                    (or in a drum dir ^ )
+   // snd w ~hold suffix=> no release ramp on ntUp, ~drum suffix=> un-pitched
+   // ~clip suffix for both ^                    (or in a drum dir ^ )
       if ((! MemCm (_nm, CC("Drum/"), 5)) ||
-          (! MemCm (& _pa [i-5], CC("_drum"), 5))) _xFrq = true;
-      if  (! MemCm (& _pa [i-5], CC("_hold"), 5))  _xRls = true;
-      if  (! MemCm (& _pa [i-5], CC("_clip"), 5))  _xFrq = _xRls = true;
+          (! MemCm (& _pa [i-5], CC("~drum"), 5))) _xFrq = true;
+      if  (! MemCm (& _pa [i-5], CC("~hold"), 5))  _xRls = true;
+      if  (! MemCm (& _pa [i-5], CC("~clip"), 5))  _xFrq = _xRls = true;
    }
 TRC("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
 
@@ -338,9 +337,7 @@ void LPF::Cut (real c)                   // cutoff frequency in absolute cents
 {  cut = Ct2Hz (c);                         // (8000-13500 usable range tho)
    if      (cut > 0.45 * Sn->_frq)  cut = 0.45 * Sn->_frq;
    else if (cut < 5.)               cut = 5.;
-
-// can we skip the grindin'...?
-   if ((fabs (cut - pCut) <= 0.01))  return;
+   if ((fabs (cut - pCut) <= 0.01))  return;     // can we skip the grindin'...?
 
   real omega = 2.*M_PI * (cut / Sn->_frq);
   real sinO  = sin (omega);
@@ -369,6 +366,7 @@ void LPF::Cut (real c)                   // cutoff frequency in absolute cents
 
 void LPF::Res (real r)                   // resonance (0-960 cB => 0-96 dB)
 {  if ((fabs (res - pRes) <= 0.01))  return;
+
   real x = r / 10.;                 // x is q_dB
    if      (x <  0.)  x =  0.;
    else if (x > 96.)  x = 96.;
@@ -455,18 +453,29 @@ void Voice::ReFrq ()
 // set frq - inc based on note frq versus root sample frq (drums not pitched)
 { real t;
   TStr s;
-DBG("Voice::ReFrq smp=`s dev=`d",  R2Str (_smp->frq,s), Sn->_frq);
+//DBG("Voice::ReFrq smp=`s dev=`d",  R2Str (_smp->frq,s), Sn->_frq);
    t = _smp->frq / (real)Sn->_frq;
    if (! _snd->_xFrq) {
-DBG("   key=`d pbnd=`d vs smpKey=`d smpCnt=`d",
-_key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt);
+/*TStr x,y,z,a,b;
+real nc,nh,sc,sh;
+DBG("   key=`d pbnd=`d vs smpKey=`d smpCnt=`d tnow=`s",
+_key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
+   nc = _key * 100. +
+        (_chn->pbnr * 100. * ((real)(_chn->pbnd - MID14) / (real)MID14));
+   sc = _smp->key*100. - (sbyte)(_smp->cnt);
+   nh = Ct2Hz (nc);
+   sh = Ct2Hz (sc);
+//DBG("   nt_ct=`s sm_ct=`s nt_hz=`s sm_hz=`s factor=`s",
+//R2Str(nc,x), R2Str(sc,y), R2Str(nh,z), R2Str(sh,a),
+//R2Str(nh/sh,b));
+*/
       t *= ( Ct2Hz ( _key * 100. +
                      (_chn->pbnr * 100. *
                       ((real)(_chn->pbnd - MID14) / (real)MID14) // -1..1
                      ) ) /
              Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
    }
-DBG("   phInc=`s", R2Str(t,s));
+//DBG("   phInc=`s", R2Str(t,s));
    _phInc = REAL2PHASE (t);
 }
 
@@ -474,14 +483,14 @@ DBG("   phInc=`s", R2Str(t,s));
 void Voice::ReFlt ()                   // set flt res,cut
 {  _flt.Res (960. * _chn->res / 127.);
    if (_chn->vCut == 127) {            // vCut 127 means use chan's cut
-DBG("ReFlt vCut=127 so use cut=`d frq=`d",
+TRC("ReFlt vCut=127 so use cut=`d frq=`d",
 _chn->cut,(int)(_chn->cut / 127. * 9500. + 4000.));
       _flt.Cut (_chn->cut / 127. * 9500. + 4000.);
    }
    else {                              // else use velo min'd at vCut
      real cMin = _chn->vCut / 127. * 9500.;
      real cRng = 9500. - cMin;
-DBG("ReFlt vel=`d vCut=`d cMin=`d cRng=`d frq=`d",
+TRC("ReFlt vel=`d vCut=`d cMin=`d cRng=`d frq=`d",
 _vel, _chn->vCut, (int)cMin, (int)cRng,
 (int)(          _vel * cRng / 127. + cMin + 4000.));
       _flt.Cut (_vel * cRng / 127. + cMin + 4000.);
@@ -525,16 +534,16 @@ void Voice::Release ()                 // if chan hold, leave on till hold off
 {                                      // else beGIN release
 if (App.trc) Dump (CC("Release"));
    if (! _puts)  {
-DBG("VC KILL");
+TRC("VC KILL");
                   End ();   return;}     // never even got heard - KILL!
    if (_rels)               return;      // already releasin' - skip out
 
    if (_chn && (_chn->hold >= 64))  {_on = 's';   return;}   // sustainin'
 
-// samp has no loop and sez NO release - quick end
+// samp has no loop and sez NO release - sample end is what ends us
    if ((! _loopin) && _snd->_xRls)  {End ();      return;}
 
-DBG("VC RELS BGN");
+TRC("VC RELS BGN");
 // start release a goin'
    _rels = 1;
 // release for 1/64 of a beat means bump amp 128 time in time=1/16*qnote
@@ -560,7 +569,7 @@ ubyt4 Voice::Interpolate ()
    in = & Sy->_smp [_smp->pos];   o = _buf;
 
 // bump to next halfsample since centered on 4th sample point
-   d = 0;   ph = _phase + (Phase)0x80000000;
+   d = 0;   ph = _phase + (Phase)0x080000000;
 
 // set sBgn, sEnd per our range of 7 samples
 // set sb0-2,se0-2 to the "outside samples" of the 7 in our set
@@ -680,7 +689,7 @@ ubyt4 Voice::Interpolate ()
 //d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
 
 // sub 1/2 sample from ph since we offset it and save back in _phase
-   _phase = ph - (Phase)0x80000000;
+   _phase = ph - (Phase)0x080000000;
    return d;
 }
 
@@ -695,15 +704,15 @@ void Voice::Mix (real *mixL, real *mixR, real *rvrb)    // da GUTS :)
 //DBG("pre  L=`s R=`s  panL=`s panR=`s",
 //R2Str(mixL [0],ts), R2Str(mixR [0],t2), R2Str(_panL,t4), R2Str(_panR,t5));
    for (i = 0;  i < len;  i++)  {
-//   real s = _flt.Cvt (_buf [i]);     // filter it
-     real s = _buf [i];                // DON'T filter it
+     real s = _flt.Cvt (_buf [i]);     // filter it
       s *= _amp;                       // amp it
       mixL [i] += (s * _panL);         // pan,mix it
       mixR [i] += (s * _panR);
       rvrb [i] += (s * _chn->rvrb/127.);
       if (_rels) {
          if (_rels >= _relsLen)  {End ();   return;}
-         ReAmp ();     // ^ kill yerself else bump
+         _amp = _amp * (real)(_relsLen-_rels) / (real)_relsLen;
+         ReAmp ();                     // ^ kill yerself else bump quieter
          _rels++;
       }
    }
@@ -816,14 +825,14 @@ DumpSnd ();
 // stuff used by notes...
 void Syn::NOff (ubyte ch, ubyte key, ubyte vel)
 { TStr ts;
-DBG(" NOff ch=`d key=`s vel=`d",
+TRC(" NOff ch=`d key=`s vel=`d",
 ch+1, ((ch % 16) == 9) ? MDrm2Str (ts, key) : MKey2Str (ts, key), vel);
    if (_chn [ch].Drum ())  ch = 0x80 | key;
    for (ubyt2 i = 0;  i < _nVc;  i++)
       if (_vc [i].Down () && (_vc [i]._chn->id == ch) &&
                              (_vc [i]._key == key))
          {
-DBG("  vc rel=`d/`d", i, _nVc);
+TRC("  vc rel=`d/`d", i, _nVc);
           _vc [i].Release ();}
 }
 
@@ -837,7 +846,7 @@ void Syn::NtOn (ubyte ch, ubyte key, ubyte vel)
   TStr     ts;
    if (vel == 0)  return NOff (ch, key, 0);
 
-DBG(" NtOn ch=`d key=`s vel=`d",
+TRC(" NtOn ch=`d key=`s vel=`d",
 ch+1, ((ch % 16) == 9) ? MDrm2Str (ts, key) : MKey2Str (ts, key), vel);
    if ((key >= 128) || (vel >= 128)) {
 DBG("Syn::NtOn  bad key,vel ch=`d key=`s vel=`d", ch+1, MKey2Str(ts,key), vel);
@@ -860,12 +869,12 @@ DBG("Syn::NtOn  melo sound not loaded ch=`d key=`s vel=`d snd=`d of `d",
       s = _snd [c->snd];
    }
 
-//TODO kill off any voices exclusive to me
+// kill off any voices exclusive to me
 // release on same chan n note;  completely end if no puts yet (we're behind)
    for (i = 0;  i < _nVc;  i++)
       if (_vc [i].On () && (_vc [i]._chn->id == ch) && (_vc [i]._key == key))
          {
-DBG("  vc rel=`d/`d  cuz excl", i, _nVc);
+TRC("  vc rel=`d/`d  cuz excl", i, _nVc);
           _vc [i].Release ();}
 
 // kick new voices for any matchin samples
@@ -893,11 +902,11 @@ DBG("Syn maxVoice=`d", i+1);
          else shr = true;           // try to keep max as shrunk as we can
 
          _vc [i].Bgn (c, key, vel, ++_ntID, s, & s->_smp [sm]);
-DBG("Syn::NtOn  _vc[`d].Bgn", i);
-_vc [i].Dump (StrFmt (ts, "  vc add=`d/`d", i, _nVc));
+TRC("Syn::NtOn  _vc[`d].Bgn", i);
+//_vc [i].Dump (StrFmt (ts, "  vc add=`d/`d", i, _nVc));
       }
    if (shr)  {for (j = i = _nVc;  i && (! _vc [i-1].On ());  i--)  _nVc--;
-if (_nVc<j) DBG("  vc shrink `d=>`d", j, _nVc);
+//if (_nVc<j) TRC("  vc shrink `d=>`d", j, _nVc);
              }
 }
 
@@ -906,7 +915,7 @@ if (_nVc<j) DBG("  vc shrink `d=>`d", j, _nVc);
 // stuff used by CCs
 void Syn::UnHold (ubyte ch)            // release all sust'd vcs on chn
 {
-DBG(" UnHold ch=`d", ch+1);
+TRC(" UnHold ch=`d", ch+1);
    for (ubyt2 i = 0;  i < _nVc;  i++)
       if (_vc [i].Sust () && _vc [i]._chn && (_vc [i]._chn->id == ch))
          _vc [i].Release ();
@@ -944,13 +953,13 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 { char re = '\0';
   TStr s;
    _lok.Grab ();
-if (c & 0xFF80) DBG("Syn::Put ch=`d `s v=`d v2=`d",
-                    ch+1, MCtl2Str(s,c,'r'), v, v2);
-else            DBG("Syn::Put ch=`d `s`c`d",
+if (c & 0xFF80) {TRC("Syn::Put ch=`d `s v=`d v2=`d",
+                    ch+1, MCtl2Str(s,c,'r'), v, v2);}
+else             TRC("Syn::Put ch=`d `s`c`d",
                     ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
                     (v & 0x080) ? ((v2 & 0x080) ? '~' : '_') : '^', v & 0x07F);
    if (ch & 0x80) {                    // check drum cc
-DBG(" ch=drum `s", MDrm2Str(s,ch & 0x7F));
+TRC(" ch=drum `s", MDrm2Str(s,ch & 0x7F));
       if (! _drm [ch & 0x7F]) {
 DBG("   drum ch=`s but no drum sound loaded", MDrm2Str(s,ch & 0x7F));
          _lok.Toss ();   return;
@@ -1024,10 +1033,6 @@ DBG("Syn maxLevel=`s", R2Str (_maxLvl,s));
    }
    r = r * 32766.0 / _maxLvl + dth;    // scale to sbyt2 n dither
    i = (sbyt2)((r >= 0.) ? (r+0.5) : (r-0.5));   // round to sbyt2 -32767..32767
-//   if (i > im) {
-//      im = i;
-//DBG("Syn maxI=`d", im);
-//   }
    return i;
 }
 
@@ -1039,7 +1044,6 @@ void Syn::run ()
   ubyt2 i;
   sbyt2 (*out)[2];
    while (_run) {
-//DBG("runin nvc=`d", _nVc);
       _lok.Grab ();
       out = & _out [per*Sn->_nFr];   per = per ? 0 : 1;     // double bufferin
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);   MemSet (_rvrb, 0, sz);
@@ -1059,7 +1063,7 @@ void Syn::run ()
 
 Syn::Syn ()
 {
-DBG("Syn::Syn nFr=`d frq=`d", Sn->_nFr, Sn->_frq);
+TRC("Syn::Syn nFr=`d frq=`d", Sn->_nFr, Sn->_frq);
    InitLookup ();
    _smp = nullptr;
    _vol = 0.05;                        // alsa always does volume=100% :)
@@ -1072,17 +1076,17 @@ DBG("Syn::Syn nFr=`d frq=`d", Sn->_nFr, Sn->_frq);
                                   _rvrb = new real [Sn->_nFr];
    _out = new sbyt2 [2*Sn->_nFr][2];   // 2 periods of nFr frames of interleaved
    _run = true;   start ();            // stereo sbyt2 (to double buffer)
-DBG("Syn::Syn end");
+TRC("Syn::Syn end");
 }
 
 
 Syn::~Syn ()
 {
-DBG("Syn::~Syn bgn");
+TRC("Syn::~Syn bgn");
    _run = false;   wait ();
    WipeSnd ();
    delete [] _vc;
    delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;
    delete [] _out;
-DBG("Syn::~Syn end");
+TRC("Syn::~Syn end");
 }
