@@ -112,7 +112,7 @@ char *Wav::Load (char *fn)
       MemSet (& _smp, 0, sizeof (_smp));
       _smp.bgn = _smp.end = _len;
       _loop = false;   _lBgn = 0;   _lEnd = _end;
-      _key = MNt (CC("4c"));
+      _key = MKey (CC("4c"));
    }
 TRC("   fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
 FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
@@ -143,7 +143,7 @@ DBG("Wav::Save can't save beyond stereo");
 // if (_smp)  MemCp  (& smp, _smp, sizeof (smp));
 // else       MemSet (& smp, 0,    sizeof (smp));
    smp.per = 1000000000 / _frq;
-   smp.key = _key ? _key : MNt (CC("4c"));
+   smp.key = _key ? _key : MKey (CC("4c"));
    smp.cnt = (sbyt4)(_cnt * ((ubyt4)0x80000000/50));
    smp.num = 1;
 
