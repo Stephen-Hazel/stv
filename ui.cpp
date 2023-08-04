@@ -272,7 +272,7 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
 // hdr is zz string of labels
 //  *  prefix means icon
 //  >| prefix means right or center just
-//  _^ prefix means string or combo edit
+//  _  prefix means edit (string or droplist edit)
 { ubyte c;
   char *h;
   char  ed = '\0';      // _ means editing, ^ means QComboBox so delegate too
@@ -281,8 +281,7 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
    for (c = 0, h = CC(hdr);  *h;  c++, h = & h [StrLn (h)+1]) {
       _ju [c] = _ed [c] = '\0';
       if ((*h == '*') || (*h == '>') || (*h== '|'))  _ju [c] = *h++;
-      if  (*h == '_') {_ed [c] =      *h++;   if (ed != '^') ed = '_';}
-      if  (*h == '^')  _ed [c] = ed = *h++;
+      if  (*h == '_') {_ed [c] = *h++;   ed = '_';}
       sl << QString::fromStdString (h);
    }
    _t->horizontalHeader ()->setSectionResizeMode (
@@ -290,7 +289,7 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
    _t->setColumnCount (c);   _t->setHorizontalHeaderLabels (sl);
    _t->verticalHeader ()->hide ();
    _t->setAlternatingRowColors (false);
-   if (ed == '^')  _t->setItemDelegate (new SIDlg (_t, _ed, pop));
+   if (ed)  _t->setItemDelegate (new SIDlg (_t, _ed, pop));
    _t->setEditTriggers (ed ? QAbstractItemView::AllEditTriggers
                            : QAbstractItemView::NoEditTriggers);
    _t->setSelectionBehavior (QAbstractItemView::SelectRows);

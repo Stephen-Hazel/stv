@@ -270,15 +270,16 @@ private:
 // tables need these dumb tricky "QStyledItemDelegate"s so they
 // can drop combos :/
 
-typedef void (*ppop)(char *ls, ubyt2 r, ubyte c);
+// callback to set type of edit ('e'dit, 'l'ist, '\0') and zz droplist if l
+typedef char (*ppop)(char *ls, ubyt2 r, ubyte c);
 
-class SID_EvF: public QObject {
+class SID_EvF: public QObject {        // needed by SIDlg to autodrop lists sigh
    Q_OBJECT
 protected:
    bool eventFilter (QObject *ob, QEvent *ev) override
    { QComboBox *cb = qobject_cast<QComboBox *>(ob);
-      if (cb && (ev->type() == QEvent::HoverEnter))  {cb->showPopup ();
-                                                      return true;}
+      if (cb && (ev->type() == QEvent::HoverEnter))
+         {cb->showPopup ();   return true;}
       return false;
    }
 };
@@ -300,9 +301,9 @@ protected:
 class SIDlg: public QStyledItemDelegate {
    Q_OBJECT
 private:
-   char *_ed;
-   ppop  _pop;
-   QObject *_ef;
+   char    *_ed;                       // of CtlTabl
+   ppop     _pop;                      // of app
+   QObject *_ef;                       // dumb thing ta auto drop CComboBox
 
 public:
    SIDlg (QObject *par, char *ed, ppop pop)
@@ -335,14 +336,16 @@ public:
                                         const QModelIndex &ind)  const override
    // table cell w an editor got clicked
    { BStr bs;
-     char *s;
+     char ed, *s;
 //DBG("SIDlg::createEditor row=`d col=`d _ed=`c",
+      if (_pop == nullptr)  DBG("BUG! edit cell and no pop func!!");
 //ind.row (), ind.column (), _ed [ind.column ()]);
-      if (_ed [ind.column ()] == '^') {
-         if (_pop == nullptr)  DBG("BUG! ^col and no pop func!!");
-         _pop (bs, ind.row (), ind.column ());
-         if (*bs == '\0')  return nullptr;
-
+      if (_ed [ind.column ()] == '\0')      // this col never edits
+                           return nullptr;  // (prob never happens)
+      ed = _pop (bs, ind.row (), ind.column ());
+      if (ed == '\0')      return nullptr;  // read only fer now at least
+      if (ed == 'l') {                      // l = droplist
+         if (*bs == '\0')  return nullptr;  // no list - read only fer now
         QComboBox *cb = new QComboBox (tb);
          cb->setMaxVisibleItems (16);
          connect (cb, QOverload<int>::of(&QComboBox::activated),
@@ -356,7 +359,7 @@ public:
          cb->installEventFilter (_ef);
 //DBG("SIDlg::createEditor ^ end");
          return cb;
-      }
+      }                                     // e = string edit
       return    QStyledItemDelegate::createEditor (tb, opt, ind);
    }
 
@@ -419,7 +422,7 @@ public:
 
 // hdr is zz string of labels
 //  >| prefix means right or center just
-//  _^ prefix means string or combo edit
+//  _ prefix means edit (string or droplist edit)
    void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr);
    void  SetRowH (ubyt2 h);
    ubyt2 ColW    (ubyte c);
