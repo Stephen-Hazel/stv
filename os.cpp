@@ -41,6 +41,7 @@ char *MemSt (void *big, char *sm, ubyt4 len, char x)
 sbyt4 MemCm (char *s1, char *s2, ubyt4 len, char x)
 { char  c1, c2;
   sbyt4 rc;
+   if (x && (x != 'x'))  DBG("MemCm bug x=`c", x);
    while (len--) {
       c1 = *s1++;   c2 = *s2++;
       if (! x)  {c1 = CHDN (c1);   c2 = CHDN (c2);}
@@ -72,6 +73,7 @@ char *StrCh (char *str, char c)
 
 char *StrSt (char *big, char *sm, char x)
 { char *cp = big, *s1, *s2;
+   if (x && (x != 'x'))  DBG("StrSt bug x=`c", x);
    if (cp == nullptr)  {DBG ("StrSt arg 1 (big str) is NULL");
                         return nullptr;}
    if (sm == nullptr)  {DBG ("StrSt arg 2 (little str) is NULL");
@@ -91,6 +93,7 @@ char *StrSt (char *big, char *sm, char x)
 sbyt4 StrCm (char *s1, char *s2, char x)
 { char  c1, c2;
   sbyt4 rc;
+   if (x && (x != 'x'))  DBG("StrCm bug x=`c", x);
    for (;;) {
       c1 = *s1++;   c2 = *s2++;
       if (! x)  {c1 = CHDN (c1);  c2 = CHDN (c2);}
