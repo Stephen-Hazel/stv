@@ -1,7 +1,7 @@
 // wav.cpp - mostly for my sample editor waver.  actually mostly Syn these days.
 
 #include "wav.h"
-#include "midi.h"
+#include "midi.h"                      // need MKey,MKey2Str
 
 GUID KSDATAFORMAT_SUBTYPE_PCM = {
    0x00000001,0x0000,0x0010,
@@ -28,7 +28,7 @@ char *Wav::Load (char *fn)
   TStr   ts;
   bool   got [3];
   static BStr out;
-//TRC("Wav::Load `s", fn);
+DBG("Wav::Load `s", fn);
    Wipe ();
    *out = '\0';
    StrCp (_name, fn);   MemSet (got, 0, sizeof (got));
@@ -43,26 +43,26 @@ char *Wav::Load (char *fn)
    if (MemCm (id,        CC("WAVE"), 4, 'x'))
                                 return StrCp (out, CC("ERROR no WAVE id"));
    for (pe = p + l;  p < pe;) {
-//DBG("pofs=`08x=`d/`08x=`d", (int)(p-pb), (int)(p-pb), l, l);
-      if ((p + 8) > pe)  break;                  // hit end?  bail
+//DBG(" pofs=`08x=`d/`08x=`d", (int)(p-pb), (int)(p-pb), l, l);
+      if ((p + 8) > pe)  break;        // hit end?  bail
 
       MemCp (& chnk, p, 8);   p += 8;
-//DBG("ckSize=`08x=`d", chnk.ckSize, chnk.ckSize);
-      if (chnk.siz & 0x80000000)  break;      // rogue neg ckSize?  bail
+//DBG(" ckSize=`08x=`d", chnk.siz, chnk.siz);
+      if (chnk.siz & 0x80000000)  break;    // rogue neg ckSize?  bail
       if (p + chnk.siz > pe)      break;
 
       if      (MemCm (chnk.tag, CC("fmt "), 4, 'x') == 0) {
-//DBG("fmt");
+DBG("  got fmt");
          got [0] = true;
          MemCp (& _fmt, p, _fmtSz = chnk.siz);
       }
       else if (MemCm (chnk.tag, CC("data"), 4, 'x') == 0) {
-//DBG("data");
+DBG("  got data   bytes=`d", chnk.siz);
          got [1] = true;
-         _mem = p;   _len = chnk.siz;
+         _mem = p;   _len = chnk.siz;  // initially #bytes but #samples later
       }
       else if (MemCm (chnk.tag, CC("smpl"), 4, 'x') == 0) {
-//DBG("smpl");
+DBG("  got smpl");
          got [2] = true;               // optional
          MemCp (& _smp, p, sizeof (WAVESMPL));
       }
@@ -70,15 +70,16 @@ char *Wav::Load (char *fn)
    }
    if (! got [0])  return StrCp (out, CC("ERROR no fmt chunk"));
    if (! got [1])  return StrCp (out, CC("ERROR no data chunk"));
+   _real = false;
    if      (_fmt.Format.wFormatTag == WAVE_FORMAT_PCM)         _real = false;
    else if (_fmt.Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT)  _real = true;
    else if (_fmt.Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
       if      (! MemCm (RC(char *,& _fmt.SubFormat),
                         RC(char *,& KSDATAFORMAT_SUBTYPE_PCM),
-                        sizeof (GUID), 'x'))  _real = false;
+                        sizeof (GUID), 'x'))                   _real = false;
       else if (! MemCm (RC(char *,& _fmt.SubFormat),
                         RC(char *,& KSDATAFORMAT_SUBTYPE_IEEE_FLOAT),
-                        sizeof (GUID), 'x'))  _real = true;
+                        sizeof (GUID), 'x'))                   _real = true;
       else         return StrCp (out, CC("ERROR format unknown"));
    }
    else            return StrCp (out, CC("ERROR format unknown"));
@@ -91,28 +92,50 @@ char *Wav::Load (char *fn)
    _byts =  _fmt.Format.nBlockAlign / (_mono ? 1 : 2);
    _len /=  _byts*(_mono?1:2);
    _bgn = 0;   _end = _len - 1;
+DBG(" _frq=`d _mono=`b _bits=`d _byts=`d _len=`d _bgn=`d _end=`d",
+_frq,_mono,_bits,_byts,_len,_bgn,_end);
    if (got [2]) {
+      _key = (ubyte)_smp.key;
+      _cnt = (ubyte)((ubyt4)_smp.cnt/((ubyt4)0x80000000/50));
+TStr x;
+DBG("   _key=`s _cnt=`d (_smp.cnt=`d)", MKey2Str(x,_key), _cnt, _smp.cnt);
+   // smpl is ILLDEFINED, check stuph !
       if ((_smp.bgn >= _len) || (_smp.end > _len) || (_smp.end <= _smp.bgn)) {
-   //DBG("loop off for `s (len=`d lpBgn=`d lpEnd=`d)", fn,ln,smpl.bgn,smpl.end);
+DBG("   _len=`d _smp.lpBgn=`d _smp.lpEnd=`d  ...weird so",
+_len,_smp.bgn,_smp.end);
          _smp.bgn = _len;
+DBG("    _smp.bgn = _len now  (so cant loop)");
       }
       _loop = true;   _lBgn = _smp.bgn;
                       _lEnd = _smp.end - 1;
-      _key = (ubyte)_smp.key;
-      _cnt = (ubyte)((ubyt4)_smp.cnt/((ubyt4)0x80000000/50));
+DBG(" _loop=true _lBgn=`d _lEnd=`d from _smp.bgn/end-1",
+_lBgn,_lEnd);
       if (_lBgn > _lEnd)  {
         ubyt4 t = _lEnd;
          _lEnd = _lBgn;   _lBgn = t;
+DBG(" swapped _lBgn n _lEnd");
       }
-      if (_lBgn > _end)  _lBgn = _end;
-      if (_lEnd > _end)  _lEnd = _end;
-      if ((_lBgn == _end) && (_lEnd == _end))  _loop = false;
+      if (_lBgn > _end) {
+         _lBgn = _end;
+DBG(" limit _lBgn to _end");
+      }
+      if (_lEnd > _end) {
+         _lEnd = _end;
+DBG(" limit _lEnd to _end");
+      }
+      if ((_smp.num == 0) || ((_lBgn == _end) && (_lEnd == _end))) {
+         _loop = false;   _lBgn = _lEnd = _len;
+DBG(" loop=false!");
+      }
    }
    else {
+DBG("   no smpl so  _loop = false _lBgn=_lEnd=_len=`d _key=4c _cnt=0", _len);
+      _loop = false;   _lBgn = _lEnd = _len;
+      _key = MKey (CC("4c"));   _cnt = 0;
+DBG("   _smp 0d cept per,key,_lBgn=_lEnd=_len=`d", _len);
       MemSet (& _smp, 0, sizeof (_smp));
+      _smp.per = 1000000000 / _frq;   _smp.key = _key;
       _smp.bgn = _smp.end = _len;
-      _loop = false;   _lBgn = 0;   _lEnd = _end;
-      _key = MKey (CC("4c"));
    }
 TRC("   fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
 FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
@@ -121,35 +144,41 @@ FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
 
 
 // then update _frq, _bgn, _end,   _key, _cnt,   _loop, _lBgn, _lEnd
-// (_mono,_bits,_byts,_len can't be updated)
+//    BUTT  _mono,_real,_bits,_byts,_len can't be updated !!
 
 
-void Wav::Save (char *fni)             // eh, this is broke now sigh...:/
-{ File  f;                             // ...l8r when i get Waver done
+void Wav::Save (char *fni)
+// always makes a smpl chunk and hasta be mono/stereo
+{ File  f;
   TStr  fn;
   ubyt4 ln1, ln2, ln3, ln4;
-  WAVESMPL smp;
-//DBG("Wav::Save '`s'", fni);
+DBG("Wav::Save '`s'", fni);
+   if (_fmt.Format.nChannels > 2)
+      {DBG("Wav::Save can't do beyond stereo");   return;}
+TStr x;
+DBG(" _len=`d _mono=`b _real=`b _loop=`b _frq=`d _byts=`d _bits=`d "
+"_key=`s _cnt=`d _bgn=`d _end=`d _lBgn=`d _lEnd=`d",
+_len,_mono,_real,_loop,_frq,_byts,_bits,MKey2Str(x,_key), _cnt,
+_bgn,_end,_lBgn,_lEnd);
    StrCp (fn, fni);
+   _fmt.Format.nSamplesPerSec = _frq;  // ONLY _fmt change is frq !
 
-// rebuild fmt's _frq only
-   if (_fmt.Format.nChannels > 2) {
-DBG("Wav::Save can't save beyond stereo");
-      return;
-   }
-   _fmt.Format.nSamplesPerSec = _frq;
+// rebuild _smp
+   _smp.per = 1000000000 / _frq;
+   _smp.key = _key ? _key : MKey (CC("4c"));
+   _smp.cnt = (sbyt4)(_cnt * ((ubyt4)0x80000000/50));
+   _smp.num = 1;
 
-// rebuild smp from existing _smp if avail
-// if (_smp)  MemCp  (& smp, _smp, sizeof (smp));
-// else       MemSet (& smp, 0,    sizeof (smp));
-   smp.per = 1000000000 / _frq;
-   smp.key = _key ? _key : MKey (CC("4c"));
-   smp.cnt = (sbyt4)(_cnt * ((ubyt4)0x80000000/50));
-   smp.num = 1;
-
-   if (! _loop)  _lBgn = _lEnd = _end-_bgn+1;
-   smp.bgn = (_lBgn     - _bgn);
-   smp.end = (_lEnd + 1 - _bgn);
+   if (! _loop)  {_smp.num = 0;   _lBgn = _lEnd = _end-_bgn+1;}
+   else           _smp.num = 1;
+   _smp.bgn = (_lBgn     - _bgn);
+   _smp.end = (_lEnd + 1 - _bgn);
+DBG(" smp manuf=`d prod=`d per=`d key=`d cnt=`d "
+    "sfmt=`d sofs=`d num=`d dat=`d cue=`d "
+    "loop=`d bgn=`d end=`d frc=`d times=`d",
+_smp.manuf,_smp.prod,_smp.per,_smp.key,_smp.cnt,
+_smp.sfmt,_smp.sofs,_smp.num,_smp.dat,_smp.cue,
+_smp.loop,_smp.bgn,_smp.end,_smp.frc,_smp.times);
 
 // calc lengths n dump into a file
    ln4 = sizeof (WAVESMPL);
@@ -159,7 +188,7 @@ DBG("got _end-_bgn+1=0 :(");
    }
    if (! _mono) ln3 <<= 1;   ln3 *= _byts;
    ln2 = _fmtSz;
-   ln1 = 4 + 8 + ln2 + 8 + ln3;   ln1 += (8 + ln4); /* smpl too */
+   ln1 = 4 + 8 + ln2 + 8 + ln3;   ln1 += (8 + ln4);   // smpl too
    if (! f.Open (fn, "w")) {
 DBG("can't write '`s'", fn);
       return;
@@ -168,7 +197,7 @@ DBG("can't write '`s'", fn);
    f.Put (CC("fmt "));  f.Put (& ln2, 4);  f.Put (& _fmt, ln2);
    f.Put (CC("data"));  f.Put (& ln3, 4);
    f.Put (& ((ubyte *)_mem) [_bgn*(_mono?1:2)*_byts], ln3);
-   f.Put (CC("smpl"));  f.Put (& ln4, 4);  f.Put (& smp, ln4);
+   f.Put (CC("smpl"));  f.Put (& ln4, 4);  f.Put (& _smp, ln4);
    f.Shut ();
 }
 
