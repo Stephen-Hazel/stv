@@ -82,6 +82,8 @@ void  ZZAp    (char *dzz, char *szz);       // zz str list append
 char *Int2Str (sbyt4 Int, char *buf12, char base = 'd');   // 'x' for hex
 sbyt4 Str2Int (char *Str, char **p = nullptr);
 char *StrFmt  (char *s, char const *fmt, ...);   // my sprintf replacement
+
+void  DBGTH   (char const *s);
 void  DBG     (char const *fmt, ...);
 void  DbgX    (char *s, char zz = '\0');
 #define TRC(...)  if(App.trc)DBG(__VA_ARGS__)    // DBG but only if tracing on
