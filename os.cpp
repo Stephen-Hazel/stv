@@ -275,23 +275,33 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 
 #include "pthread.h"
 
+static TStr DbgTh [32];
+
 void DbgX (char *s, char zz)
 { char *p;
   FILE *f;
-  TStr  fn, buf;
+  ubyte i;
+  TStr  fn, buf, me;
+   *me = '\0';                         // does my thread have a pretty name?
+   StrFmt (buf, "`08x", SC(int,pthread_self ()));
+   for (i = 0;  i < BITS (DbgTh);  i++) {
+      if (!DbgTh [i][0])  break;
+      if (! MemCm (DbgTh [i], buf, 8, 'x'))
+         {StrCp (me, & DbgTh [i][8]);   break;}
+   }
+   if (*me == '\0')  StrFmt (me, "`s-`08x", App.app, SC(int,pthread_self ()));
+
    if (! (p = getenv ("HOME")))  return;
    StrCp (fn, p);   StrAp (fn, CC("/dbg.txt"));
    f = fopen (fn, "a");
-// f = stderr;
+
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
-      fprintf (f, "%s %s-%08X nZZ=%d\n",
-                  NowMS (buf), App.app, SC(int,pthread_self ()), ln);
+      fprintf (f, "%s %s nZZ=%d\n", NowMS (buf), me, ln);
       while (ln--)  {fprintf (f, "%d: %s\n", r++, s);   s += (StrLn (s)+1);}
    }
    else
-      fprintf (f, "%s %s-%08X %s\n",
-                  NowMS (buf), App.app, SC(int,pthread_self ()), s);
+      fprintf (f, "%s %s %s\n",     NowMS (buf), me, s);
    fclose (f);
 }
 
@@ -300,6 +310,16 @@ inline void DBG (char const *fmt, ...)      // printf-y debugging
 { va_list va;
   BStr    out;
    va_start (va, fmt);   StrFmtX (out, fmt, va);   va_end (va);   DbgX (out);
+}
+
+
+void DBGTH (char const *s)
+{ TStr th;
+   StrFmt (th, "`08x`s", SC(int,pthread_self ()), s);
+   for (ubyte i = 0;  i < BITS (DbgTh);  i++) {       // already got mee ?
+      if ((DbgTh [i][0]) && (! MemCm (th, DbgTh [i], 8, 'x')))  return;
+      if (!DbgTh [i][0])  {StrCp (DbgTh [i], th);   break;}
+   }
 }
 
 
@@ -551,7 +571,7 @@ char *NowMS (char *s)                  // current time in msec for debuggin
    msec = lrint (tv.tv_usec / 1000.0);      // Round to nearest msec
    if (msec >= 1000)  {msec -= 1000;   tv.tv_sec++;}
    tm = localtime (& tv.tv_sec);
-   strftime (buf, sizeof (buf), "%d.%a.%H:%M:%S", tm);
+   strftime (buf, sizeof (buf), "%M:%S", tm);
    return StrFmt (s, "`s.`03d", buf, msec);
 }
 
