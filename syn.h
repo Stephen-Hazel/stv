@@ -276,6 +276,7 @@ public:
 
    Syn ();
   ~Syn ();
+   bool Dead ()  {return ! _run;}
    void WipeSnd ();
    void LoadSnd (TStr *snd, ubyte maxch);
 

@@ -28,7 +28,7 @@ char *Wav::Load (char *fn)
   TStr   ts;
   bool   got [3];
   static BStr out;
-DBG("Wav::Load `s", fn);
+TRC("Wav::Load `s", fn);
    Wipe ();
    *out = '\0';
    StrCp (_name, fn);   MemSet (got, 0, sizeof (got));
@@ -52,17 +52,17 @@ DBG("Wav::Load `s", fn);
       if (p + chnk.siz > pe)      break;
 
       if      (MemCm (chnk.tag, CC("fmt "), 4, 'x') == 0) {
-DBG("  got fmt");
+//DBG("  got fmt");
          got [0] = true;
          MemCp (& _fmt, p, _fmtSz = chnk.siz);
       }
       else if (MemCm (chnk.tag, CC("data"), 4, 'x') == 0) {
-DBG("  got data   bytes=`d", chnk.siz);
+//DBG("  got data   bytes=`d", chnk.siz);
          got [1] = true;
          _mem = p;   _len = chnk.siz;  // initially #bytes but #samples later
       }
       else if (MemCm (chnk.tag, CC("smpl"), 4, 'x') == 0) {
-DBG("  got smpl");
+//DBG("  got smpl");
          got [2] = true;               // optional
          MemCp (& _smp, p, sizeof (WAVESMPL));
       }
@@ -92,52 +92,51 @@ DBG("  got smpl");
    _byts =  _fmt.Format.nBlockAlign / (_mono ? 1 : 2);
    _len /=  _byts*(_mono?1:2);
    _bgn = 0;   _end = _len - 1;
-DBG(" _frq=`d _mono=`b _bits=`d _byts=`d _len=`d _bgn=`d _end=`d",
+TRC(" _frq=`d _mono=`b _bits=`d _byts=`d _len=`d _bgn=`d _end=`d",
 _frq,_mono,_bits,_byts,_len,_bgn,_end);
    if (got [2]) {
       _key = (ubyte)_smp.key;
       _cnt = (ubyte)((ubyt4)_smp.cnt/((ubyt4)0x80000000/50));
 TStr x;
-DBG("   _key=`s _cnt=`d (_smp.cnt=`d)", MKey2Str(x,_key), _cnt, _smp.cnt);
+TRC(" _key=`s _cnt=`d (_smp.cnt=`d)", MKey2Str(x,_key), _cnt, _smp.cnt);
    // smpl is ILLDEFINED, check stuph !
       if ((_smp.bgn >= _len) || (_smp.end > _len) || (_smp.end <= _smp.bgn)) {
-DBG("   _len=`d _smp.lpBgn=`d _smp.lpEnd=`d  ...weird so",
+TRC(" _len=`d _smp.lpBgn=`d _smp.lpEnd=`d  ...weird so",
 _len,_smp.bgn,_smp.end);
          _smp.bgn = _len;
-DBG("    _smp.bgn = _len now  (so cant loop)");
+TRC(" _smp.bgn = _len now  (so cant loop)");
       }
       _loop = true;   _lBgn = _smp.bgn;
                       _lEnd = _smp.end - 1;
-DBG(" _loop=true _lBgn=`d _lEnd=`d from _smp.bgn/end-1",
-_lBgn,_lEnd);
+TRC(" _loop=true _lBgn=`d _lEnd=`d from _smp.bgn/end-1", _lBgn,_lEnd);
       if (_lBgn > _lEnd)  {
         ubyt4 t = _lEnd;
          _lEnd = _lBgn;   _lBgn = t;
-DBG(" swapped _lBgn n _lEnd");
+TRC(" swapped _lBgn n _lEnd");
       }
       if (_lBgn > _end) {
          _lBgn = _end;
-DBG(" limit _lBgn to _end");
+TRC(" limit _lBgn to _end");
       }
       if (_lEnd > _end) {
          _lEnd = _end;
-DBG(" limit _lEnd to _end");
+TRC(" limit _lEnd to _end");
       }
       if ((_smp.num == 0) || ((_lBgn == _end) && (_lEnd == _end))) {
          _loop = false;   _lBgn = _lEnd = _len;
-DBG(" loop=false!");
+TRC(" loop=false!");
       }
    }
    else {
-DBG("   no smpl so  _loop = false _lBgn=_lEnd=_len=`d _key=4c _cnt=0", _len);
+TRC(" no smpl so  _loop = false _lBgn=_lEnd=_len=`d _key=4c _cnt=0", _len);
       _loop = false;   _lBgn = _lEnd = _len;
       _key = MKey (CC("4c"));   _cnt = 0;
-DBG("   _smp 0d cept per,key,_lBgn=_lEnd=_len=`d", _len);
+TRC(" _smp 0d cept per,key,_lBgn=_lEnd=_len=`d", _len);
       MemSet (& _smp, 0, sizeof (_smp));
       _smp.per = 1000000000 / _frq;   _smp.key = _key;
       _smp.bgn = _smp.end = _len;
    }
-TRC("   fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
+TRC(" fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
 FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
    return nullptr;
 }

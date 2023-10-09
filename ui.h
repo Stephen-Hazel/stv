@@ -235,7 +235,6 @@ public:
    void   Clr ()             {_w->clear ();}
    char  *Get ()             {return UnQS (_w->toPlainText ());}
    void   Add (char *txt)    {_w->insertPlainText (txt);}
-private:
    QTextEdit *_w;
 };
 

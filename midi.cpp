@@ -105,7 +105,7 @@ void MidiDevLst::Load ()
   snd_ctl_t          *ctl;
   snd_rawmidi_info_t *info;
   const char         *desc, *desc2;
-TRC("Midi Load");
+TRC("MidiDevLst::Load");
    _len = 0;
    App.Path (fn, 'd');   StrAp (fn, CC("/device/device.txt"));
    f.DoText (fn, this, DoRec);
@@ -429,14 +429,11 @@ MidiO::MidiO (char *name, char noinit)
 { int err;
    _hnd = nullptr;   StrCp (_name, name);   MemSet (_ntOn, 0, sizeof (_ntOn));
    _syn = false;
-TRC("MidiO `s", _name);
    if (! Midi.Get ('o', _name, _type, _desc, _dev))
       {DBG("MidiO no device name=`s",  _name);    return;}
-
    if (*_dev == '?')
       {DBG("MidiO device `s isn't on", _name);    return;}
-
-TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
+//TRC("MidiO::MidiO `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
    if (! StrCm (_type, CC("syn"))) {   // fake handle just so not Dead()
       _syn = true;   _hnd = (snd_rawmidi_t *)1;
       return;                          // GMInit in SynBnk ();
@@ -451,7 +448,7 @@ TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
 MidiO::~MidiO (void)
 // toss the header thing;  shush the notes left on;  reset n close
 { int err;
-TRC("~MidiO `s", (*_name) ? _name : "?");
+//TRC("MidiO::~MidiO `s", (*_name) ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
    for (ubyte c = 0;  c < 16;  c++)  Put (c, MC_CC|M_ASOFF);
    if (! StrCm (_type, CC("syn")))
@@ -654,8 +651,10 @@ void MidiI::run ()                     // poll loop runnin in sep thread
 { ubyte buf [256];
   ubyt2 re;
   int   i, ln, err, npf;
+  TStr  x;
   struct pollfd *pf;
-TRC("run bgn `s.`s", _name, _type);
+StrFmt(x, "MidiI_`s", _name);   DBGTH(x);
+TRC("run  type=`s desc=.`s", _type, _desc);
    snd_rawmidi_read (_hnd, nullptr, 0);      // trigger reading
    npf = snd_rawmidi_poll_descriptors_count (_hnd);
    pf  = (struct pollfd *)alloca (npf * sizeof (struct pollfd));
@@ -690,7 +689,7 @@ TRC("run bgn `s.`s", _name, _type);
                            (ln > 3) ? buf [3] : 0);
    }
    _run = false;
-TRC("run end `s", _name);
+TRC("run end");
 }
 
 
@@ -775,12 +774,12 @@ MidiI::MidiI (char *name, Timer *tmr)
 { int err;
    _hnd = nullptr;   _timer = tmr;   _bAdd = _bRmv = 0;   _bErr = false;
    StrCp (_name, name);
-TRC("MidiI `s", _name);
+//TRC("MidiI `s", _name);
    if (! Midi.Get ('i', _name, _type, _desc, _dev))
       {DBG("MidiI no device name=`s",  _name);   return;}
    if (*_dev == '?')
       {DBG("MidiI device `s isn't on", _name);   return;}
-TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
+//TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
    if ((err = ::snd_rawmidi_open (& _hnd, nullptr, _dev, SND_RAWMIDI_NONBLOCK)))
       {DBG("snd_rawmidi_open i `s failed: `s", _name, ::snd_strerror (err));
        _hnd = nullptr;   return;}
@@ -793,7 +792,7 @@ TRC("   `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
 
 MidiI::~MidiI (void)
 { int err;
-TRC("~MidiI `s", *_name ? _name : "?");
+//TRC("~MidiI `s", *_name ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
    if (_run)  {_run = false;   wait ();}
    if ((err = ::snd_rawmidi_close (_hnd)))

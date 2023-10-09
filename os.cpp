@@ -580,7 +580,7 @@ bool File::Copy (char *from, char *to)
 { int ff, ft;
   BStr tod;
   Path d;
-TRC("File::Copy from='`s' to='`s'", from, to);
+TRC("File::Copy\nfrom='`s'\n  to='`s'", from, to);
    StrCp (tod, to);   Fn2Path (tod);   d.Make (tod);
    if (! (ff = open (from, O_RDONLY, 0)))
       {DBG ("Copy from=`s open failed", from);             return false;}
@@ -595,7 +595,7 @@ TRC("File::Copy from='`s' to='`s'", from, to);
 bool File::ReNm (char *from, char *to)
 { TStr tod;
   Path d;
-TRC("File::ReNm from='`s' to='`s'", from, to);
+TRC("File::ReNm\nfrom='`s'\n  to='`s'", from, to);
    StrCp (tod, to);   Fn2Path (tod);   d.Make (tod);
    if (! rename (from, to))  return true;
 DBG("rename(fr=`s to=`s) error:`s\n", from, to, strerror (errno));
@@ -617,7 +617,7 @@ bool Path::Make (char *dir, ubyt2 perm)
   FDir d;
   bool got;
   ubyt2 p;
-TRC("Path::Make `s", dir);
+//TRC("Path::Make `s", dir);
    StrCp (path, dir);
 // see if the dir is there.  if not, trim it down and see if THAT's there, etc
    do {
@@ -653,7 +653,7 @@ bool Path::Kill (char *dir)
   File f;
   FDir d;
   char df;
-TRC("Path::Kill `s", dir);
+//TRC("Path::Kill `s", dir);
    if ( (*dir == '\0') || (! StrCm (dir, CC("/"))) ) {
 DBG("Path::Kill  NOT gonna kill your whole hard drive...");
       return false;
