@@ -47,10 +47,11 @@ private:
          _time, _timeErr, _timeSig,    // songtime, fractional accumulator,
                              _pSig;    // time to sig on or 0;  prv for dbg'n
    void run () override
-   { struct pollfd     pfd;
+   {  DBGTH("Timer");
+     struct pollfd     pfd;
      struct itimerspec ts;
      uint64_t          ln, x;
-TRC("Timer bgn");
+TRC("Timer::run");
       if (-1 == (pfd.fd = timerfd_create (CLOCK_MONOTONIC, 0)))
          {DBG("timerfd_create failed `s",   strerror (errno));   _run = false;}
       pfd.events = POLLIN;
@@ -76,7 +77,7 @@ TRC("Timer bgn");
       }
       if (pfd.fd != -1)  close (pfd.fd);
       _run = false;
-TRC("Timer end");
+TRC("Timer::run end");
    }
 
 public:
@@ -103,9 +104,9 @@ public:
       _pause = pause;
    }
 
-   void SetTempo (ubyt2 tempo)  {
-      _tempo = tempo;
-TRC("Timer.SetTempo `d", tempo);
+   void SetTempo (ubyt2 tempo)
+   {  _tempo = tempo;
+TRC("Timer::SetTempo `d", tempo);
    }
 
    void Set (ubyt4 time)

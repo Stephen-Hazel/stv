@@ -768,6 +768,7 @@ void Syn::DumpSnd ()
 
 void Syn::WipeSnd ()
 { ubyte t;
+   if (! _run)  return;
 TRC("   Syn::WipeSnd");
    _lok.Grab ();
    AllCh (9, 'e');   for (t = 0;  t <= _chnX;  t++)  AllCh (t, 'e');
@@ -785,6 +786,7 @@ void Syn::LoadSnd (TStr *snd, ubyte maxch)
 { ubyte s;
   TStr  st;
   ubyt4 sz;
+   if (! _run)  return;
 TRC("Syn::LoadSnd maxch=`d", maxch);
    WipeSnd ();
    _chnX = maxch;
@@ -952,6 +954,8 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // rest should have hi bit set in chn, drum note in LS7bits
 { char re = '\0';
   TStr s;
+   if (! _run)  return;
+
    _lok.Grab ();
 if (c & 0xFF80) {TRC("Syn::Put ch=`d `s v=`d v2=`d",
                     ch+1, MCtl2Str(s,c,'r'), v, v2);}
@@ -1043,6 +1047,8 @@ void Syn::run ()
   ubyte per = 0;
   ubyt2 i;
   sbyt2 (*out)[2];
+DBGTH("Syn");
+DBG("Syn run sn=`s", Sn->Desc ());
    while (_run) {
       _lok.Grab ();
       out = & _out [per*Sn->_nFr];   per = per ? 0 : 1;     // double bufferin
@@ -1075,6 +1081,8 @@ TRC("Syn::Syn nFr=`d frq=`d", Sn->_nFr, Sn->_frq);
    _mixL = new real [Sn->_nFr];   _mixR = new real [Sn->_nFr];
                                   _rvrb = new real [Sn->_nFr];
    _out = new sbyt2 [2*Sn->_nFr][2];   // 2 periods of nFr frames of interleaved
+   if (Sn->Dead ())  {_run = false;   return;}
+
    _run = true;   start ();            // stereo sbyt2 (to double buffer)
 TRC("Syn::Syn end");
 }
@@ -1083,8 +1091,7 @@ TRC("Syn::Syn end");
 Syn::~Syn ()
 {
 TRC("Syn::~Syn bgn");
-   _run = false;   wait ();
-   WipeSnd ();
+   if (_run)  {_run = false;   wait ();   WipeSnd ();}
    delete [] _vc;
    delete [] _mixL;   delete [] _mixR;   delete [] _rvrb;
    delete [] _out;
