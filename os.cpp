@@ -179,6 +179,7 @@ char *StrFmtX (char *out, char const *fmti, va_list va)  // sprintf replacement
   sbyt4 i;
   bool  b;
   BStr  bs;
+  real  r;
    *out = '\0';   if ((fmt = CC(fmti)) == nullptr)  return out;
    while (*fmt) {
       if (*fmt != '`')                 // un-substitued char (HAS to be ascii)
@@ -273,21 +274,58 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
    va_start (va, fmt);   StrFmtX (so, fmt, va);   va_end (va);   return so;
 }
 
+
+char *Now (char *s)
+{ time_t t = time (nullptr);
+   strftime (s, 20, "%Y%m%d.%H%M%S.%a", localtime (& t));
+   return s;
+}
+
+char *NowMS (char *s, timeval *ptv)    // now n dur in microsec for debuggin
+{ struct timeval now;
+  TStr b1;
+  int  msec;
+   gettimeofday (& now, NULL);
+   msec = lrint (now.tv_usec / 1000.0);     // Round micro to nearest milli
+   if (msec >= 1000)  {msec -= 1000;   now.tv_sec++;}
+   strftime    (b1, sizeof (b1), "%M:%S.",  localtime (& now.tv_sec));
+/* this is for when i (rarely) want it down the microsecond with duration
+  TStr b2;
+  struct timeval dur;
+   if ((ptv == nullptr) || (ptv->tv_sec == 0))  dur.tv_usec = 0;
+   else {
+      dur.tv_sec  = now.tv_sec  - ptv->tv_sec;
+      dur.tv_usec = now.tv_usec - ptv->tv_usec;
+      if (dur.tv_usec < 0)  {dur.tv_sec--;   dur.tv_usec += 1000000;}
+      strftime (b2, sizeof (b2), "%M:%S.",  localtime (& dur.tv_sec));
+      if (StrCm (b2, CC("00:00.")))             dur.tv_usec = 0;
+   }
+   if (ptv != nullptr)  MemCp (ptv, & now, sizeof (now));
+   return StrFmt (s, "`s`06d `>6d", b1, now.tv_usec, dur.tv_usec);
+*/
+   return StrFmt (s, "`s`03d", b1, msec);
+}
+
 #include "pthread.h"
 
-static TStr DbgTh [32];
+static TStr  DbgTh [32];               // 32 threads max - name n prev time
+static timeval Ptv [32];
 
 void DbgX (char *s, char zz)
 { char *p;
   FILE *f;
   ubyte i;
   TStr  fn, buf, me;
+  timeval *ptv;
    *me = '\0';                         // does my thread have a pretty name?
+   ptv = nullptr;
    StrFmt (buf, "`08x", SC(int,pthread_self ()));
    for (i = 0;  i < BITS (DbgTh);  i++) {
       if (!DbgTh [i][0])  break;
-      if (! MemCm (DbgTh [i], buf, 8, 'x'))
-         {StrCp (me, & DbgTh [i][8]);   break;}
+      if (! MemCm (DbgTh [i], buf, 8, 'x')) {
+         ptv = & Ptv [i];
+         StrCp (me, & DbgTh [i][8]);   break;
+      }
    }
    if (*me == '\0')  StrFmt (me, "`s-`08x", App.app, SC(int,pthread_self ()));
 
@@ -297,11 +335,11 @@ void DbgX (char *s, char zz)
 
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
-      fprintf (f, "%s %s nZZ=%d\n", NowMS (buf), me, ln);
+      fprintf (f, "%s %s nZZ=%d\n", NowMS (buf, ptv), me, ln);
       while (ln--)  {fprintf (f, "%d: %s\n", r++, s);   s += (StrLn (s)+1);}
    }
    else
-      fprintf (f, "%s %s %s\n",     NowMS (buf), me, s);
+      fprintf (f, "%s %s %s\n",     NowMS (buf, ptv), me, s);
    fclose (f);
 }
 
@@ -556,26 +594,6 @@ recurse:
 
 
 //______________________________________________________________________________
-char *Now (char *s)
-{ time_t t = time (nullptr);
-   strftime (s, 20, "%Y%m%d.%H%M%S.%a", localtime (& t));
-   return s;
-}
-
-char *NowMS (char *s)                  // current time in msec for debuggin
-{ int  msec;
-  TStr buf;
-  struct timeval tv;
-  struct tm     *tm;
-   gettimeofday (& tv, NULL);
-   msec = lrint (tv.tv_usec / 1000.0);      // Round to nearest msec
-   if (msec >= 1000)  {msec -= 1000;   tv.tv_sec++;}
-   tm = localtime (& tv.tv_sec);
-   strftime (buf, sizeof (buf), "%M:%S", tm);
-   return StrFmt (s, "`s.`03d", buf, msec);
-}
-
-
 bool File::Copy (char *from, char *to)
 { int ff, ft;
   BStr tod;
