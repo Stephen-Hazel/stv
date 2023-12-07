@@ -212,30 +212,22 @@ void SndO::Dump (snd_pcm_hw_params_t *hw)
 }
 
 
-SndO::SndO (ubyt4 inFr, ubyt4 ifrq)    // frames in 1 period, frequency
+SndO::SndO (char *dev, ubyt4 inFr, ubyt4 ifrq)
+// device to write,  frames in 1 period,  and frequency
 // open up our alsa pcm device (audio out)
 // always 2 periods of nFr frames - interleaved stereo s16
 : _nFr (inFr), _frq (ifrq)             // what we ask fer.  what we get may diff
 { int   e;  // error
   sbyt4 dir  = 0;
   ubyt4 nPer = 2, nFr = inFr, frq = ifrq;
+   StrCp (_dev, dev);
    _hnd = nullptr;
-   if (*App.grp == '\0')  StrCp (App.grp, CC("pcheetah"));      // sigh
-   App.CfgGet (CC("syn"), _desc);
-TRC("SndO desc=`s", _desc);
-   Snd.Load ();   StrCp (_dev, Snd.Get (_desc));
-TRC("     dev =`s", _dev);
-   if (*_dev == '\0')
-      {DBG("SndO no device for desc=`s", _desc);   return;}
-   if (*_dev == '?')
-      {DBG("SndO device `s isn't on", _desc);   return;}
-
    if ((e = snd_pcm_open (& _hnd, _dev, SND_PCM_STREAM_PLAYBACK,
                                         SND_PCM_NONBLOCK))) {
       if (e == -EBUSY)
-DBG("snd_pcm_open `s - another app has it - `s", _desc, snd_strerror (e));
+DBG("snd_pcm_open `s - another app has it - `s", _dev, snd_strerror (e));
       else
-DBG("snd_pcm_open `s died - `s",                 _desc, snd_strerror (e));
+DBG("snd_pcm_open `s died - `s",                 _dev, snd_strerror (e));
       _hnd = nullptr;   return;
    }
 
@@ -340,7 +332,7 @@ void SndO::Put (sbyt2 *buf)
 
 SndO::~SndO (void)
 { int e;
-TRC("~SndO `s", *_desc ? _desc : "?");
+TRC("~SndO `s", *_dev ? _dev : "?");
    if (Dead ())  {DBG("...was dead");   return;}
    if ((e = snd_pcm_close (_hnd)) < 0)
 DBG("snd_pcm_close died - `s", snd_strerror (e));

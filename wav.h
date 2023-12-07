@@ -51,19 +51,25 @@ struct CHUNK {
 };
 
 #define SamplerID  'smpl'
-                                       // only key,cnt,bgn,end used !
+// this is a TRICKY struct !!  be careful.
+// only key, cnt, num, bgn, end are used !
+// key,cnt are pitch center key (midi note) and a weirdly calc'd cents.
+// num of 0 means NO loop - undefined bgn,end.  (lpBgn=lpEnd=len)
+// loop on calc'd from num!=0 and bgn,end being < sample length
+// .per should not be used.  use FMT.nSamplePerSec.  but i set it.
+// loop is always 0 for me - loop forward (pingpong=1,backward=2 are dumb)
+// remaining set to 0
 struct WAVESMPL {                      // i'm keepin chunkID,chunkSize outa it
    ubyt4 manuf, prod,                  // junk - 0
-         per,                          // dumb - just another nSamplePerSec
-         key, cnt,                     // sampled key, cent offset (but weird)
-                                       //           ^      ^ aaactually used
+         per,                          // junk - set from fmt.nSaamplePerSec
+         key, cnt,                     // sampled midi key, cent offset - USED
          sfmt, sofs,                   // smpte junk - 0
-         num,                          // num loops i guess? - always 1 fer me
-         dat,                          // dunno? - 0
-// this is actually Loops[] but always 1 fer me
-         cue, loop,                    // loopid (junk), looping or not?
-         bgn, end,                     // loopBgn, loopEnd - aaactually used
-         frc, times;                   // fraction??  playcount?? - 0
+         num,                          // num loops - always 1 fer me
+         dat,                          // junk - 0
+// this is actually Loops[] struct but always 1 of em fer me
+         cue, loop,                    // junk - 0, looptype always 0=forward
+         bgn, end,                     // loopBgn, loopEnd - USED
+         frc, times;                   // fraction? playcount? junk - 0
 };
 /*
 struct SampleLoop {                    // ...nawww gonna just use WAVESMPL
@@ -83,15 +89,19 @@ struct SamplerChunk {                  // (see above)
 */
 
 // Load populates
-//    _name         path/fn
-//    _frq          samples/sec from 'fmt ' chunk
-//    _mem, _len    samples ('data' chunk) _len is in samples !
-//    _bits, _byts  bits/sample bytes/sample
+//    _name                path/fn
+//    _frq                 samples/sec from 'fmt ' chunk
+//    _mem, _len           samples ('data' chunk) _len is in samples !
+//    _bits, _byts         bits/sample bytes/sample
+//    _mono, _real, _loop  mono/stereo, real/integer, looping/not
+//    _lBgn, _lEnd         loop bgn/end IF _loop else set to _len
+//    _key, _cnt           midi key, cents of pitch center
 //
-// then update _frq,   _key, _cnt,
-//      _bgn, _end, _loop, _lBgn, _lEnd
+// then update:
+//    _frq,   _bgn,_end,   _loop,_lBgn,_lEnd,   _key,_cnt,
+// BUTT DO NOT update:
+//    _mem,_len,_bits,_byts,_mono,_real can't be updated !!
 // ta Save which will ALWAYS write a 'smpl' chunk
-//    BUTT  _mono,_real,_bits,_byts,_len can't be updated !!
 
 class Wav {
 public:

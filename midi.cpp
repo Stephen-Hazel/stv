@@ -539,7 +539,7 @@ void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 {
 //DBG("MidiO::Put on `s.`s ch=`d c=`d v=`d v2=`d", _name, _type, ch, c, v, v2);
 #ifdef USE_SYN
-   if (_syn)  return Sy->Put (ch, c, v, v2);
+   if (_syn)  return Sy.Put (ch, c, v, v2);
 #endif
 
   ubyte mev [4], p, ln = 3;
@@ -654,7 +654,7 @@ void MidiI::run ()                     // poll loop runnin in sep thread
   TStr  x;
   struct pollfd *pf;
 StrFmt(x, "MidiI_`s", _name);   DBGTH(x);
-TRC("run  type=`s desc=.`s", _type, _desc);
+TRC("run  type=`s desc=`s", _type, _desc);
    snd_rawmidi_read (_hnd, nullptr, 0);      // trigger reading
    npf = snd_rawmidi_poll_descriptors_count (_hnd);
    pf  = (struct pollfd *)alloca (npf * sizeof (struct pollfd));

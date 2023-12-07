@@ -22,13 +22,13 @@ void Wav::Wipe ()  // wipe all data
 
 char *Wav::Load (char *fn)
 { ubyte *p, *pb, *pe;
-  ubyt4  l;
+  ubyt4  l, t;
   CHUNK  chnk;
   ID     id;
-  TStr   ts;
+  TStr   ts, x;
   bool   got [3];
   static BStr out;
-TRC("Wav::Load `s", fn);
+//TRC("Wav::Load `s", fn);
    Wipe ();
    *out = '\0';
    StrCp (_name, fn);   MemSet (got, 0, sizeof (got));
@@ -90,54 +90,49 @@ TRC("Wav::Load `s", fn);
    _mono = (_fmt.Format.nChannels == 1) ? true : false;
    _bits =  _fmt.Format.wBitsPerSample;
    _byts =  _fmt.Format.nBlockAlign / (_mono ? 1 : 2);
-   _len /=  _byts*(_mono?1:2);
+   _len /=  _byts                   * (_mono ? 1 : 2);
    _bgn = 0;   _end = _len - 1;
-TRC(" _frq=`d _mono=`b _bits=`d _byts=`d _len=`d _bgn=`d _end=`d",
-_frq,_mono,_bits,_byts,_len,_bgn,_end);
-   if (got [2]) {
-      _key = (ubyte)_smp.key;
-      _cnt = (ubyte)((ubyt4)_smp.cnt/((ubyt4)0x80000000/50));
-TStr x;
-TRC(" _key=`s _cnt=`d (_smp.cnt=`d)", MKey2Str(x,_key), _cnt, _smp.cnt);
-   // smpl is ILLDEFINED, check stuph !
-      if ((_smp.bgn >= _len) || (_smp.end > _len) || (_smp.end <= _smp.bgn)) {
-TRC(" _len=`d _smp.lpBgn=`d _smp.lpEnd=`d  ...weird so",
-_len,_smp.bgn,_smp.end);
-         _smp.bgn = _len;
-TRC(" _smp.bgn = _len now  (so cant loop)");
-      }
-      _loop = true;   _lBgn = _smp.bgn;
-                      _lEnd = _smp.end - 1;
-TRC(" _loop=true _lBgn=`d _lEnd=`d from _smp.bgn/end-1", _lBgn,_lEnd);
-      if (_lBgn > _lEnd)  {
-        ubyt4 t = _lEnd;
-         _lEnd = _lBgn;   _lBgn = t;
-TRC(" swapped _lBgn n _lEnd");
-      }
-      if (_lBgn > _end) {
-         _lBgn = _end;
-TRC(" limit _lBgn to _end");
-      }
-      if (_lEnd > _end) {
-         _lEnd = _end;
-TRC(" limit _lEnd to _end");
-      }
-      if ((_smp.num == 0) || ((_lBgn == _end) && (_lEnd == _end))) {
-         _loop = false;   _lBgn = _lEnd = _len;
-TRC(" loop=false!");
-      }
-   }
-   else {
-TRC(" no smpl so  _loop = false _lBgn=_lEnd=_len=`d _key=4c _cnt=0", _len);
-      _loop = false;   _lBgn = _lEnd = _len;
-      _key = MKey (CC("4c"));   _cnt = 0;
-TRC(" _smp 0d cept per,key,_lBgn=_lEnd=_len=`d", _len);
+//TRC(" frq=`d bits=`d byts=`d real=`b mono=`b len=`d bgn=`d end=`d",
+//_frq,_bits,_byts,_real,_mono,_len,_bgn,_end);
+   if (! got [2]) {                    // no 'smpl' chunk so init one
+                   TRC(" no smpl so clear _smp cept key=4c,lBgn=lEnd=len");
       MemSet (& _smp, 0, sizeof (_smp));
-      _smp.per = 1000000000 / _frq;   _smp.key = _key;
-      _smp.bgn = _smp.end = _len;
+      _smp.per = 1000000000 / _frq;   _smp.key = MKey (CC("4c"));
+                                      _smp.bgn = _smp.end = _len;
+      _loop = false;   _lBgn = _lEnd = _len;
+      _key = (ubyte)_smp.key;   _cnt = 0;
    }
-TRC(" fn=`s frq=`d bits=`d mono=`b len=`d lBgn=`d lEnd=`d key=`s cnt=`d",
-FnName(fn,_name),_frq,_bits,_mono,_len,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
+   if (got [2]) {                      // smpl is ILLDEFINED, check stuph !
+//TRC(" got smpl - per=`d key=`d cnt=`d num=`d loop=`d bgn=`d end=`d",
+//_smp.per,_smp.key,_smp.cnt,_smp.num,_smp.loop,_smp.bgn,_smp.end);
+      _key  = (ubyte)_smp.key;
+      _cnt  = (ubyte)((ubyt4)_smp.cnt/((ubyt4)0x80000000/50));
+      _loop = _smp.num ? true : false;
+      _lBgn = _smp.bgn;   _lEnd = _smp.end;
+//TRC(" key=`s cnt=`d loop=`b lBgn=`d lEnd=`d",
+//MKey2Str(x,_key), _cnt, _loop, _lBgn, _lEnd);
+      if      (! _loop)        {_lBgn = _lEnd = _len;
+//TRC("   no loop so lBgn=lEnd=len");
+      }
+      else if (_lBgn > _lEnd)  {t = _lEnd;   _lEnd = _lBgn;   _lBgn = t;
+//TRC("   swapped lBgn n lEnd");
+      }
+      if (_loop) {
+         if (_lEnd == _len) {          // stab at solving old sample editors
+//TRC("   lBgn--,lEnd-- cuz lEnd==len");
+            _lBgn--;   _lEnd--;        // setting loop bgn starting at 1 :/
+         }
+         if ((_lBgn >= _len) || (_lEnd >= _len)) {
+            _loop = false;   _lBgn = _lEnd = _len;
+//TRC("   lBgn or lEnd >= len so loop off");
+         }
+      }
+      _smp.num = _loop?1:0;   _smp.bgn = _lBgn;   _smp.end = _lEnd;
+   }
+TRC(" Wav::Load fn=`s\nfrq=`d bits=`d byts=`d real=`b mono=`b "
+    "len=`d bgn=`d end=`d loop=`b lBgn=`d lEnd=`d key=`s cnt=`d",
+FnName(fn,_name),_frq,_bits,_byts,_real,_mono,
+_len,_bgn,_end,_loop,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
    return nullptr;
 }
 
@@ -155,10 +150,10 @@ DBG("Wav::Save '`s'", fni);
    if (_fmt.Format.nChannels > 2)
       {DBG("Wav::Save can't do beyond stereo");   return;}
 TStr x;
-DBG(" _len=`d _mono=`b _real=`b _loop=`b _frq=`d _byts=`d _bits=`d "
-"_key=`s _cnt=`d _bgn=`d _end=`d _lBgn=`d _lEnd=`d",
-_len,_mono,_real,_loop,_frq,_byts,_bits,MKey2Str(x,_key), _cnt,
-_bgn,_end,_lBgn,_lEnd);
+DBG(" frq=`d bits=`d byts=`d real=`b mono=`b len=`d bgn=`d end=`d "
+"loop=`b lBgn=`d lEnd=`d key=`s cnt=`d",
+_frq,_bits,_byts,_real,_mono,_len,_bgn,_end,
+_loop,_lBgn,_lEnd,MKey2Str(x,_key),_cnt);
    StrCp (fn, fni);
    _fmt.Format.nSamplesPerSec = _frq;  // ONLY _fmt change is frq !
 
@@ -166,12 +161,10 @@ _bgn,_end,_lBgn,_lEnd);
    _smp.per = 1000000000 / _frq;
    _smp.key = _key ? _key : MKey (CC("4c"));
    _smp.cnt = (sbyt4)(_cnt * ((ubyt4)0x80000000/50));
-   _smp.num = 1;
-
    if (! _loop)  {_smp.num = 0;   _lBgn = _lEnd = _end-_bgn+1;}
    else           _smp.num = 1;
-   _smp.bgn = (_lBgn     - _bgn);
-   _smp.end = (_lEnd + 1 - _bgn);
+   _smp.bgn = _lBgn - _bgn;
+   _smp.end = _lEnd - _bgn;
 DBG(" smp manuf=`d prod=`d per=`d key=`d cnt=`d "
     "sfmt=`d sofs=`d num=`d dat=`d cue=`d "
     "loop=`d bgn=`d end=`d frc=`d times=`d",
@@ -182,7 +175,7 @@ _smp.loop,_smp.bgn,_smp.end,_smp.frc,_smp.times);
 // calc lengths n dump into a file
    ln4 = sizeof (WAVESMPL);
    ln3 = _end - _bgn + 1;  if (ln3 == 0) {
-DBG("got _end-_bgn+1=0 :(");
+DBG("got end-bgn+1=0 :(");
       return;
    }
    if (! _mono) ln3 <<= 1;   ln3 *= _byts;
