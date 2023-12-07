@@ -30,6 +30,7 @@
 #include <QHeaderView>
 #include <QComboBox>
 #include <QCheckBox>
+#include <QSlider>
 #include <QStyledItemDelegate>
 #include <QGraphicsView>
 #include <QEvent>
@@ -262,6 +263,18 @@ public:
    void  SetVis (ubyt2 n)  {_w->setMaxVisibleItems (n);}
 private:
    QComboBox *_w;
+};
+
+
+class CtlSldr {
+public:
+   CtlSldr (QSlider *w, sbyt4 min = 0, sbyt4 max = 0)
+   {  _w = w;   if (min) _w->setMinimum (min);
+                if (max) _w->setMaximum (max);  }
+   sbyt4 Get ()     {return _w->value ();}
+   void  Set (sbyt4 i)  {_w->setValue (i);}
+private:
+   QSlider *_w;
 };
 
 
