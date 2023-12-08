@@ -873,16 +873,16 @@ void Syn::Dump ()  // sounds, samples, channels, voices
   TStr  ts;
   Sample *sm;                          // first melo, then drum sounds...
    for (s = 0;  s < _nSnd;  s++) {
-      DBG("Snd=`d/`d:", s, _nSnd);       _snd [s]->Dump ();
+      TRC("Snd=`d/`d:", s, _nSnd);       _snd [s]->Dump ();
       for (i = 0, ns = _snd [s]->_nSmp,
                   sm = _snd [s]->_smp;  i < ns;  i++, sm++)
-         {DBG("   Smp=`d/`d:", i, ns);   sm->Dump (false);}
+         {TRC("   Smp=`d/`d:", i, ns);   sm->Dump (false);}
    }
    for (s = 0; s < 128; s++)  if (_drm [s]) {
-      DBG("Drm=`s:", MDrm2Str (ts,s));   _drm [s]->Dump ();
+      TRC("Drm=`s:", MDrm2Str (ts,s));   _drm [s]->Dump ();
       for (i = 0, ns = _drm [s]->_nSmp,
                   sm = _drm [s]->_smp;  i < ns;  i++, sm++)
-         {DBG("   Smp=`d/`d:", i, ns);   sm->Dump (true);}
+         {TRC("   Smp=`d/`d:", i, ns);   sm->Dump (true);}
    }
    for (ubyte c = 0;  c <= _maxChn;  c++)  _chn [c].Dump ();
    for (ubyt2 v = 0;  v <  _nVc;     v++)  _vc  [v].Dump ();
