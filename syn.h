@@ -50,7 +50,7 @@ struct Channel {
 
    void Dump ()
    {
-DBG("   snd=`d hold=`d vol=`d pan=`d "
+TRC("   snd=`d hold=`d vol=`d pan=`d "
        "vCut=`d cut=`d res=`d rvrb=`d pbnd=`d pbnr=`d",
 snd, hold, vol, pan, vCut, cut, res, rvrb, pbnd, pbnr);
    }
