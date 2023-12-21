@@ -211,6 +211,7 @@ CtlTBar::CtlTBar (QMainWindow *w, const char *tip, const char *nm)
    if (! StrCm (CC(nm), CC("")))
         {tb = w->addToolBar ("toolbar");   tb->setMovable (false);}
    else {tb = w->addToolBar (nm);          tb->setMovable (true);}
+   _w = tb;
    for (p = 0, t = CC(tip);  *t;  p++, t = & t [StrLn (t)+1]) {
       if (*t == '|')  tb->addSeparator ();
       else {
@@ -241,6 +242,7 @@ CtlTBar::CtlTBar (QDialog *d, const char *tip)
   char *t;
   TStr  s, ts, tp, is, ks;
   QToolBar *tb = new QToolBar ();      // yep, setMenuBar -IZ- how ya do it :/
+   _w = tb;
    d->layout ()->setMenuBar (tb);   tb->setMovable (false);
    for (p = 0, t = CC(tip);  *t;  p++, t = & t [StrLn (t)+1]) {
       if (*t == '|')  tb->addSeparator ();

@@ -18,6 +18,7 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QToolBar>
+#include <QToolButton>
 #include <QLabel>
 #include <QPushButton>
 #include <QLineEdit>
@@ -150,12 +151,18 @@ class CtlTBar {
 public:
    CtlTBar (QMainWindow *w, const char *tipIcoKey, const char *nm = "");
    CtlTBar (QDialog *d,     const char *tipIcoKey);
-   QAction *Act (ubyte p)  {if (p >= _na)  {DBG("BAD toolbar button :(");
-                                            return nullptr;}
-                            return _ac [p];}
+   QAction *Act (ubyte p)
+   {  if (p >= _na)  {DBG("BAD toolbar button=`d :(", p);   return nullptr;}
+      return _ac [p];
+   }
+   QToolButton *Btn (ubyte p)
+   { QAction *a = Act (p);
+      return a ? dynamic_cast<QToolButton *>(_w->widgetForAction (a)) : nullptr;
+   }
 private:
-   ubyte    _na;
-   QAction *_ac [32];
+   QToolBar *_w;
+   ubyte     _na;
+   QAction  *_ac [32];
 };
 
 
