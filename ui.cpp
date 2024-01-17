@@ -136,7 +136,7 @@ void QtEr::WinSave (QSplitter *spl)
      TStr  t;
       for (i = 0, *t = '\0';  i < p.count ();  i++)
          StrFmt (& t [StrLn (t)], "`s`d", i ? " ":"", p [i]);
-      s.setValue ("spl", t);
+      s.setValue ("spl", QString (t));
    }
    s.setValue ("size", _w->size ());
    s.setValue ("pos",  _w->pos ());
@@ -172,7 +172,7 @@ void QtEr::DlgSave (QDialog *d, QString nm, QSplitter *spl)
      TStr  t;
       for (i = 0, *t = '\0';  i < p.count ();  i++)
          StrFmt (& t [StrLn (t)], "`s`d", i ? " ":"", p [i]);
-      s.setValue ("spl", t);
+      s.setValue ("spl", QString (t));
    }
 }
 
