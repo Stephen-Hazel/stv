@@ -767,7 +767,6 @@ public:
          Run (CC("initme"));
          trc = false;
       }
-      Path (s, 'c');   StrAp (s, CC("/dbg.txt"));   fdbg.Open (s, "w");
    }
 
    char *Path (char *s, char typ = 'a')     // [a]ppPath, [c]fgPath
@@ -838,7 +837,6 @@ public:
    }
 
    bool trc;
-   File fdbg;
    TStr grp, app, ttl;
 };
 
@@ -849,7 +847,6 @@ extern AppBase App;
 inline void Die (char const *s)  {DBG("DIED cuz `s", s);   exit (99);}
 
 inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
-// come on linux, where's my InternetOpenUrl ??  don't want no curl deps :(
 { ubyt4 i = 0;
   TStr  fn, c;
   int   rc;
@@ -857,7 +854,9 @@ inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
    do StrFmt (fn, "/tmp/wget.`d", ++i);   while (f.Size (fn));  // find tmp fn
    if ((rc = system (StrFmt (c, "wget -q -O `p `p", fn, url)))) // wget it
          {DBG("system `s died rc=`d", c, rc);   i = 0;}
-   else  {i = f.Load (fn, buf, siz);   f.Kill (fn);}            // load n kill
+   else  {i = f.Load (fn, buf, siz);
+DBG("WGet `p size=`d got=`d", url, siz, i);
+          f.Kill (fn);}            // load n kill
    buf [i] = '\0';                     // term string
    return i;
 }
@@ -867,6 +866,7 @@ inline void Zip (char *dir, char xc = 'x')
   int  rc;
    StrCp (pdir, dir);   Fn2Path (pdir);
    if (xc == 'x') {                    // x tract .tar.gz to a dir (n kill it)
+     File f;
       if ((rc = system (StrFmt (cmd, "cd `p && tar xzf `p.tar.gz", pdir, dir))))
 DBG("system `s died rc=`d", cmd, rc);
       StrFmt (cmd, "rm `p.tar.gz", dir);
