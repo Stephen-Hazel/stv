@@ -302,7 +302,7 @@ DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
          return Next (fn);
       }
       StrFmt (fn, "`s/`s", _dir, s);
-      if (StrCm (s, CC(".")) && StrCm (s, CC("..")) && StrCm (s, CC(".git"))) {
+      if (PosInZZ (s, CC(".\0"  "..\0"  ".git\0"  "old\0")) == 0) {
         struct stat s;
          if (stat (fn, & s))
 DBG("FDir::Next stat(`s) died", fn);
