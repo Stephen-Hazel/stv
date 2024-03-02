@@ -20,17 +20,17 @@
 #include <sys/sendfile.h>
 
 
-#define MAX_PATH     (240)             // 4k is just too big :(
+#define MAX_PATH     (240)                  // 4k is just too big :(
 #define BITS(a)      (sizeof(a)/sizeof(a[0]))
 #define RECOFS(s,f)  ((ubyte *)(& s.f) - (ubyte *)(& s))
-#define SC(t,x)      (static_cast<t>(x))         // too looong !
+#define SC(t,x)      (static_cast<t>(x))    // modern c++ iz duuumb
 #define RC(t,x)      (reinterpret_cast<t>(x))
 #define CC(s)        (const_cast<char *>(s))
 
 
 // jist mah types_______________________________________________________________
 typedef char           sbyte;          // our usual ints by signed/un, #bytes
-typedef unsigned char  ubyte;          // ...my apologies      why bits c++ ??
+typedef unsigned char  ubyte;          // come on c++ - why bits ??
 typedef   int16_t      sbyt2;
 typedef u_int16_t      ubyt2;
 typedef   int32_t      sbyt4;
@@ -758,44 +758,49 @@ private:
 //______________________________________________________________________________
 struct AppBase {
 public:
-   void Init (char *g, char *a, char *t)
-   {  StrCp (grp, g);   StrCp (app, a);   StrCp (ttl, t);
+   void Init (const char *t)
+   {  StrCp (ttl, CC(t));
      TStr s;   CfgGet (CC("trc"), s);
       if (*s)  trc = (*s == 'y') ? true : false;
       else {                           // uh oh !  kick initme !
-         CfgPut (CC("trc"), CC("n"));  // skip this?  initme infinite loop :)
+         CfgPut (CC("trc"), CC("y"));  // skip this?  initme infinite loop :)
          Run (CC("initme"));
-         trc = false;
+         trc = true;
       }
    }
 
-   char *Path (char *s, char typ = 'a')     // [a]ppPath, [c]fgPath
-   { char *p;                               // else read [c]/s.cfg
-     TStr  t;
-      if (typ == 'a')  return StrFmt (s, "/opt/app/`s", grp);
-                                            // /opt/app/pcheetah
-      if (! (p = getenv ("HOME")))
-         {DBG("getenv HOME failed");   *s = '\0';   return s;}
-      StrFmt (s, "`s/.config/`s", p, grp);  // /home/sh/.config/pcheetah
-      if (typ != 'c')  {t [0] = typ;   t [1] = '\0';   CfgGet (t, s);}
-   // typ of [d]ata - get /home/sh/.config/pcheetah/d.cfg  (set in initme)
-      return s;
+   char *Path (char *s, char typ = 'a')     
+   // [a]pp, [c]fg, [h]ome, else read [c]/s.cfg  (usually d.cfg)
+   // d.cfg will usually give /home/sh/pianocheetah or wherever initme picks
+   { char *p;                     
+     TStr  t;                    
+      if (typ == 'a')  return StrCp (s, CC("/app/bin"));
+      if (typ == 'c')  return StrCp (s, CC("/var/config"));  
+      if (typ == 'h') {
+         if (! (p = getenv ("HOME")))          
+            {DBG("getenv HOME failed");   *s = '\0';   return s;}
+         StrCp (s, p);   return s;
+      }
+      t [0] = typ;   t [1] = '\0';   
+      return CfgGet (t, s);
    }
 
-   void CfgGet (char *fn, char *s, ubyt4 max = 0)
+   char *CfgGet (char *fn, char *s, ubyt4 max = 0)
    { TStr  p, q;
      File  f;
      ubyt4 l;
       StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
       l = f.Load (p, s, max ? max : MAX_PATH);
-      if (l == 0)  DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
+      if ((l == 0) && StrCm (fn, CC("trc")))     // might be not be initme'd !
+         DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
       if (max == 0) {
          s [l] = '\0';
          if (l && (s [l-1] == '\n'))  s [--l] = '\0';      // no \n at end !!
       }
+      return s;
    }
 
-   void CfgPut (char *fn, char *s, ubyt4 len = 0)
+   void  CfgPut (char *fn, char *s, ubyt4 len = 0)
    { TStr p, q;
      File f;
       StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
@@ -837,7 +842,7 @@ public:
    }
 
    bool trc;
-   TStr grp, app, ttl;
+   TStr ttl;
 };
 
 extern AppBase App;

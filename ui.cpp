@@ -92,17 +92,17 @@ DBG("`s win font=`s `d", s, UnQS (f.family ()), f.pointSize ());
 */
 
 void QtEr::WinLoad (QSplitter *spl)
-{ QSettings s (App.grp, App.app);
+{ QSettings s ("win", App.ttl);
    if (_fixw) {
       if (s.contains ("font"))
            {QFont f (s.value ("font").toString (), s.value ("fontpt").toInt ());
                                          _a->setFont (f);   _w->setFont (f);}
-      else {QFont f ("monospace", 14);   _a->setFont (f);   _w->setFont (f);}
+      else {QFont f ("monospace", 12);   _a->setFont (f);   _w->setFont (f);}
 //QFont f = Gui.A ()->font ();         // raspi needs _w too sigh
 //DBG("WinLoad font=`s `d", UnQS (f.family ()), f.pointSize ());
    }
    if (s.contains ("size"))  _w->resize (s.value ("size").toSize ());
-   else                      _w->resize (400, 400);
+// else                      _w->resize (400, 400);
    _w->move (0, 0);   _w->show ();
 
    if (s.contains ("scr")) {
@@ -125,7 +125,7 @@ void QtEr::WinLoad (QSplitter *spl)
 }
 
 void QtEr::WinSave (QSplitter *spl)
-{ QSettings s (App.grp, App.app);
+{ QSettings s ("win", App.ttl);
    if (_fixw) {
       s.setValue ("font",   _w->font ().family ());
       s.setValue ("fontpt", _w->font ().pointSize ());
@@ -149,7 +149,7 @@ void QtEr::Init (QApplication *a, QMainWindow *w, char fixw)
 
 
 void QtEr::DlgLoad (QDialog *d, QString nm, QSplitter *spl)
-{ QSettings s (App.grp, nm);
+{ QSettings s ("win", nm);
    if (s.contains ("size"))  d->resize (s.value ("size").toSize ());
    d->move (0, 0);
    if (s.contains ("pos"))  d->move (s.value ("pos").toPoint ());
@@ -163,7 +163,7 @@ void QtEr::DlgLoad (QDialog *d, QString nm, QSplitter *spl)
 }
 
 void QtEr::DlgSave (QDialog *d, QString nm, QSplitter *spl)
-{ QSettings s (App.grp, nm);
+{ QSettings s ("win", nm);
    s.setValue ("size", d->size ());
    s.setValue ("pos",  d->pos ());
    if (spl) {

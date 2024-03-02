@@ -327,11 +327,10 @@ void DbgX (char *s, char zz)
          StrCp (me, & DbgTh [i][8]);   break;
       }
    }
-   if (*me == '\0')  StrFmt (me, "`s-`08x", App.app, SC(int,pthread_self ()));
+   if (*me == '\0')  StrCp (me, App.ttl);
 
-   if (! (p = getenv ("HOME")))  return;
-   StrCp (fn, p);   StrAp (fn, CC("/dbg.txt"));
-   f = fopen (fn, "a");
+   App.Path (fn, 'c');   StrAp (fn, CC("/dbg.txt"));   f = fopen (fn, "a");
+   if (f == NULL)  return;
 
    if (zz) {
      ubyt2 r = 0, ln = ZZLn (s);
@@ -340,6 +339,7 @@ void DbgX (char *s, char zz)
    }
    else
       fprintf (f, "%s %s %s\n",     NowMS (buf, ptv), me, s);
+
    fclose (f);
 }
 
