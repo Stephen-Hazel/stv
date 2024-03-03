@@ -327,7 +327,7 @@ void DbgX (char *s, char zz)
          StrCp (me, & DbgTh [i][8]);   break;
       }
    }
-   if (*me == '\0')  StrCp (me, App.ttl);
+   if (*me == '\0')  StrCp (me, buf);
 
    App.Path (fn, 'c');   StrAp (fn, CC("/dbg.txt"));   f = fopen (fn, "a");
    if (f == NULL)  return;

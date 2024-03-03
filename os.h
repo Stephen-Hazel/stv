@@ -758,30 +758,29 @@ private:
 //______________________________________________________________________________
 struct AppBase {
 public:
-   void Init (const char *t)
-   {  StrCp (ttl, CC(t));
-     TStr s;   CfgGet (CC("trc"), s);
+   void Init ()
+   { TStr s;   CfgGet (CC("trc"), s);
       if (*s)  trc = (*s == 'y') ? true : false;
       else {                           // uh oh !  kick initme !
-         CfgPut (CC("trc"), CC("y"));  // skip this?  initme infinite loop :)
+         CfgPut (CC("trc"), CC("n"));  // skip this?  initme infinite loop :)
          Run (CC("initme"));
          trc = true;
       }
    }
 
-   char *Path (char *s, char typ = 'a')     
+   char *Path (char *s, char typ = 'a')
    // [a]pp, [c]fg, [h]ome, else read [c]/s.cfg  (usually d.cfg)
    // d.cfg will usually give /home/sh/pianocheetah or wherever initme picks
-   { char *p;                     
-     TStr  t;                    
+   { char *p;
+     TStr  t;
       if (typ == 'a')  return StrCp (s, CC("/app/bin"));
-      if (typ == 'c')  return StrCp (s, CC("/var/config"));  
+      if (typ == 'c')  return StrCp (s, CC("/var/config"));
       if (typ == 'h') {
-         if (! (p = getenv ("HOME")))          
+         if (! (p = getenv ("HOME")))
             {DBG("getenv HOME failed");   *s = '\0';   return s;}
          StrCp (s, p);   return s;
       }
-      t [0] = typ;   t [1] = '\0';   
+      t [0] = typ;   t [1] = '\0';
       return CfgGet (t, s);
    }
 
@@ -842,7 +841,6 @@ public:
    }
 
    bool trc;
-   TStr ttl;
 };
 
 extern AppBase App;

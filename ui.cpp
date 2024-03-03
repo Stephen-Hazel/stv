@@ -92,7 +92,7 @@ DBG("`s win font=`s `d", s, UnQS (f.family ()), f.pointSize ());
 */
 
 void QtEr::WinLoad (QSplitter *spl)
-{ QSettings s ("win", App.ttl);
+{ QSettings s ("win", _ttl);
    if (_fixw) {
       if (s.contains ("font"))
            {QFont f (s.value ("font").toString (), s.value ("fontpt").toInt ());
@@ -121,11 +121,11 @@ void QtEr::WinLoad (QSplitter *spl)
       spl->setSizes (p);
    }
    _w->setWindowIcon (QIcon (":/app.ico"));
-   SetTtl (App.ttl);
+   SetTtl (_ttl);
 }
 
 void QtEr::WinSave (QSplitter *spl)
-{ QSettings s ("win", App.ttl);
+{ QSettings s ("win", _ttl);
    if (_fixw) {
       s.setValue ("font",   _w->font ().family ());
       s.setValue ("fontpt", _w->font ().pointSize ());
@@ -144,8 +144,8 @@ void QtEr::WinSave (QSplitter *spl)
 }
 
 
-void QtEr::Init (QApplication *a, QMainWindow *w, char fixw)
-{  _a = a;   _w = w;   _fixw = fixw;  _q = false;  }
+void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, char fixw)
+{  _a = a;   _w = w;   StrCp (_ttl, CC(ttl));   _fixw = fixw;  _q = false;  }
 
 
 void QtEr::DlgLoad (QDialog *d, QString nm, QSplitter *spl)
