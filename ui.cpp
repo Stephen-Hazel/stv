@@ -97,7 +97,7 @@ void QtEr::WinLoad (QSplitter *spl)
       if (s.contains ("font"))
            {QFont f (s.value ("font").toString (), s.value ("fontpt").toInt ());
                                          _a->setFont (f);   _w->setFont (f);}
-      else {QFont f ("monospace", 12);   _a->setFont (f);   _w->setFont (f);}
+      else {QFont f ("monospace", 14);   _a->setFont (f);   _w->setFont (f);}
 //QFont f = Gui.A ()->font ();         // raspi needs _w too sigh
 //DBG("WinLoad font=`s `d", UnQS (f.family ()), f.pointSize ());
    }
