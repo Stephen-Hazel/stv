@@ -27,7 +27,7 @@ key   KeyMap::Map (Qt::KeyboardModifiers mo, int ky)
 { char  c;
   ulong i;
   key   k = 0;
-DBG("mo=`d ky=`d", mo, ky);
+//DBG("mo=`d ky=`d", mo, ky);
    if ((ky >= ' ') && (ky <= '~')) {   // is it ascii?
       c = SC(char,ky);   if (! mo.testFlag (Qt::ShiftModifier))  c = CHDN (c);
       k = SC(key,c);                   // toss out shift bit (EXCEpt for spc :/)
