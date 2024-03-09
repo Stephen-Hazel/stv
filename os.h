@@ -270,7 +270,7 @@ public:
    bool Got (char *dir)
    // Open won't distinguish btw missing n empty so that's what WE do
    {  if (StrLn (dir) >= sizeof (TStr)) {
-DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
+//DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
          return false;
       }
       if ((_d = opendir (dir)) == nullptr)  return false;
@@ -279,6 +279,7 @@ DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
 
    char Open (char *fn, char *dir)
    { char df;
+//DBG("FDir::Open dir=`s", dir);
       if (! Got (dir))  return *fn = '\0';
       _dir = dir;
       _d = opendir (_dir);             // Got() made sure it won't be null
@@ -291,25 +292,37 @@ DBG("FDir::Got dir TOO LONG len=`d dir=`s", StrLn (dir), dir);
 
    char Next (char *fn)
    { TStr s;
-      if (_d == nullptr)                    return *fn = '\0';
-//DBG("FDir::Next was null:(");}
-      if ((_e = readdir (_d)) == nullptr)   return *fn = '\0';
-//DBG("FDir::Next readdir came back null");}
+     int  rc;
+      if (_d == nullptr)     {               return *fn = '\0';
+DBG("FDir::Next was null:(");}
+      if ((_e = readdir (_d)) == nullptr){   return *fn = '\0';
+DBG("FDir::Next readdir came back null");}
       StrCp (s, _e->d_name);
       if ((StrLn (_dir) + 1 + StrLn (s)) >= sizeof (TStr)) {
-DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
-1+StrLn(_dir)+StrLn(s), _dir, s);
+//DBG("FDir::Next filename TOO LONG len=`d dir=`s fn=`s",
+//1+StrLn(_dir)+StrLn(s), _dir, s);
          return Next (fn);
       }
       StrFmt (fn, "`s/`s", _dir, s);
       if (PosInZZ (s, CC(".\0"  "..\0"  ".git\0"  "old\0")) == 0) {
         struct stat s;
-         if (stat (fn, & s))
-DBG("FDir::Next stat(`s) died", fn);
-         return S_ISDIR (s.st_mode) ? 'd' : 'f';
+         if ((rc = stat (fn, & s)))
+DBG("FDir::Next stat(`s) died rc=`d", fn, rc);
+         else {
+            if (S_ISDIR (s.st_mode)) {
+               if ((rc = lstat (fn, & s)))
+DBG("FDir::Next lstat(`s) died rc=`d", fn, rc);
+               else if (! S_ISLNK (s.st_mode)) { // don't follow links!
+//DBG("FDir::Next  d=`s", fn);                   // call em files cuz whatev
+                  return 'd';
+               }
+            }
+         }
+//DBG("FDir::Next  f=`s", fn);
+         return 'f';
       }
-//DBG("FDir::Next skip '`s' in dir", s);
-      return Next (fn);                // IGNORE FIFO,SOCK,CHR,BLK,LNK !!
+//DBG("FDir::Next skip '`s'", fn);
+      return Next (fn);
    }
 
    void Shut ()
@@ -438,9 +451,13 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
    bool IsOpen ()  {return (_f >= 0) ? true : false;}
    int Hnd ()      {return  _f;}
 
-   ubyt4 Get (void *buf, ubyt4 len)  {return read  (_f, buf, len);}
-   ubyt4 Put (void *buf, ubyt4 len)  {return write (_f, buf, len);}
-   ubyt4 Put (char *buf)             {return Put       (buf, StrLn (buf));}
+   ubyt4 Get (void *buf, ubyt4 len)
+   { sbyt4 ln = read  (_f, buf, len);   return (ln<0)?0:ln;}
+
+   ubyt4 Put (void *buf, ubyt4 len)
+   { sbyt4 ln = write (_f, buf, len);   return (ln<0)?0:ln;}
+
+   ubyt4 Put (char *buf)  {return Put (buf, StrLn (buf));}
 
    sbyt4 Seek (sbyt4 amt, char *src)
    { int mode = (*src == '.') ? SEEK_CUR :
