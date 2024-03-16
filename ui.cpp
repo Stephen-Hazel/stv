@@ -34,12 +34,14 @@ void QtEr::ClipPut (char *s)
 //______________________________________________________________________________
 void QtEr::Hey (char const *msg)
 { QMessageBox m;
+   m.setWindowIcon (QIcon (":/app.ico"));
 DBG("hey `s", msg);   m.setText (msg);   m.exec ();
 }
 
 bool QtEr::YNo (char const *msg, char const *inf)
 { QMessageBox m;
 DBG("YNo `s", msg);
+   m.setWindowIcon (QIcon (":/app.ico"));
    m.setText (msg);
    if (*inf)  m.setInformativeText (inf);
    m.setStandardButtons (QMessageBox::Yes | QMessageBox::No);
