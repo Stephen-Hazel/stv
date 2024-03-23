@@ -931,8 +931,12 @@ void Syn::Init ()
 {  _run = false;                       // default to "no workie"
   TStr fn;
   File f;                              // MidiCfg picked sound descrip
-   App.Path (fn, CC("d"));   StrAp (fn, "/device/syn.txt");
-   f.Load (fn, _snDsc);
+  ulong ln;
+   App.Path (fn, 'd');   StrAp (fn, CC("/device/syn.txt"));
+   ln = f.Load (fn, _snDsc, sizeof (_snDsc)-1);
+   _snDsc [ln] = '\0';
+   while (ln && (_snDsc [ln-1] == '\n'))  _snDsc [--ln] = '\0';
+
    Snd.Load ();   StrCp (_snDev, Snd.Get (_snDsc));   // resolve to device
 DBG("Syn::Init - sound output='`s' device='`s'", _snDsc, _snDev);
    if (*_snDev == '\0')
