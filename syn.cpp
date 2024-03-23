@@ -929,7 +929,10 @@ void Syn::Init ()
 // open sound output device
 // init samples, sounds, voices, buffers, and kick our soundcard writin thread
 {  _run = false;                       // default to "no workie"
-   App.CfgGet (CC("syn"), _snDsc);     // MidiCfg picked sound descrip
+  TStr fn;
+  File f;                              // MidiCfg picked sound descrip
+   App.Path (fn, CC("d"));   StrAp (fn, "/device/syn.txt");
+   f.Load (fn, _snDsc);
    Snd.Load ();   StrCp (_snDev, Snd.Get (_snDsc));   // resolve to device
 DBG("Syn::Init - sound output='`s' device='`s'", _snDsc, _snDev);
    if (*_snDev == '\0')
