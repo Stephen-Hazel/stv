@@ -38,12 +38,11 @@ void QtEr::Hey (char const *msg)
 DBG("hey `s", msg);   m.setText (msg);   m.exec ();
 }
 
-bool QtEr::YNo (char const *msg, char const *inf)
+bool QtEr::YNo (char const *msg)
 { QMessageBox m;
 DBG("YNo `s", msg);
    m.setWindowIcon (QIcon (":/app.ico"));
    m.setText (msg);
-   if (*inf)  m.setInformativeText (inf);
    m.setStandardButtons (QMessageBox::Yes | QMessageBox::No);
    m.setDefaultButton   (QMessageBox::Yes);
    return (m.exec () == QMessageBox::Yes) ? true : false;

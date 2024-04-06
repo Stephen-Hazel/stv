@@ -71,12 +71,12 @@ public:
    void  ClipPut (char *s);
 
    void  Hey (char const *msg);        // usual dialogs
-   bool  YNo (char const *msg, char const *inf = nullptr);
+   bool  YNo (char const *msg);
    bool  AskR   (char *name, char const *titl);
    bool  AskW   (char *name, char const *titl);
    bool  AskDir (char *name, char const *titl);
                                        // fer main
-   void  Init (QApplication *ia, QMainWindow *iw, const char *ttl, 
+   void  Init (QApplication *ia, QMainWindow *iw, const char *ttl,
                char fixw = '\0');
    void  WinLoad (QSplitter *spl = nullptr);
    void  WinSave (QSplitter *spl = nullptr);
