@@ -466,9 +466,19 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
    }
 
 // open/read|write/close funcs
-   ubyt4 Load (char *name, void *buf, ubyt4 len)
+   ubyt4 Load (char *name, void *buf, ubyt4 len, char zt = '\0')
    { ubyt4 l = 0;
-      if (Open (name, "r"))  {l = Get (buf, len);   Shut ();}   return l;
+      *((char *)buf) = '\0';
+      if (Open (name, "r"))  {
+         l = Get (buf, len);
+         if ((zt != '\0') && (zt != 'z'))  DBG("File::Load BUG w zt");
+         if (zt) {
+            if (l >= len)  l = len-1;
+            ((char *)buf) [l] = '\0';
+         }
+         Shut ();
+      }
+      return l;
    }
 
    ubyt4 Save (char *name, void *buf, ubyt4 len)
