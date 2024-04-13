@@ -839,14 +839,6 @@ public:
       }
       return;
    }
-*/
-   void Run (char *cmd)
-   // run n wait for cmd
-   { BStr a, t;
-     int  rc;
-      StrFmt (a, "`s/`s", Path (t), cmd);
-      if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
-   }
 
    void Spinoff (char *cmd)
    // spin it off in another session totally in parallel
@@ -856,6 +848,19 @@ public:
               Path (t), cmd);
       if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
    }
+
+*/
+   void Run (char *cmd, bool local = true)
+   // run n wait for cmd
+   { BStr a, t;
+     int  rc;
+      if (local)  StrFmt (a, "`s/`s", Path (t), cmd);
+      else        StrCp  (a, cmd);
+      if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
+   }
+
+   void Open (char *fn)
+   { BStr c;   Run (StrFmt (c, "xdg-open `p &", fn), false);  }
 
    bool trc;
 };
