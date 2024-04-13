@@ -840,6 +840,7 @@ public:
       return;
    }
 
+*/
    void Spinoff (char *cmd)
    // spin it off in another session totally in parallel
    { BStr a, t;
@@ -849,7 +850,6 @@ public:
       if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
    }
 
-*/
    void Run (char *cmd, bool local = true)
    // run n wait for cmd
    { BStr a, t;
