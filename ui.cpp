@@ -69,9 +69,12 @@ bool QtEr::AskW (char *name, char const *titl)
 bool QtEr::AskDir (char *name, char const *titl)
 { QString dir = QDir::homePath ();
    if (*name)  dir = name;
+DBG("AskDir given=`s", UnQS (dir));
    dir = QFileDialog::getExistingDirectory (
       _w, titl, dir, QFileDialog::ShowDirsOnly |
-                     QFileDialog::DontResolveSymlinks);
+                     QFileDialog::DontResolveSymlinks |
+                     QFileDialog::DontUseNativeDialog);
+DBG("AskDir got=`s", UnQS (dir));
    if (dir.isEmpty ())  return false;
    StrCp (name, CC(UnQS (dir)));
    return true;
