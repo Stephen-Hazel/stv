@@ -277,8 +277,8 @@ public:
       Shut ();                              return true;
    }
 
-   char Open (char *fn, char *dir)
-   { char df;
+   char Open (char *fn, char *dir, char all = '\0')
+   { char df;                          // all of y means list .git, old dirs
 //DBG("FDir::Open dir=`s", dir);
       if (! Got (dir))  return *fn = '\0';
       _dir = dir;
@@ -304,7 +304,8 @@ DBG("FDir::Next readdir came back null");}
          return Next (fn);
       }
       StrFmt (fn, "`s/`s", _dir, s);
-      if (PosInZZ (s, CC(".\0"  "..\0"  ".git\0"  "old\0")) == 0) {
+      if ( (PosInZZ (s, CC(".\0"     "..\0" )) == 0) &&
+          ((PosInZZ (s, CC(".git\0"  "old\0")) == 0) || _all) ) {
         struct stat s;
          if ((rc = stat (fn, & s)))
 DBG("FDir::Next stat(`s) died rc=`d", fn, rc);
@@ -329,7 +330,7 @@ DBG("FDir::Next lstat(`s) died rc=`d", fn, rc);
    {  if (_d) {closedir (_d);   _d = nullptr;}  }
 
 private:
-   char   *_dir;
+   char   *_dir, _all;
    DIR    *_d;
    dirent *_e;
 };
