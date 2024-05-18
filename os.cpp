@@ -356,7 +356,10 @@ void DBGTH (char const *s)
    StrFmt (th, "`08x`s", SC(int,pthread_self ()), s);
    for (ubyte i = 0;  i < BITS (DbgTh);  i++) {       // already got mee ?
       if ((DbgTh [i][0]) && (! MemCm (th, DbgTh [i], 8, 'x')))  return;
-      if (!DbgTh [i][0])  {StrCp (DbgTh [i], th);   break;}
+      if (!DbgTh [i][0])  {
+         StrCp (DbgTh [i], th);   pthread_setname_np (pthread_self (), s);
+         break;
+      }
    }
 }
 

@@ -858,20 +858,17 @@ public:
      int  rc;
       StrFmt (a, "setsid `s/`s </dev/null >/dev/null 2>/dev/null &",
               Path (t), cmd);
-      if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
+      if ((rc = system (a)))  DBG("Spinoff `s died rc=`d", a, rc);
    }
 
-   void Run (char *cmd, bool local = true)
+   void Run (char *cmd)
    // run n wait for cmd
-   { BStr a, t;
-     int  rc;
-      if (local)  StrFmt (a, "`s/`s", Path (t), cmd);
-      else        StrCp  (a, cmd);
-      if ((rc = system (a)))  DBG("system `s died rc=`d", a, rc);
+   { int rc;
+      if ((rc = system (cmd)))  DBG("`s died rc=`d", cmd, rc);
    }
 
    void Open (char *fn)
-   { BStr c;   Run (StrFmt (c, "xdg-open `p &", fn), false);  }
+   { BStr c;   Run (StrFmt (c, "xdg-open `p &", fn));  }
 
    bool trc;
 };
@@ -889,7 +886,7 @@ inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
   File  f;
    do StrFmt (fn, "/tmp/wget.`d", ++i);   while (f.Size (fn));  // find tmp fn
    if ((rc = system (StrFmt (c, "wget -q -O `p `p", fn, url)))) // wget it
-         {DBG("system `s died rc=`d", c, rc);   i = 0;}
+         {DBG("`s died rc=`d", c, rc);   i = 0;}
    else  {i = f.Load (fn, buf, siz);
 DBG("WGet `p size=`d got=`d", url, siz, i);
           f.Kill (fn);}            // load n kill
@@ -904,13 +901,13 @@ inline void Zip (char *dir, char xc = 'x')
    if (xc == 'x') {                    // x tract .tar.gz to a dir (n kill it)
      File f;
       if ((rc = system (StrFmt (cmd, "cd `p && tar xzf `p.tar.gz", pdir, dir))))
-DBG("system `s died rc=`d", cmd, rc);
+DBG("`s died rc=`d", cmd, rc);
       StrFmt (cmd, "rm `p.tar.gz", dir);
    }
    else                                // c reate .tar.gz of a dir
       StrFmt (cmd, "cd `p && tar czf `p.tar.gz `p", pdir, dir, dir);
    if ((rc = system (cmd)))
-DBG("system `s died rc=`d", cmd, rc);
+DBG("`s died rc=`d", cmd, rc);
 }
 
 

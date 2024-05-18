@@ -23,8 +23,8 @@ static char *R2Str (real f, char *s)   // fer dbg - no exp, 6 decimals
 static real     Interp [MAX_INTERP][7];     // interpolation coefficients
 static void InitInterp ()                   // max_interp is 256 cuz hi byte of
 { real v, iShf;                             // phase frac picks which of the 256
-   for (ubyte i = 0; i < 7; i++)
-      for (ubyt2 j = 0; j < MAX_INTERP; j++) {
+   for (ubyte i = 0;  i < 7;  i++)
+      for (ubyt2 j = 0;  j < MAX_INTERP;  j++) {
          iShf = (real)i - (7. / 2.) + (real)j / (real)MAX_INTERP;
          if (fabs (iShf) <= 0.000001)  v = 1.;
          else {v = sin (iShf * M_PI) / (M_PI * iShf);
@@ -48,7 +48,7 @@ static void InitDither (void)               // rand real btw -.999 and +.999
       Dither [c][MAX_DITHER-1] = 0 - dp;
    }
 }
-                                       // conversion tables
+                                       // conversion tables...
 static real Cnv_ct2hz [1200];          // cents to hz
 static real     Ct2Hz (real ct)
 {  if (ct <     0.) return (real)    1.;
@@ -67,7 +67,7 @@ static real     Ct2Hz (real ct)
    return                  (real)    1.;
 }
 
-static real Cnv_pan   [127];           // 128 to pan
+static real Cnv_pan [127];             // 128 to pan
 static real     Pan (ubyte c, ubyte lr)
 {  if (c ==  0)  c =   1;              // so -64 => -63
    if (c > 127)  c = 127;              // limit at -63 .. 63
@@ -81,7 +81,8 @@ static void InitLookup ()
    for (i = 0;  i < BITS (Cnv_ct2hz);  i++)
       Cnv_ct2hz [i] = (real) pow (2., (real) i / 1200.);
    x = M_PI/2. / (BITS (Cnv_pan) - 1.);
-   for (i = 0;  i < BITS (Cnv_pan);  i++)  Cnv_pan [i] = (real) sin (i * x);
+   for (i = 0;  i < BITS (Cnv_pan);  i++)
+      Cnv_pan   [i] = (real) sin (i * x);
 //TStr ts;
 //for (i = 0; i < BITS (Cnv_pan); i++)
 //DBG("pan `d `s", i, R2Str (Cnv_pan[i],ts));
