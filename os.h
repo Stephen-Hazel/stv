@@ -278,10 +278,10 @@ public:
    }
 
    char Open (char *fn, char *dir, char all = '\0')
-   { char df;                          // all of y means list .git, old dirs
+   { char df;                          // all of y means list .git, .old dirs
 //DBG("FDir::Open dir=`s", dir);
       if (! Got (dir))  return *fn = '\0';
-      _dir = dir;
+      _dir = dir;   _all = all;
       _d = opendir (_dir);             // Got() made sure it won't be null
       df = Next (fn);
       if (! df)  {Shut ();             // sigh - make it ez on user
@@ -304,8 +304,8 @@ DBG("FDir::Next readdir came back null");}
          return Next (fn);
       }
       StrFmt (fn, "`s/`s", _dir, s);
-      if ( (PosInZZ (s, CC(".\0"     "..\0" )) == 0) &&
-          ((PosInZZ (s, CC(".git\0"  "old\0")) == 0) || _all) ) {
+      if ( (PosInZZ (s, CC(".\0"     "..\0"  )) == 0) &&
+          ((PosInZZ (s, CC(".git\0"  ".old\0")) == 0) || _all) ) {
         struct stat s;
          if ((rc = stat (fn, & s)))
 DBG("FDir::Next stat(`s) died rc=`d", fn, rc);
@@ -428,7 +428,7 @@ public:
         File tf;
          if ((mode [1] == 'b') && tf.Size (_fn)) {    // back it up?
            TStr dir, ext, fn, s;       // get dir n ext
-            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, CC("/old"));
+            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, CC("/.old"));
             FnExt (ext, _fn);
             StrFmt  (fn, "`s/`s.`s", dir, Now (s), ext);
             tf.Copy (name, fn);        // copy to back up
