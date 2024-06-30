@@ -20,6 +20,7 @@ static char *R2Str (real f, char *s)   // fer dbg - no exp, 6 decimals
 #define MAX_INTERP  (256)
 #define MAX_DITHER  (48000)
 
+/*
 static real     Interp [MAX_INTERP][7];     // interpolation coefficients
 static void InitInterp ()                   // max_interp is 256 cuz hi byte of
 { real v, iShf;                             // phase frac picks which of the 256
@@ -31,6 +32,14 @@ static void InitInterp ()                   // max_interp is 256 cuz hi byte of
                v *= 0.5 * (1. + cos (2.*M_PI * iShf / 7.));}
          Interp [MAX_INTERP-1 - j][i] = v;
       }
+}
+*/
+static real     Interp [MAX_INTERP][2];     // interpolation coefficients
+static void InitInterp ()                   // max_interp is 256 cuz hi byte of
+{  for (ubyt2 i = 0;  i < MAX_INTERP;  i++) {    // phase frac picks index
+     real x = (real)i / (real)MAX_INTERP;
+      Interp [i][0] = 1.0 - x;   Interp [i][1] = x;
+   }
 }
 
 static real     Dither [2][MAX_DITHER];     // per l/r channel
@@ -468,6 +477,7 @@ void Voice::Release ()
 void Voice::End ()  {_on = '\0';   _ch = 0xFF;   _snd = nullptr;}
 
 
+/*
 ubyt4 Voice::Interpolate (real *ip)
 // stretch sample (per note frq vs. root frq) into _intp dsp buffer
 // hi byte of phase fraction tells how to balance our 7 samples at a time
@@ -602,6 +612,67 @@ ubyt4 Voice::Interpolate (real *ip)
 
 // sub 1/2 sample from ph since we offset it and save back in _phase
    _phase = ph - (Phase)0x080000000;
+   return d;
+}
+*/
+
+ubyt4 Voice::Interpolate (real *ip)
+// just linear!  ez, fast, good enough.
+// stretch sample (per note frq vs. root frq) into _intp dsp buffer (*ip/o here)
+// hi byte of phase fraction tells how to balance our 2 samples at a time
+{ ubyt4 s,  sEnd,   d,   nfr = Sy._nFr;
+  real *in, se,    *o, *co;
+  Phase ph;
+  bool  loopin = (_smp->lpBgn < _smp->len) ? true : false;
+
+   in = & Sy._smp [_smp->pos];   o = ip;
+   ph = _phase;                  d = 0;
+
+// sEnd,se to 2nd interp pos,value
+   sEnd = (_smp->len-1) - 1;           // after this pos, 2nd sample is special
+   if (! loopin)   se = in [_smp->len-1];              // 2nd sample for interp
+   else            se = in [_smp->lpBgn];
+
+//TStr s1;
+//DBG("      Interpolate sEnd=`d ph=`d,`u se=`s",
+//sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF),R2Str(se,s1));
+   for (;;) {
+      s = PHASE_INDEX (ph);
+      while ((s <= sEnd) && (d < nfr)) {
+//DBG("         a: d=`d s=`d sEnd=`d ph=`d,`u",
+//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+         co = Interp [PHASE_FRACT (ph)];
+         o [d++] = co[0]*in[s] + co[1]*in[s+1];
+         ph += _phInc;   s = PHASE_INDEX (ph);   // bump phase
+      }
+      if (d >= nfr)  break;                      // break out if buffer filled
+
+      sEnd++;
+      while ((s <= sEnd) && (d < nfr)) {         // interp last point
+//DBG("         b: d=`d s=`d sEnd=`d ph=`d,`u",
+//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+         co = Interp [PHASE_FRACT (ph)];
+         o [d++] = co[0]*in[s] + co[1]*se;
+         ph += _phInc;   s = PHASE_INDEX (ph);
+      }
+      if (! loopin)  break;                      // done !
+
+      if (s > sEnd) {                            // back to loop start
+//DBG("         c: d=`d s=`d sEnd=`d ph=`d,`u",
+//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+         ph -= LONG2PHASE (_smp->len - _smp->lpBgn);
+         if (! _looped)  _looped = true;
+//DBG("         d: d=`d s=`d sEnd=`d ph=`d,`u",
+//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+      }
+      if (d >= nfr)  break;
+
+      sEnd--;                                    // back to 2nd to last sample
+   }
+//DBG("      sEnd=`d ph=`d,`u d=`d s=`d",
+//sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), d, s);
+
+   _phase = ph;                        // store it for next time
    return d;
 }
 
