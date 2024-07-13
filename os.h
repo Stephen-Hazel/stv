@@ -460,9 +460,9 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
 
    ubyt4 Put (char *buf)  {return Put (buf, StrLn (buf));}
 
-   sbyt4 Seek (sbyt4 amt, char *src)
-   { int mode = (*src == '.') ? SEEK_CUR :
-               ((*src == '>') ? SEEK_SET : SEEK_END);
+   sbyt4 Seek (sbyt4 amt, char dir = '>')
+   { int mode = (dir == '.') ? SEEK_CUR :
+               ((dir == '>') ? SEEK_SET : SEEK_END);
       return lseek (_f, amt, mode);
    }
 
@@ -498,6 +498,8 @@ private:
 //______________________________________________________________________________
 class MemFile {
 public:
+   MemFile ()  {_mem = nullptr;   _len = 0;}
+
    void *Open (char *fn)
    { File f;
       _mem = nullptr;   _len = 0;
@@ -505,7 +507,7 @@ public:
       _len = f.Size (fn);
       _mem = mmap (NULL, _len, PROT_READ, MAP_PRIVATE, f.Hnd (), 0);
       if (_mem == MAP_FAILED) {
-DBG("mmap `s died", fn);
+DBG("MemFile::Open mmap `s died", fn);
          f.Shut ();   _mem = nullptr;   _len = 0;
          return nullptr;
       }
@@ -519,7 +521,6 @@ DBG("mmap `s died", fn);
    void Shut ()
    {  if (_mem == nullptr)  return;
       if ((munmap (_mem, _len)))
-DBG("munmap died");
       _mem = nullptr;   _len = 0;
    }
 private:

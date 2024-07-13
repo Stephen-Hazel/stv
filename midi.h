@@ -136,10 +136,7 @@ extern MCCRow MCC [];
 extern ubyte NMCC;
 void MCCDump ();
 
-
-// convert absolute time (int 2 str and back) ignoring any timesig stuff
 char *TmS (char *s, ubyt4 t);
-ubyt4 TmI (char *s);
 
 
 //______________________________________________________________________________
