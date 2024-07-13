@@ -109,6 +109,7 @@ class Syn: public QThread {
    void run ()  override;
 
 public:
+   char    _wav;                       // to .wav?  else live to sound card
    SndO   *_sn;                        // sound device we're writin ta
    TStr    _snDsc, _snDev;
    ubyt4   _frq, _nFr;                 // sound params everybody needz
@@ -128,8 +129,10 @@ public:
    bool    _run;                       // spinnin our sample writin thread?
    ThLock  _lok;                       // lock - so i don't step on my thread
 
-   void  Init (), Quit ();
+   void  Init (char wav = '\0'),  Quit ();
    bool  Dead ()  {return ! _run;}
+   void  PutWav (sbyt2 *out, ubyt4 len);
+
    void  WipeSnd ();
    void  LoadSnd (TStr *snd, ubyte maxch);
 
@@ -137,7 +140,7 @@ public:
    void  NtOn (ubyte ch, ubyte key, ubyte vel);
 
    void  UnHold (ubyte ch);
-   void  AllCh  (ubyte ch, char todo);
+   void  AllVc  (ubyte ch, char todo);
 
    sbyt2 r2i (real r, real dth);
    void  Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0);
