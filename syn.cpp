@@ -20,20 +20,6 @@ static char *R2Str (real f, char *s)   // fer dbg - no exp, 6 decimals
 #define MAX_INTERP  (256)
 #define MAX_DITHER  (48000)
 
-/*
-static real     Interp [MAX_INTERP][7];     // interpolation coefficients
-static void InitInterp ()                   // max_interp is 256 cuz hi byte of
-{ real v, iShf;                             // phase frac picks which of the 256
-   for (ubyte i = 0;  i < 7;  i++)
-      for (ubyt2 j = 0;  j < MAX_INTERP;  j++) {
-         iShf = (real)i - (7. / 2.) + (real)j / (real)MAX_INTERP;
-         if (fabs (iShf) <= 0.000001)  v = 1.;
-         else {v = sin (iShf * M_PI) / (M_PI * iShf);
-               v *= 0.5 * (1. + cos (2.*M_PI * iShf / 7.));}
-         Interp [MAX_INTERP-1 - j][i] = v;
-      }
-}
-*/
 static real     Interp [MAX_INTERP][2];     // interpolation coefficients
 static void InitInterp ()                   // max_interp is 256 cuz hi byte of
 {  for (ubyt2 i = 0;  i < MAX_INTERP;  i++) {    // phase frac picks index
@@ -98,6 +84,17 @@ static void InitLookup ()
    InitInterp ();   InitDither ();
 }
 //______________________________________________________________________________
+void Channel::Init ()                  // channels are easy as pie at least
+{  hold = 0;   vol = 127;   pan = 64;   pbnd = MID14;   pbnr = 2;
+   res = 0;   rvrb = 6;
+}
+
+void Channel::Dump ()
+{
+TRX("   snd=`d hold=`d vol=`d pan=`d pbnd=`d pbnr=`d res=`d rvrb=`d",
+snd, hold, vol, pan, (int)MID14-pbnd, pbnr, res, rvrb);
+}
+//______________________________________________________________________________
 // sounds and their samples
 #define MAX_SAMP (88*20*2)             // max #stereo WAVs per sound
                                        // all piano keys - 20 velo grps
@@ -107,10 +104,10 @@ static Sample TSmp  [MAX_SAMP];        // sample is mostly just a data struct
                                        // (little code to it)
 void Sample::Dump (bool dr)
 { TStr s, s1, s2;
-   TRC("      key=`s-`s vel=`d-`d fn=`s",
+   TRX("      key=`s-`s vel=`d-`d fn=`s",
        dr ? MDrm2Str(s1,mnKey) : MKey2Str(s1,mnKey),
        dr ? MDrm2Str(s2,mxKey) : MKey2Str(s2,mxKey), mnVel, mxVel, fn);
-   TRC("      lr=`d lpBgn=`d len=`d pos=`d frq=`d key=`s cnt=`d",
+   TRX("      lr=`d lpBgn=`d len=`d pos=`d frq=`d key=`s cnt=`d",
        lr, lpBgn, len, pos, frq, dr ? MDrm2Str(s,key) : MKey2Str(s,key), cnt);
 }
 
@@ -126,7 +123,7 @@ static int TSmCmp (void *p1, void *p2)
 
 
 void Sound::Dump ()
-{  TRC("   `s nSmp=`d siz=`d xFrq=`b xRls=`b",
+{  TRX("   `s nSmp=`d siz=`d xFrq=`b xRls=`b",
            _nm,  _nSmp,  _siz,  _xFrq,  _xRls);  // " pa=`s", _pa);
 }
 
@@ -139,7 +136,7 @@ ubyt4 Sound::LoadDat (ubyt4 pos)
   ubyt2 i;
   ubyte nby, flo, *p, a, b;
   real  sr, max = 0.;
-TRC("Sound::LoadDat pos=`d", pos);
+TRX("Sound::LoadDat pos=`d", pos);
    for (i = 0;  i < _nSmp;  i++) {
       StrFmt (fn, "`s/device/syn/`s/`s",  App.Path (s1, 'd'), _pa, _smp [i].fn);
       w.Load (fn);                     // already know it's there n ok
@@ -149,7 +146,7 @@ TRC("Sound::LoadDat pos=`d", pos);
       _smp [i].cnt   = w._cnt;
       _smp [i].frq   = w._frq;
       nby = w._byts;   flo = w._real;
-TRC("   got smp `d/`d pos=`d", i, _nSmp, pos);
+TRX("   got smp `d/`d pos=`d", i, _nSmp, pos);
       for (p = & SC(ubyte *,w._mem) [((! w._mono) && (_smp [i].lr == 1))
                                      ? nby : 0],
            s = 0;  s < _smp [i].len;  s++) {
@@ -179,7 +176,7 @@ TStr s2;
 //                              R2Str(Sy._smp [p1] * (1.0 / max),s2));
       Sy._smp [p1] *= (1.0 / max);
    }
-TRC("Sound::LoadDat max=`s  new pos=`d",  R2Str(max,s1), pos);
+TRX("Sound::LoadDat max=`s  new pos=`d",  R2Str(max,s1), pos);
    return pos;
 }
 
@@ -220,7 +217,7 @@ Sound::Sound (char *snd, ubyte dKey)
   ubyte ky, vl, k1;
   ubyt2 ns = 0;
   char *p;
-TRC("Sound::Sound _nSnd=`d snd=`s dKey=`s",
+TRX("Sound::Sound _nSnd=`d snd=`s dKey=`s",
 Sy._nSnd, snd, (dKey==128)?"(melo)":MDrm2Str(s2,dKey));
    _siz  = 0;
    _xFrq = _xRls = false;              // default to pitching n looping
@@ -242,7 +239,7 @@ Sy._nSnd, snd, (dKey==128)?"(melo)":MDrm2Str(s2,dKey));
       if  (! MemCm (& _pa [i-5], CC("~hold"), 5))  _xRls = true;
       if  (! MemCm (& _pa [i-5], CC("~clip"), 5))  _xFrq = _xRls = true;
    }
-TRC("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
+TRX("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
 
 // go thru each .WAV of the snd dir
 // _k<note>_ in fn gives max key range
@@ -301,7 +298,7 @@ DBG("Sound::Sound end - Snd=`s nSmp=0 :(", _nm, s);
       return;
    }
    _smp = new Sample [_nSmp];   MemCp (_smp, TSmp, _nSmp*sizeof (Sample));
-TRC("   nSmp=`d", _nSmp);
+TRX("   nSmp=`d", _nSmp);
 }
 
 
@@ -420,20 +417,13 @@ _key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
 
 void Voice::ReFlt ()                   // set flt res,cut
 { Channel *c = & Sy._chn [_ch];
+  real cRng = 9500.;
+//TRX("ReFlt vel=`d cRng=`d cut=`d res=`d",
+//_vel,  (int)cRng,
+//       (int)(cRng * _vel   / 127. + 4000.),
+//       (int)(960. * c->res / 127.));
+   _flt.Cut (cRng * _vel   / 127. + 4000.);
    _flt.Res (960. * c->res / 127.);
-   if (c->vCut == 127) {               // vCut 127 means use chan's cut
-TRC("ReFlt vCut=127 so use cut=`d frq=`d",
-c->cut,   (int)(c->cut / 127. * 9500. + 4000.));
-      _flt.Cut (c->cut / 127. * 9500. + 4000.);
-   }
-   else {                              // else use velo min'd at vCut
-     real cMin = c->vCut / 127. * 9500.;
-     real cRng = 9500. - cMin;
-TRC("ReFlt vel=`d vCut=`d cMin=`d cRng=`d frq=`d",
-_vel, c->vCut, (int)cMin, (int)cRng,
-(int)(          _vel * cRng / 127. + cMin + 4000.));
-      _flt.Cut (_vel * cRng / 127. + cMin + 4000.);
-   }
 }
 
 
@@ -464,8 +454,7 @@ void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 // called by synth's NtOn per matching sample of chan's sound
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
    _phase = (Phase)0;   _looped = _rels = false;   _nPer = 0;
-   Redo ('*');
-// _flt.Init ();
+   _flt.Init ();   Redo ('*');
    _on = 'd';
 }
 
@@ -485,145 +474,6 @@ void Voice::Release ()
 
 void Voice::End ()  {_on = '\0';   _ch = 0xFF;   _snd = nullptr;}
 
-
-/*
-ubyt4 Voice::Interpolate (real *ip)
-// stretch sample (per note frq vs. root frq) into _intp dsp buffer
-// hi byte of phase fraction tells how to balance our 7 samples at a time
-{ ubyt4 d,             sBgn, sEnd, s, nfr = Sy._nFr;
-  real *o, *in, *co,   sb0, sb1, sb2,
-                       se0, se1, se2;
-  Phase ph;
-  bool  loopin = (_smp->lpBgn < _smp->len) ? true : false;
-
-   in = & Sy._smp [_smp->pos];   o = ip;
-
-// bump to next halfsample since centered on 4th sample point
-   s = d = 0;   ph = _phase + (Phase)0x080000000;
-
-// set sBgn, sEnd per our range of 7 samples
-// set sb0-2,se0-2 to the "outside samples" of the 7 in our set
-   if (! _looped)  sb0 = sb1 = sb2 = in [sBgn = 0];
-   else {                              // sBgn is 0 or lpBgn
-      sBgn = _smp->lpBgn;
-      sb0 = in [_smp->len-1];   sb1 = in [_smp->len-2];
-                                sb2 = in [_smp->len-3];
-   }
-   sEnd = (_smp->len-1) - 3;
-   if (! loopin)   se0 = se1 = se2 = in [_smp->len-1];
-   else {                              // sEnd is end-3
-      se0 = in [_smp->lpBgn];    se1 = in [_smp->lpBgn+1];
-                                 se2 = in [_smp->lpBgn+2];
-   }
-//TStr s1,s2,s3,s4,s5,s6;
-//DBG("      Interpolate sBgn=`d sEnd=`d ph=`d,`u "
-//"sb0=`s sb1=`s sb2=`s   se0=`s se1=`s se2=`s",
-//sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF),
-//R2Str(sb0,s1), R2Str(sb1,s2), R2Str(sb2,s3),
-//R2Str(se0,s4), R2Str(se1,s5), R2Str(se2,s6));
-   for (;;) {
-      s = PHASE_INDEX (ph);
-      while ((s == sBgn) && (d < nfr)) {    // 1st sample point
-//DBG("         a: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*sb2     + co[1]*sb1     + co[2]*sb0     +
-                   co[3]*in[s]   +
-                   co[4]*in[s+1] + co[5]*in[s+2] + co[6]*in[s+3];
-         ph += _phInc;   s = PHASE_INDEX (ph);     // bump phase
-      }
-      sBgn++;
-
-      while ((s == sBgn) && (d < nfr)) {    // 2nd to 1st sample point
-//DBG("         b: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*sb1     + co[1]*sb0     + co[2]*in[s-1] +
-                   co[3]*in[s]   +
-                   co[4]*in[s+1] + co[5]*in[s+2] + co[6]*in[s+3];
-         ph += _phInc;   s = PHASE_INDEX (ph);
-      }
-      sBgn++;
-
-      while ((s == sBgn) && (d < nfr)) {    // 3rd to 1st sample point
-//DBG("         c: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*sb0     + co[1]*in[s-2] + co[2]*in[s-1] +
-                   co[3]*in[s]   +
-                   co[4]*in[s+1] + co[5]*in[s+2] + co[6]*in[s+3];
-         ph += _phInc;   s = PHASE_INDEX (ph);
-      }
-      sBgn -= 2;
-
-      while ((s <= sEnd) && (d < nfr)) {    // general case
-//DBG("         d: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*in[s-3] + co[1]*in[s-2] + co[2]*in[s-1] +
-                   co[3]*in[s]   +
-                   co[4]*in[s+1] + co[5]*in[s+2] + co[6]*in[s+3];
-         ph += _phInc;   s = PHASE_INDEX (ph);
-      }
-      if (d >= nfr)  break;            // break out if buffer filled
-
-      sEnd++;
-      while ((s <= sEnd) && (d < nfr)) {    // 3rd to last point
-//DBG("         e: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*in[s-3] + co[1]*in[s-2] + co[2]*in[s-1] +
-                   co[3]*in[s]   +
-                   co[4]*in[s+1] + co[5]*in[s+2] + co[6]*se0;
-         ph += _phInc;   s = PHASE_INDEX (ph);
-      }
-
-      sEnd++;
-      while ((s <= sEnd) && (d < nfr)) {    // 2nd to last point
-//DBG("         f: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*in[s-3] + co[1]*in[s-2] + co[2]*in[s-1] +
-                   co[3]*in[s]   +
-                   co[4]*in[s+1] + co[5]*se0     + co[6]*se1;
-         ph += _phInc;   s = PHASE_INDEX (ph);
-      }
-
-      sEnd++;
-      while ((s <= sEnd) && (d < nfr)) {    // last point
-//DBG("         g: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         co = Interp [PHASE_FRACT (ph)];
-         o [d++] = co[0]*in[s-3] + co[1]*in[s-2] + co[2]*in[s-1] +
-                   co[3]*in[s]   +
-                   co[4]*se0     + co[5]*se1     + co[6]*se2;
-         ph += _phInc;   s = PHASE_INDEX (ph);
-      }
-      if (! loopin)  break;                 // done !
-
-      if (s > sEnd) {
-//DBG("         h: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-         ph -= LONG2PHASE (_smp->len - _smp->lpBgn);
-         if (! _looped) {
-            _looped = true;          sb0 = in [_smp->len-1];
-            sBgn    = _smp->lpBgn;   sb1 = in [_smp->len-2];
-                                     sb2 = in [_smp->len-3];
-         }
-//DBG("         i: d=`d s=`d sBgn=`d sEnd=`d ph=`d,`u",
-//d, s, sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
-      }
-      if (d >= nfr)  break;
-      sEnd -= 3;
-   }
-//DBG("      sBgn=`d sEnd=`d ph=`d,`u d=`d s=`d",
-//sBgn, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), d, s);
-
-// sub 1/2 sample from ph since we offset it and save back in _phase
-   _phase = ph - (Phase)0x080000000;
-   return d;
-}
-*/
 
 ubyt4 Voice::Interpolate (real *ip)
 // just linear!  ez, fast, good enough.
@@ -648,8 +498,8 @@ ubyt4 Voice::Interpolate (real *ip)
    for (;;) {
       s = PHASE_INDEX (ph);
       while ((s <= sEnd) && (d < nfr)) {
-//DBG("         a: d=`d s=`d sEnd=`d ph=`d,`u",
-//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+//DBG("         a: d=`d s=`d ph=`d,`u sEnd=`d",
+//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
          co = Interp [PHASE_FRACT (ph)];
          o [d++] = co[0]*in[s] + co[1]*in[s+1];
          ph += _phInc;   s = PHASE_INDEX (ph);   // bump phase
@@ -657,9 +507,10 @@ ubyt4 Voice::Interpolate (real *ip)
       if (d >= nfr)  break;                      // break out if buffer filled
 
       sEnd++;
+
       while ((s <= sEnd) && (d < nfr)) {         // interp last point
-//DBG("         b: d=`d s=`d sEnd=`d ph=`d,`u",
-//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+//DBG("         b: d=`d s=`d ph=`d,`u sEnd=`d",
+//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
          co = Interp [PHASE_FRACT (ph)];
          o [d++] = co[0]*in[s] + co[1]*se;
          ph += _phInc;   s = PHASE_INDEX (ph);
@@ -667,12 +518,12 @@ ubyt4 Voice::Interpolate (real *ip)
       if (! loopin)  break;                      // done !
 
       if (s > sEnd) {                            // back to loop start
-//DBG("         c: d=`d s=`d sEnd=`d ph=`d,`u",
-//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+//DBG("         c: d=`d s=`d ph=`d,`u sEnd=`d",
+//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
          ph -= LONG2PHASE (_smp->len - _smp->lpBgn);
          if (! _looped)  _looped = true;
-//DBG("         d: d=`d s=`d sEnd=`d ph=`d,`u",
-//d, s, sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF));
+//DBG("         d: d=`d s=`d ph=`d,`u sEnd=`d",
+//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
       }
       if (d >= nfr)  break;
 
@@ -694,35 +545,39 @@ void Voice::Mix ()                     // da GUTS :)
    if (_snd == nullptr)    {End ();   return;}
    _nPer++;
    len = Interpolate (ip);             // stretch/shrink sample into _intp
+TRX("   interp len=`d", len);
    for (i = 0;  i < len;  i++)  {
-//    s  = _flt.Mix (ip [i]);          // filter it
-      s  = ip [i];
+TStr ts, t2;
+if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
+      s  = _flt.Mix (ip [i]);          // filter it
+if (!i||(i==len-1))  TRX("      flt[`d]=`s", i, R2Str (s, ts));
       s *= _amp;                       // amp it
+if (!i||(i==len-1))  TRX("      amp[`d]=`s", i, R2Str (s, ts));
       mL [i] += (s * _panL);           // pan,mix it
       mR [i] += (s * _panR);
-//    rv [i] += (s * c->rvrb/127.);    // mix reverb buf
+if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
+                         i, R2Str (mL [i],ts), R2Str (mR [i],t2));
+//    rv [i] += (s * c->rvrb/127.);    // set reverb buf
       if (_rels) {
          if (_vel-- == 0)  {End ();   return;}
          ReAmp ();
       }
    }
    if (len < Sy._nFr)  End ();        // dooone if nonloop sample ran out
-//TStr ts, t2;
-//DBG("   smp0 L=`s R=`s", R2Str (mL [0],ts), R2Str (mR [0],t2));
-//for (i = 0; i < len; i++)  DBG("`d L=`s R=`s",
-//i, R2Str (mL [i], ts), R2Str (mR [i], t2));
 }
 
 
 void Voice::Dump ()
 { TStr t, s1, s2, s3;
-TRC("on=`c ch=`d key=`s vel=`d looped=`b rels=`b vcNo=`d nPer=`d",
-_on?_on:' ', _ch, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
+   if (! _on)  {TRX("   (off)");   return;}
+TRX("   on=`c ch=`d key=`s vel=`d looped=`b rels=`b vcNo=`d nPer=`d",
+_on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
 _vel, _looped, _rels, _vcNo, _nPer);
-TRC(" phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
+TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
 (ubyt4)(_phase>>32), (ubyt4)(_phase & 0xFFFFFFFF),
 (ubyt4)(_phInc>>32), (ubyt4)(_phInc & 0xFFFFFFFF),
 R2Str(_amp,s3), R2Str(_panL,s1), R2Str(_panR,s2));
+   Sy._chn [_ch].Dump ();
    if (_snd)  _snd->Dump ();
    if (_smp)  _smp->Dump (_ch == 9);
 }
@@ -731,7 +586,7 @@ R2Str(_amp,s3), R2Str(_panL,s1), R2Str(_panR,s2));
 void Syn::WipeSnd ()
 { ubyte t;
    if (_run)  _lok.Grab ();
-TRC("   Syn::WipeSnd");
+TRX("   Syn::WipeSnd");
    AllVc (9, 'e');   for (t = 0;  t <= _maxChn;  t++)  AllVc (t, 'e');
 //TODO off all the drums too
    for (t = 0;  t < _nSnd;  t++)     {delete _snd [t];   _snd [t] = nullptr;}
@@ -747,16 +602,16 @@ void Syn::LoadSnd (TStr *snd, ubyte maxch)
 { ubyte s;
   TStr  st;
   ubyt4 sz;
-TRC("Syn::LoadSnd maxch=`d", maxch);
+TRX("Syn::LoadSnd maxch=`d", maxch);
    WipeSnd ();
    if (_run)  _lok.Grab ();
    _maxChn = maxch;
    for (s = 0;  s < 128;  s++)  if (snd [s][0]) {
-TRC("snd=`d `s", _nSnd,             snd [s]);
+TRX("snd=`d `s", _nSnd,             snd [s]);
       _snd [_nSnd++] = new Sound (  snd [s]);
    }
    for (s = 0;  s < 128;  s++)  if (snd [s+128][0]) {
-TRC("drm=`s `s", MDrm2Str (st, s),  snd [s+128]);
+TRX("drm=`s `s", MDrm2Str (st, s),  snd [s+128]);
       _drm [s]       = new Sound (  snd [s+128], s);
    }
 
@@ -764,25 +619,25 @@ TRC("drm=`s `s", MDrm2Str (st, s),  snd [s+128]);
    sz = 0;                             // get ALL samples' len
    for (s = 0;  s < _nSnd;  s++)                 sz += _snd [s]->_siz;
    for (s = 0;  s <   128;  s++)  if (_drm [s])  sz += _drm [s]->_siz;
-TRC("alloc _smp[`d]", sz);
+TRX("alloc _smp[`d]", sz);
    _smp = new real [sz];   _nSmp = sz;   sz = 0;
    if (_smp == nullptr) {
-TRC("Syn::LoadSnd  Outa memory - `d samples => `d bytes :(", _nSmp, _nSmp*8);
+TRX("Syn::LoadSnd  Outa memory - `d samples => `d bytes :(", _nSmp, _nSmp*8);
       for (s = 0; s < _nSnd; s++)
-TRC("   Snd `s siz=`d", _snd [s]->_nm, _snd [s]->_siz);
+TRX("   Snd `s siz=`d", _snd [s]->_nm, _snd [s]->_siz);
       for (s = 0; s < 128; s++) if (_drm [s])
-TRC("   Drm `s siz=`d", _drm [s]->_nm, _drm [s]->_siz);
+TRX("   Drm `s siz=`d", _drm [s]->_nm, _drm [s]->_siz);
       WipeSnd ();
       if (_run)  _lok.Toss ();
       return;
    }
 // load n convert -all- sounds' .WAV files' samples to real
-TRC("loadin snd n drm");
+TRX("loadin snd n drm");
    for (s = 0;  s < _nSnd;  s++)                 sz = _snd [s]->LoadDat (sz);
    for (s = 0;  s <   128;  s++)  if (_drm [s])  sz = _drm [s]->LoadDat (sz);
    if (_run)  _lok.Toss ();
-DBG("Syn::LoadSnd end");
-Dump ();
+TRX("Syn::LoadSnd end");
+//Dump('s');
 }
 //______________________________________________________________________________
 // syn note funcs...
@@ -849,25 +704,22 @@ DBG("Syn maxVoice=`d", i+1);
                }                       // ^ THAT guy gets stamped on toppa :/
          }                             // i has a nice spot for us
          _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm]);
-//DBG("Syn::NtOn  _vc[`d].Bgn", i);
-//_vc [i].Dump (StrFmt (ts, "  vc add=`d/`d", i, _nVc));
+TRX("Syn::NtOn  _vc[`d].Bgn", i);   _vc [i].Dump ();
       }
    if (shr)  {for (i = _nVc;  i && (! _vc [i-1].On ());  i--)  _nVc--;
-//if (_nVc<j) TRC("  vc shrink `d=>`d", j, _nVc);
+if (_nVc<j) TRX("  vc shrink `d=>`d", j, _nVc);
              }
 }
 //______________________________________________________________________________
 // syn CC funcs...
 void Syn::UnHold (ubyte ch)            // release all sust'd vcs on chn
-{
-//DBG(" UnHold ch=`d", ch+1);
-   for (ubyt2 i = 0;  i < _nVc;  i++)
+{  for (ubyt2 i = 0;  i < _nVc;  i++)
       if (_vc [i].Sust () && (_vc [i]._ch == ch))  _vc [i].Release ();
 }
 
 void Syn::AllVc (ubyte ch, char todo)  // mod all vcs on channel
 {
-TRC(" AllVc ch=`d `s", ch+1,
+TRX(" AllVc ch=`d `s", ch+1,
 (todo=='n')?"frq"     : (
 (todo=='f')?"flt"     : (
 (todo=='a')?"amp"     : (
@@ -899,7 +751,7 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 
 // do note  on/off  (NPrs some day?)
    if (! (c & 0xFF80)) {
-TRC("Syn::Put ch=`d `s`c`d",
+TRX("Syn::Put ch=`d `s`c`d",
 ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
 (v & 0x080) ? ((v2 & 0x080) ? '~' : '_') : '^', v & 0x07F);
       if (v & 0x80)  NtOn (ch, c, v & 0x7F);
@@ -909,7 +761,7 @@ ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
    }
 
 // else do CC - check valu but always let prog thru
-TRC("Syn::Put ch=`d `s v=`d v2=`d", ch+1, MCtl2Str(s,c,'r'), v, v2);
+TRX("Syn::Put ch=`d `s v=`d v2=`d", ch+1, MCtl2Str(s,c,'r'), v, v2);
    if ((v >= 128) && (c != MC_PROG)) {
 DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch+1, c, v);
       if (_run)  _lok.Toss ();
@@ -933,8 +785,6 @@ DBG("Syn::Put M_PROG on drum chan or too high");
    // above ones don't do voice recalc;  below ones do
       case MC_PBND:       _chn [ch].pbnd = v << 7 | v2;   re = 'n';   break;
       case MC_CC|16:      _chn [ch].pbnr = v;             re = 'n';   break;
-      case MC_CC|17:      _chn [ch].vCut = v;             re = 'f';   break;
-      case MC_CC|18:      _chn [ch].cut  = v;             re = 'f';   break;
       case MC_CC|19:      _chn [ch].res  = v;             re = 'f';   break;
       case MC_CC|M_VOL:   _chn [ch].vol  = v;             re = 'a';   break;
       case MC_CC|M_PAN:   _chn [ch].pan  = v;             re = 'p';   break;
@@ -955,25 +805,26 @@ DBG("Syn::Put M_PROG on drum chan or too high");
 }
 
 
-void Syn::Dump ()  // sounds, samples, channels, voices
+void Syn::Dump (char x)                // sounds, samples, channels, voices
 { ubyte s;
   ubyt2 i, ns;
   TStr  ts;
   Sample *sm;                          // first melo, then drum sounds...
-   for (s = 0;  s < _nSnd;  s++) {
-      TRC("Snd=`d/`d:", s, _nSnd);       _snd [s]->Dump ();
-      for (i = 0, ns = _snd [s]->_nSmp,
-                  sm = _snd [s]->_smp;  i < ns;  i++, sm++)
-         {TRC("   Smp=`d/`d:", i, ns);   sm->Dump (false);}
+   if (x == 's') {
+      for (s = 0;  s < _nSnd;  s++) {
+         TRX("Snd=`d/`d:", s, _nSnd);       _snd [s]->Dump ();
+         for (i = 0, ns = _snd [s]->_nSmp,
+                     sm = _snd [s]->_smp;  i < ns;  i++, sm++)
+            {TRX("   Smp=`d/`d:", i, ns);   sm->Dump (false);}
+      }
+      for (s = 0; s < 128; s++)  if (_drm [s]) {
+         TRX("Drm=`s:", MDrm2Str (ts,s));   _drm [s]->Dump ();
+         for (i = 0, ns = _drm [s]->_nSmp,
+                     sm = _drm [s]->_smp;  i < ns;  i++, sm++)
+            {TRX("   Smp=`d/`d:", i, ns);   sm->Dump (true);}
+      }
    }
-   for (s = 0; s < 128; s++)  if (_drm [s]) {
-      TRC("Drm=`s:", MDrm2Str (ts,s));   _drm [s]->Dump ();
-      for (i = 0, ns = _drm [s]->_nSmp,
-                  sm = _drm [s]->_smp;  i < ns;  i++, sm++)
-         {TRC("   Smp=`d/`d:", i, ns);   sm->Dump (true);}
-   }
-   for (ubyte c = 0;  c <= _maxChn;  c++)  _chn [c].Dump ();
-   for (ubyt2 v = 0;  v <  _nVc;     v++)  _vc  [v].Dump ();
+   for (ubyt2 v = 0;  v < _nVc;  v++)  {TRX("vc=`d",v);   _vc [v].Dump ();}
 }
 //______________________________________________________________________________
 sbyt2 Syn::r2i (real r, real dth)
@@ -994,14 +845,17 @@ void Syn::PutWav (sbyt2 *out, ubyt4 len)
   static ubyt4 _cur = 0;
    for (ofs = 0;  len--;  _cur++) {
       if (_cur == _nFr) {
+TRX("mixLR wipe");
          MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
-                               // MemSet (_rvrb, 0, sz);
-         for (i = 0;  i < _nVc;  i++) _vc [i].Mix ();
-//       _rvP->Mix (_rvrb, _mixL, _mixR);
+         for (i = 0;  i < _nVc;  i++) {
+TRX(" vc[`d].Mix",i);   _vc [i].Dump ();
+            _vc [i].Mix ();
+         }
          _cur = 0;
       }
       out [ofs++] = r2i (_mixL [_cur], Dither [0][_dth]);
       out [ofs++] = r2i (_mixR [_cur], Dither [1][_dth]);
+TRX("   `d `d `d", ofs-2, out [ofs-2], out [ofs-1]);
       if (++_dth >= MAX_DITHER)  _dth = 0;
    }
 }
@@ -1039,7 +893,8 @@ void Syn::Init (char wav)
   TStr fn;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-TRC("Syn::Init bgn");
+   _trx = false;
+TRX("Syn::Init bgn");
    if (_wav = wav) {                   // goin to .wav file - pretty easy
       *_snDsc = *_snDev = '\0';   _sn = nullptr;
       _nFr = 64;   _frq = 44100;   _vol = 1.0;
@@ -1078,18 +933,18 @@ DBG("   nFr=`d frq=`d", _nFr, _frq);
    _out = new sbyt2 [2*_nFr][2];       // 2 periods of nFr frames of interleaved
 
    if (! _wav)  {_run = true;   start ();}
-TRC("Syn::Init end");
+TRX("Syn::Init end");
 }                                      // stereo sbyt2 (to double buffer)
 
 
 void Syn::Quit ()
 {
-TRC("Syn::Quit bgn");
+TRX("Syn::Quit bgn");
    if (_run)  {_run = false;   wait ();}
    WipeSnd ();
    if (_out)   delete [] _out;
    if (_intp)  delete [] _intp;   if (_mixL)  delete [] _mixL;
                                   if (_mixR)  delete [] _mixR;
    if (_sn)    delete _sn;
-TRC("Syn::Quit end");
+TRX("Syn::Quit end");
 }
