@@ -10,9 +10,18 @@
 #include "wav.h"
 #include "math.h"                      // no gettin around reals with synths
 
+#define TRX(...)  if(Sy._trx)DBG(__VA_ARGS__)    // syn local TRC
+
 typedef ubyt8 Phase;                   // hi 4 bytes is int pos
                                        // lo 4 bytes is fract
 const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int
+
+struct Channel {                       // not much to a channel :)
+   ubyte snd,  hold, vol, pan, res, rvrb;
+   ubyt2       pbnd, pbnr;
+   void Init ();
+   void Dump ();
+};
 
 struct Sample {                         // stereo .WAVs get split to 2 samples
 public:
@@ -37,23 +46,6 @@ public:
    void  Dump ();
    bool  LoadFmt (char *wfn, ubyte ky, ubyte vl);
    ubyt4 LoadDat (ubyt4 pos);
-};
-
-struct Channel {
-   ubyte snd,  hold, vol, pan, vCut, cut, res, rvrb;
-   ubyt2       pbnd, pbnr;
-
-   void Init ()
-   {  hold = 0;   vol = 127;   pan = 64;
-      vCut = 0;   cut = 127;   res = 0;   rvrb = 6;   pbnd = MID14;   pbnr = 2;
-   }
-
-   void Dump ()
-   {
-TRC("   snd=`d hold=`d vol=`d pan=`d "
-       "vCut=`d cut=`d res=`d rvrb=`d pbnd=`d pbnr=`d",
-snd, hold, vol, pan, vCut, cut, res, rvrb, pbnd, pbnr);
-   }
 };
 //______________________________________________________________________________
 class LPF {                            // low pass filter (per voice)
@@ -145,7 +137,8 @@ public:
    sbyt2 r2i (real r, real dth);
    void  Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0);
 
-   void  Dump ();
+   void  Dump (char x = '\0');
+   bool  _trx;
 };
 extern Syn Sy;                         // that's me
 
