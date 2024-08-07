@@ -304,8 +304,9 @@ DBG("FDir::Next readdir came back null");}
          return Next (fn);
       }
       StrFmt (fn, "`s/`s", _dir, s);
-      if ( (PosInZZ (s, CC(".\0"     "..\0"  )) == 0) &&
-          ((PosInZZ (s, CC(".git\0"  ".old\0")) == 0) || _all) ) {
+      if ( (PosInZZ (s, CC(".\0"     "..\0")) == 0) &&
+          ((PosInZZ (s, CC(".git\0"  ".old\0"  ".flatpak-builder\0"
+                                           )) == 0) || _all) ) {
         struct stat s;
          if ((rc = stat (fn, & s)))
 DBG("FDir::Next stat(`s) died rc=`d", fn, rc);
