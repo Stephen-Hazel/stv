@@ -588,24 +588,24 @@ public:
 
    bool Full ()  {return (bool)(num >= maxs);}
 
-   void Add (char *s, char *rc = nullptr)
+   bool Add (char *s, char *rc = nullptr)
    { ubyt4 ln = StrLn (s) + 1;
       if (rc)  *rc = '\0';
-      if ((siz + ln) > maxb)  {if (rc) *rc = 'b';
-                               else    DBG ("StrArr::Add  outa buf");
-                               return;}
-      if ((num +  1) > maxs)  {if (rc) *rc = 's';
-                               else    DBG ("StrArr::Add  outa str");
-                               return;}
+      if (((siz + ln) > maxb) || ((num +  1) > maxs)) {
+         DBG("StrArr::Add FULL !!");
+         return false;
+      }
       str [num++] = & buf [siz];
       MemCp (& buf [siz], s, ln);   siz += ln;
+      return true;
    }
 
-   void Ins (char *s, ubyt4 r = 0)     // kinda backwards, but this is how i go
-   {  Add (s);
+   bool Ins (char *s, ubyt4 r = 0)     // backwards, but whatev
+   {  if (! Add (s))  return false;
      char *t = str [NRow ()-1];
       MemCp (& str [r+1], & str [r], sizeof (char *) * (NRow ()-r-1));
       str [r] = t;
+      return true;
    }
 
    static char *DoRec (char *ibuf, ubyt2 len, ubyt4 pos, void *ptr)
@@ -614,7 +614,7 @@ public:
       if (t->quit && (! MemCm (ibuf, t->quit, StrLn (t->quit))))
          return CC("quit");
       if ((t->skip == NULL) || MemCm (ibuf, t->skip, StrLn (t->skip)))
-         t->Add (ibuf);
+         if (! t->Add (ibuf))  return CC("memorygone");
       return NULL;
    }
 
@@ -636,7 +636,7 @@ public:
       do    if (fd == df) {
          StrCp (t, & fn [StrLn (dir)+1]);
          if (ext)  Fn2Name (t);
-         Add (t);
+         if (! Add (t))  break;
       }
       while ((df = d.Next (fn)));
       d.Shut ();
@@ -648,7 +648,7 @@ public:
      ulong l, i, t = 0;
       for (i = 0;  i < NRow ();  i++) {
          l = 1 + StrLn (p = Get (i));
-         if ((t += l) >= sizeof (BStr))  DBG("StrArr.SetZZ blew up !!");
+         if ((t += l) >= sizeof (BStr))  DBG("StrArr.SetZZ died :(");
          MemCp (z, p, l);   z += l;
       }
       *z = '\0';

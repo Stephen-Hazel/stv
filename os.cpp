@@ -277,7 +277,7 @@ char *StrFmt (char *so, char const *fmt, ...)     // sprintf replacement
 
 char *Now (char *s)
 { time_t t = time (nullptr);
-   strftime (s, 20, "%Y%m%d.%H%M%S.%a", localtime (& t));
+   strftime (s, 20, "%Y%m%d_%H%M%S_%a", localtime (& t));
    return s;
 }
 
