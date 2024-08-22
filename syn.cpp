@@ -567,12 +567,13 @@ if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
 }
 
 
-void Voice::Dump ()
+void Voice::Dump (char q)
 { TStr t, s1, s2, s3;
    if (! _on)  {TRX("   (off)");   return;}
 TRX("   on=`c ch=`d key=`s vel=`d looped=`b rels=`b vcNo=`d nPer=`d",
 _on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
 _vel, _looped, _rels, _vcNo, _nPer);
+   if (q)  return;
 TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
 (ubyt4)(_phase>>32), (ubyt4)(_phase & 0xFFFFFFFF),
 (ubyt4)(_phInc>>32), (ubyt4)(_phInc & 0xFFFFFFFF),
@@ -704,11 +705,12 @@ DBG("Syn maxVoice=`d", i+1);
                }                       // ^ THAT guy gets stamped on toppa :/
          }                             // i has a nice spot for us
          _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm]);
-TRX("Syn::NtOn  _vc[`d].Bgn", i);   _vc [i].Dump ();
+//TRX("start voice=`d", i);
       }
-   if (shr)  {for (i = _nVc;  i && (! _vc [i-1].On ());  i--)  _nVc--;
-if (_nVc<j) TRX("  vc shrink `d=>`d", j, _nVc);
+   if (shr)  {for (j = i = _nVc;  i && (! _vc [i-1].On ());  i--)  _nVc--;
+//if (_nVc<j) TRX("  vc shrink `d=>`d", j, _nVc);
              }
+//for (i = 0;  i < _nVc;  i++) {DBG("`d", i);  _vc [i].Dump ('q');}
 }
 //______________________________________________________________________________
 // syn CC funcs...
