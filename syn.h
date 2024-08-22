@@ -89,7 +89,7 @@ public:
    void  Release ();
    void  End     ();
    void  ReFrq (), ReFlt (), ReAmp (), RePan (), Redo (char re);
-   void  Dump  ();
+   void  Dump  (char q = '\0');
 
    ubyt4 Interpolate (real *ib);       // tough part (sample=>interpolation buf)
    void  Mix ();                       // da guts
