@@ -50,7 +50,8 @@ ubyt4 const MAXWSTR = sizeof(WStr)-1;
 typedef void  (*pfunc)();
 typedef char *(*FDoTextFunc)(char *buf, ubyt2 len, ubyt4 pos, void *ptr);
 typedef bool  (*FDoDirFunc )(void *ptr, char dfx, char *fn);
-
+                                       // process filenames in a dir
+                                       // return true to STOP;  false=keep goin
 inline ubyt4 ABSL (sbyt4 i)  {if (i < 0)  return SC(ubyt4,-i);
                               return SC(ubyt4, i);}
 inline bool  CHNUM(char  c)  {return ((c>='0') && (c<='9')) ? true : false;}
