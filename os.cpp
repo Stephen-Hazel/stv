@@ -501,19 +501,33 @@ char *FnFix (char *fn, char to)
 
 
 //______________________________________________________________________________
-static ubyt4 RandSeed;                 // copied from ms crt src ;)
+static ubyt4 RndSeed;
 
-void  RandInit ()
-{ timespec ts;
-   clock_gettime (CLOCK_REALTIME, & ts);   RandSeed = ts.tv_nsec;
+void RandInit ()
+{ timespec ts;   clock_gettime (CLOCK_REALTIME, & ts);   RndSeed = ts.tv_nsec;
 }
 
+static ubyt4 Rnd ()
+{ ubyt4 s = RndSeed;
+  ubyt4 o;
+   s *= 1103515245;   s += 12345;               o =  (ubyt4)(s / 65536) % 2048;
+   s *= 1103515245;   s += 12345;   o <<= 10;   o ^= (ubyt4)(s / 65536) % 1024;
+   s *= 1103515245;   s += 12345;   o <<= 10;   o ^= (ubyt4)(s / 65536) % 1024;
+   RndSeed = s;   return o;
+}
+
+ubyt4 Rand (ubyt4 n)                   // return 0..n-1
+{ ubyt4 r = Rnd ();   return (ubyt4)((ubyt8)r * n / 4294967295u);  }
+
+
+/* copied from ms crt src ;)
 ubyt2 Rand ()                          // return pseudo-random num 0-32767
-{  return (ubyt2)(((RandSeed = RandSeed * 214013L + 2531011L)>>16) & RANDMAX);
+{  return (ubyt2)(((RndSeed = RndSeed * 214013L + 2531011L)>>16) & RANDMAX);
 }
 
 ubyt2 Rnd (ubyt2 n)                    // return 0..n-1
 { ubyt2 r = Rand ();   return (ubyt2)(((r?(r-1):0) * n) / RANDMAX);  }
+*/
 
 
 //______________________________________________________________________________
