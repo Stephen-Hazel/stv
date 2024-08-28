@@ -106,10 +106,8 @@ char *FnExt   (char *ext, char *fn);   // return just ext
 char *FnName  (char *nm,  char *fn);   // return just name.ext
 char *FnFix   (char *fn,  char to = '_');   // remove special chars
 
-const ubyt2 RANDMAX = 0x7FFF;
 void  RandInit ();                     // seed w current millisec
-ubyt2 Rand ();                         // return pseudo-random num 0-32767
-ubyt2 Rnd  (ubyt2 n);                  // return 0..n-1
+ubyt4 Rand (ubyt4 n);                  // return pseudo random num - 0..n-1
 
 void  Sort (void *ptr, size_t num, size_t siz, int (*cmp)(void *, void *) );
 
