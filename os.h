@@ -890,8 +890,8 @@ inline ubyt4 WGet (char *buf, ubyt4 siz, char *url)
          {DBG("`s died rc=`d", c, rc);   i = 0;}
    else  {i = f.Load (fn, buf, siz);
 DBG("WGet `p size=`d got=`d", url, siz, i);
-          f.Kill (fn);}            // load n kill
-   buf [i] = '\0';                     // term string
+          f.Kill (fn);}                // load n kill
+   buf [i] = '\0';
    return i;
 }
 
