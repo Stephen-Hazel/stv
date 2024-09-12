@@ -688,13 +688,13 @@ bool Path::Kill (char *dir)
   File f;
   FDir d;
   char df;
-//TRC("Path::Kill `s", dir);
+TRC("Path::Kill `s", dir);
    if ( (*dir == '\0') || (! StrCm (dir, CC("/"))) ) {
 DBG("Path::Kill  NOT gonna kill your whole hard drive...");
       return false;
    }
 // recursively kill files first cuz can't kill dirs till they're ALL gone
-   if ((df = d.Open (fn, dir))) {
+   if ((df = d.Open (fn, dir, 'a'))) {
       do {
 //DBG(" bye `s,`c", fn,df);
          if (! ((df == 'd') ? Kill (fn) : f.Kill (fn)) ) {
@@ -709,7 +709,7 @@ DBG("Path::Kill `s died early :(", dir);
    }
 // NOW we can kill the dir
    rmdir (dir);
-TRC(" rmdir `s", dir);
+//DBG(" rmdir `s", dir);
    return true;
 }
 
@@ -728,7 +728,7 @@ DBG("Path::Copy  from dir not there");
    }
    Make (to);                          // make dst path in case it ain't there
 // do every non . or .. dir and every file
-   if ((df = d.Open (src, from))) {
+   if ((df = d.Open (src, from, 'a'))) {
       do {
          StrFmt (dst, "`s`s`s", to, to [StrLn (to)-1] == '/' ? "" : "/",
                                  & src [StrLn (from)+1]);
