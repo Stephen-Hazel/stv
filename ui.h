@@ -444,7 +444,9 @@ public:
 // hdr is zz string of labels
 //  >| prefix means right or center just
 //  _ prefix means edit (string or droplist edit)
-   void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr);
+   void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr,
+                  char wrap = '\0');
+   void  SetColWrapOK (ubyte c);
    void  SetRowH (ubyt2 h);
    ubyt2 ColW    (ubyte c);
    void  SetColW (ubyte c, ubyt2 w);
@@ -467,6 +469,7 @@ private:
    char  _ed [40];
    ubyt2 _nr, _tr, _ih;
    ubyte      _tc;
+   bool  _wr;
 };
 
 

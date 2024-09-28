@@ -274,7 +274,20 @@ CtlTBar::CtlTBar (QDialog *d, const char *tip)
 
 
 //______________________________________________________________________________
-void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
+// this ain't workin :(
+class WrapOK: public QStyledItemDelegate {
+public:
+   using QStyledItemDelegate::QStyledItemDelegate;
+protected:
+   void initStyleOption (QStyleOptionViewItem *option,
+                         const QModelIndex & index) const override
+   {  QStyledItemDelegate::initStyleOption (option, index);
+      option->textElideMode = Qt::ElideNone;
+//      TextWrapAnywhere is what i waaant
+   }
+};
+
+void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop, char wrap)
 // hdr is zz string of labels
 //  *  prefix means icon
 //  >| prefix means right or center just
@@ -299,6 +312,8 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
    _t->setEditTriggers (ed ? QAbstractItemView::AllEditTriggers
                            : QAbstractItemView::NoEditTriggers);
    _t->setSelectionBehavior (QAbstractItemView::SelectRows);
+   _t->setWordWrap (_wr = wrap ? true : false);
+   if (_wr)  _t->resizeRowsToContents ();
 }
 
 /* _t->horizontalHeader ()->setSectionResizeMode (2, QHeaderView::Fixed)
@@ -309,6 +324,9 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop)
 ** _t->setSelectionMode     (QAbstractItemView::ExtendedSelection);
 ** _t->setGridShow (false);
 */
+
+void  CtlTabl::SetColWrapOK (ubyte c)
+{  _t->setItemDelegateForColumn (c, new WrapOK);  }
 
 void  CtlTabl::SetRowH (ubyt2 h)
 {  _t->verticalHeader ()->setDefaultSectionSize (h);
@@ -383,8 +401,10 @@ void CtlTabl::Put (char **rp)
          }
       }
       else {
-         if (_ju [c] == '>')  it->setTextAlignment (Qt::AlignRight);
-         if (_ju [c] == '|')  it->setTextAlignment (Qt::AlignCenter);
+         if      (_ju [c] == '>')  it->setTextAlignment (Qt::AlignRight);
+         else if (_ju [c] == '|')  it->setTextAlignment (Qt::AlignCenter);
+//       else                      it->setTextAlignment (Qt::AlignLeft|
+//                                           ((Qt::Alignment)Qt::TextWordWrap));
          it->setText (*rp);
 //DBG("CtlTabl::Put r=`d c=`d d=`s", _nr, c, *rp);
       }
@@ -395,7 +415,7 @@ void CtlTabl::Put (char **rp)
 void CtlTabl::Shut (bool rehop)
 {
 //DBG("CtlTabl::Shut show");
-   _t->show ();
+   _t->show ();   if (_wr)  _t->resizeRowsToContents ();
 //DBG("CtlTabl::Shut HopTo");
    if (rehop)  HopTo (_tr, _tc);       // in 6 on CLOSE, ed sets value again:(
 //DBG("CtlTabl::Shut blockSignals(false)");
