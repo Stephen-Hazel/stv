@@ -289,8 +289,8 @@ protected:
 
 void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop, char wrap)
 // hdr is zz string of labels
-//  *  prefix means icon
 //  >| prefix means right or center just
+//  *  prefix means icon
 //  _  prefix means edit (string or droplist edit)
 { ubyte c;
   char *h;
