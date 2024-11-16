@@ -236,6 +236,7 @@ typedef struct {ubyt4 time;  ubyte ctrl, valu, val2, x;} TrkEv;
 #define MNTDN(m)  (MNOTE(m) && MDOWN(m) && (! MPRSS(m)))
 #define MNPRS(m)  (MNOTE(m) && MDOWN(m) &&    MPRSS(m) )
 #define MNTUP(m)  (MNOTE(m) && MUP(m))
+#define MDR(m)    ((m)->chan == 9)
 
 inline bool FnMid (char *fn)
 // or .mod - files i know how ta convert into .song
