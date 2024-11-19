@@ -202,7 +202,7 @@ private:
 typedef struct {ubyt4 time;  ubyte ctrl, valu, val2, x;} TrkEv;
 
 // ctrl - hi bit clear for noteOn/Prs/Off;  set for controls
-// for notes: on  - valu hi bit set, val2 hi bit clear, val2 bits0-4=fingering
+// for notes: on  - valu hi bit set, val2 hi bit clear
 //            prs - valu hi bit set, val2 hi bit set  (some day?)
 //            off - valu hi bit clear
 // for ctrls: usually just use valu, some (PBnd) use val2
@@ -258,7 +258,6 @@ typedef struct {char key [4], gs [4], sym [5];   ubyte grp;  WStr dsc;}
                                             MDrumDef;
 extern char     MKeyStr [12][3], MKeyStrB [12][3];
 extern char    *MProg [128];
-extern char     MFing [31][3];
 extern MDGrpDef MDGrp [];
 extern ubyte   NMDGrp;
 extern MDrumDef MDrum [];
