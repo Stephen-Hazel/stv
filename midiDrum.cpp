@@ -4,12 +4,12 @@
 
 MDGrpDef MDGrp [] = {
    {"Kick", 3},
-   {"Snar", 5},
+   {"Snar", 9},
    {"HHat", 3},
    {"Cymb", 11},
    {"Toms", 6},
    {"Latn", 22},
-   {"Misc", 23},
+   {"Misc", 19},
    {"X",    0}
 };
 ubyte   NMDGrp = BITS (MDGrp);
@@ -19,14 +19,21 @@ MDrumDef MDrum [] = {
    {"2C",  "",    "Kick", 0, "BassDrum1Electric"},
    {"1B",  "",    "Kik2", 0, "BassDrum2Acoustic"},
    {"1A",  "XG",  "KikS", 0, "KickSoft(XG-ONLY)"},
+
    {"2D",  "",    "Snar", 1, "Snare1Acoustic"},
    {"2E",  "",    "Snr2", 1, "Snare2Electric"},
    {"1F",  "1Db", "SnRl", 1, "SnareRoll(XG)"},
    {"1G",  "1C",  "SnrS", 1, "SnareSoft(XG)"},
    {"1Bb", "XG",  "RimO", 1, "RimShotOpen(XG-ONLY)"},
+   {"2Db", "",    "SStk", 1, "SideStick"},
+   {"1Ab", "1G",  "Stik", 1, "Sticks(XG)"},
+   {"2Eb", "",    "Clap", 1, "HandClap"},
+   {"0G",  "1D",  "Snap", 1, "FingerSnap(XG)"},
+
    {"2Gb", "",    "HHCl", 2, "HiHatClosed"},
    {"2Ab", "",    "HHPd", 2, "HiHatPedal"},
    {"2Bb", "",    "HHOp", 2, "HiHatOpen"},
+
    {"3Eb", "",    "Ride", 3, "CymbalRide1Edge"},
    {"3B",  "",    "Rid2", 3, "CymbalRide2"},
    {"3F",  "",    "RdBl", 3, "CymbalRideBell"},
@@ -38,12 +45,14 @@ MDrumDef MDrum [] = {
    {"1D",  "XG",  "BrSw", 3, "BrushSwirl(XG-ONLY)"},
    {"1Eb", "XG",  "BrSl", 3, "BrushSlap(XG-ONLY)"},
    {"1E",  "XG",  "BrTS", 3, "BrushTapSwirl(XG-ONLY)"},
+
    {"2F",  "",    "TFlL", 4, "TomFloorLo(1)"},
    {"2G",  "",    "TFlH", 4, "TomFloorHi(2)"},
    {"2A",  "",    "TomL", 4, "TomLo(3)"},
    {"2B",  "",    "TMdL", 4, "TomMidLo(4)"},
    {"3C",  "",    "TMdH", 4, "TomMidHi(5)"},
    {"3D",  "",    "TomH", 4, "TomHi(6)"},
+
    {"4Db", "",    "BonL", 5, "BongoLo"},
    {"4C",  "",    "BonH", 5, "BongoHi"},
    {"4E",  "",    "ConL", 5, "CongaLo"},
@@ -66,6 +75,7 @@ MDrumDef MDrum [] = {
    {"5Gb", "",    "CuiH", 5, "CuicaHi"},
    {"0Db", "6D",  "SurM", 5, "SurdoMute(XG)"},
    {"0D",  "6Eb", "SurO", 5, "SurdoOpen(XG)"},
+
    {"3Ab", "",    "CowB", 6, "Cowbell"},
    {"3Gb", "",    "Tamb", 6, "Tambourine"},
    {"5Ab", "",    "TriM", 6, "TriangleMute"},
@@ -73,10 +83,6 @@ MDrumDef MDrum [] = {
    {"5B",  "",    "BelJ", 6, "BellJingle"},
    {"6C",  "",    "BelT", 6, "BellTree"},
    {"0Eb", "1Eb", "HiQu", 6, "HighQ(XG)"},
-   {"2Db", "",    "SStk", 6, "SideStick"},
-   {"1Ab", "1G",  "Stik", 6, "Sticks(XG)"},
-   {"2Eb", "",    "Clap", 6, "HandClap"},
-   {"0G",  "1D",  "Snap", 6, "FingerSnap(XG)"},
    {"0E",  "1E",  "Slap", 6, "Slap(XG)"},
    {"3Bb", "",    "Vbra", 6, "Vibraslap"},
    {"5Bb", "",    "Shak", 6, "Shaker"},
