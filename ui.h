@@ -442,7 +442,8 @@ public:
   ~CtlTabl ()  {}
 
 // hdr is zz string of labels
-//  >| prefix means right or center just
+//  ^ in 1st hdr is tooltip for row
+// >| prefix means right or center just
 //  * prefix means icon
 //  _ prefix means edit (string or droplist edit)
    void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr,
@@ -456,12 +457,12 @@ public:
    ubyt2 CurRow  ();
    ubyte CurCol  ();
    char *Get     (ubyt2 r, ubyte c);
-   void  Set     (ubyt2 r, ubyte c, char *s);
+   void  Set     (ubyt2 r, ubyte c, char *s, char *tip = nullptr);
    void  HopTo   (ubyt2 r, ubyte c);
    void  SetColor (ubyt2 r, QColor c);
 
    void  Open    ();
-   void  Put     (char **rp);
+   void  Put     (char **rp, char *tip = nullptr);
    void  Shut    (bool rehop = false);
 
 private:

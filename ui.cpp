@@ -346,7 +346,7 @@ ubyt2 CtlTabl::CurRow ()  {return _t->currentRow ();}
 ubyte CtlTabl::CurCol ()  {return _t->currentColumn ();}
 char *CtlTabl::Get (ubyt2 r, ubyte c)  {return UnQS (_t->item (r, c)->text ());}
 
-void  CtlTabl::Set (ubyt2 r, ubyte c, char *s)
+void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
 { QTableWidgetItem *it = _t->item (r, c);
   TStr ico;
 //DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
@@ -360,6 +360,7 @@ void  CtlTabl::Set (ubyt2 r, ubyte c, char *s)
 //   .scaled (_ih, _ih, Qt::KeepAspectRatio, Qt::SmoothTransformation));
       else                  it->setIcon (QIcon ());
    }
+   if (tip != nullptr)  it->setToolTip (tip);
    _t->blockSignals (false);
 }
 
@@ -382,10 +383,11 @@ void CtlTabl::Open ()
 //DBG("CtlTabl::Open end");
 }
 
-void CtlTabl::Put (char **rp)
+void CtlTabl::Put (char **rp, char *tip)
 { ubyte c;
   TStr  ico;
   QTableWidgetItem *it;
+DBG("Put bgn");
    _t->setRowCount (_nr+1);
    for (c = 0;  *rp;  c++, rp++) {
       if (! (it = _t->item (_nr, c)))
@@ -396,7 +398,7 @@ void CtlTabl::Put (char **rp)
          if (**rp) {
             if      (**rp == '*')  it->setText (++(*rp));
             else if (**rp)         it->setIcon (QIcon (StrFmt (ico,
-                                                            ":/tico/`s", *rp)));
+                                                           ":/tico/`s", *rp)));
             else                   it->setIcon (QIcon ());
          }
       }
@@ -408,8 +410,10 @@ void CtlTabl::Put (char **rp)
          it->setText (*rp);
 //DBG("CtlTabl::Put r=`d c=`d d=`s", _nr, c, *rp);
       }
+      if (tip != nullptr)  it->setToolTip (tip);
    }
    _nr++;
+DBG("Put end");
 }
 
 void CtlTabl::Shut (bool rehop)
