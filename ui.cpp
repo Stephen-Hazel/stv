@@ -84,7 +84,7 @@ DBG("AskDir got=`s", UnQS (dir));
 //______________________________________________________________________________
 void QtEr::SetTtl (char *t)  {_w->setWindowTitle (t);}
 
-/* how i found raspi needed it's global font :/
+/* how i found raspi needed it's global font
 void DbgF (char *s)
 { { QFont f = Gui.A ()->font ();
 DBG("`s app font=`s `d", s, UnQS (f.family ()), f.pointSize ());
@@ -387,9 +387,9 @@ void CtlTabl::Put (char **rp, char *tip)
 { ubyte c;
   TStr  ico;
   QTableWidgetItem *it;
-DBG("Put bgn");
    _t->setRowCount (_nr+1);
    for (c = 0;  *rp;  c++, rp++) {
+      if (c >= NCol ())  DBG("HEY!  CtlTabl::Put went beyond NCol !!");
       if (! (it = _t->item (_nr, c)))
                _t->setItem (_nr, c, it = new QTableWidgetItem);
       if (_ed [c])  it->setFlags (it->flags () |  Qt::ItemIsEditable);
@@ -413,7 +413,6 @@ DBG("Put bgn");
       if (tip != nullptr)  it->setToolTip (tip);
    }
    _nr++;
-DBG("Put end");
 }
 
 void CtlTabl::Shut (bool rehop)
