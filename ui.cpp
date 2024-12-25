@@ -20,8 +20,11 @@ ubyt4 QtEr::ClipLen ()
 
 char *QtEr::ClipGet (char *s, ubyt4 siz)
 {  *s = '\0';
-   if ((ClipLen () + 1) <= siz)
+   if ((ClipLen () + 1) <= siz) {
+DBG("clipget ok `d <= `d", ClipLen () + 1, siz);
       StrCp (s, CC(UnQS (_a->clipboard ()->text ())));
+   }
+DBG("ClipGet returns s=`s", s);
    return s;
 }
 
