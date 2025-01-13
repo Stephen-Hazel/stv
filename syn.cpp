@@ -422,7 +422,7 @@ void Voice::ReFlt ()                   // set flt res,cut
 //_vel,  (int)cRng,
 //       (int)(cRng * _vel   / 127. + 4000.),
 //       (int)(960. * c->res / 127.));
-   _flt.Cut (cRng * _vel   / 127. + 4000.);
+   _flt.Cut (cRng * ((_ch==9)?127:_vel) / 127. + 4000.);
    _flt.Res (960. * c->res / 127.);
 }
 
@@ -453,8 +453,13 @@ void Voice::Redo (char re)             // reset voice params
 void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 // called by synth's NtOn per matching sample of chan's sound
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
-   _phase = (Phase)0;   _looped = _rels = false;   _nPer = 0;
-   _flt.Init ();   Redo ('*');
+   _phase = (Phase)0;   _looped = _rel = false;   _nPer = 0;
+   _flt.Init ();
+  real rate  = 0.2 * Sy._frq,          // .2 secs
+       ratio = 0.001;                  // mostly exp
+   _rMul = exp (-log ((1.0 + ratio) / ratio) / rate);
+   _rInc = -ratio * (1.0 - _rMul);
+   Redo ('*');
    _on = 'd';
 }
 
@@ -462,13 +467,13 @@ void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 void Voice::Release ()
 // if chan hold, leave on till hold off;  else begin release
 {  if (! _nPer)  {End ();      return;}     // never even got heard - KILL!
-   if (_rels)                  return;      // already releasin' - skip out
+   if (_rel)                   return;      // already releasin' - skip out
    if (Sy._chn [_ch].hold >= 64)
                  {_on = 's';   return;}     // sustainin'
 // samp has no loop and sez NO release - straight ta End
    if ((_smp->lpBgn >= _smp->len) && _snd->_xRls)
                  {End ();      return;}
-   _rels = true;                            // start release a goin'
+   _rel = true;                        // start release a goin'
 }
 
 
@@ -548,22 +553,21 @@ void Voice::Mix ()                     // da GUTS :)
 TRX("   interp len=`d", len);
    for (i = 0;  i < len;  i++)  {
 TStr ts, t2;
-if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
+//if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
       s  = _flt.Mix (ip [i]);          // filter it
-if (!i||(i==len-1))  TRX("      flt[`d]=`s", i, R2Str (s, ts));
+//if (!i||(i==len-1))  TRX("      flt[`d]=`s", i, R2Str (s, ts));
       s *= _amp;                       // amp it
-if (!i||(i==len-1))  TRX("      amp[`d]=`s", i, R2Str (s, ts));
+      if (_rel)
+         {_amp = _amp * _rMul + _rInc;   if (_amp <= 0.0)   break;}
+//if (!i||(i==len-1))  TRX("      amp[`d]=`s", i, R2Str (s, ts));
       mL [i] += (s * _panL);           // pan,mix it
       mR [i] += (s * _panR);
-if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
-                         i, R2Str (mL [i],ts), R2Str (mR [i],t2));
+//if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
+//                         i, R2Str (mL [i],ts), R2Str (mR [i],t2));
 //    rv [i] += (s * c->rvrb/127.);    // set reverb buf
-      if (_rels) {
-         if (_vel-- == 0)  {End ();   return;}
-         ReAmp ();
-      }
    }
-   if (len < Sy._nFr)  End ();        // dooone if nonloop sample ran out
+// dooone if rel env hit 0 or nonloop sample ran out
+   if ((_rel && (_amp <= 0.0)) || (len < Sy._nFr))  End ();
 }
 
 
@@ -572,7 +576,7 @@ void Voice::Dump (char q)
    if (! _on)  {TRX("   (off)");   return;}
 TRX("   on=`c ch=`d key=`s vel=`d looped=`b rels=`b vcNo=`d nPer=`d",
 _on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
-_vel, _looped, _rels, _vcNo, _nPer);
+_vel, _looped, _rel, _vcNo, _nPer);
    if (q)  return;
 TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
 (ubyt4)(_phase>>32), (ubyt4)(_phase & 0xFFFFFFFF),
