@@ -72,18 +72,19 @@ public:
    Sound   *_snd;
    Sample  *_smp;
    bool     _looped,                   // hit loop's end for 1st time?
-            _rels;                     // in release phase? (_vel shrinkin)
+            _rel;                      // in note release?
    Phase    _phase,                    // pos w/in our sample
             _phInc;                    // amt we scoot per output sample
    real     _amp, _panL, _panR;
    ubyt4    _vcNo, _nPer;              // voice # I am, pers since Bgn
    LPF      _flt;                      // lowpass filter for eeevery voice
+   real     _rMul, _rInc;              // release ampenv stage (only)
 
    void  Init ();
    bool  On   ()   {return  _on         ? true : false;}   // down or sust
    bool  Down ()   {return (_on == 'd') ? true : false;}
    bool  Sust ()   {return (_on == 's') ? true : false;}
-   bool  Rels ()   {return _rels;}
+   bool  Rels ()   {return _rel;}
 
    void  Bgn     (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm);
    void  Release ();
