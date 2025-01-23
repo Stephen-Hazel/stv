@@ -17,7 +17,7 @@ typedef ubyt8 Phase;                   // hi 4 bytes is int pos
 const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int
 
 struct Channel {                       // not much to a channel :)
-   ubyte snd,  hold, vol, pan, res, rvrb;
+   ubyte snd,  hold, vol, pan, res, rvrb, pnt;
    ubyt2       pbnd, pbnr;
    void Init ();
    void Dump ();
@@ -71,6 +71,7 @@ public:
    ubyte    _ch;
    Sound   *_snd;
    Sample  *_smp;
+   real     _gOfs, _gInc;              // doin glide? (portament) - pitch offset
    bool     _looped,                   // hit loop's end for 1st time?
             _rel;                      // in note release?
    Phase    _phase,                    // pos w/in our sample
