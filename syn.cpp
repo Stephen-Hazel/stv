@@ -391,20 +391,20 @@ void Voice::ReFrq ()
 //DBG("Voice::ReFrq smp=`d dev=`d",  _smp->frq, Sy._frq);
    t = (real)_smp->frq / (real)Sy._frq;
    if (! _snd->_xFrq) {
-/*TStr x,y,z,a,b;
-real nc,nh,sc,sh;
-DBG("   key=`d pbnd=`d vs smpKey=`d smpCnt=`d tnow=`s",
-_key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
-   nc = _key * 100. +
-        (c->pbnr * 100. * ((real)(c->pbnd - MID14) / (real)MID14));
-   sc = _smp->key*100. - (sbyte)(_smp->cnt);
-   nh = Ct2Hz (nc);
-   sh = Ct2Hz (sc);
-//DBG("   nt_ct=`s sm_ct=`s nt_hz=`s sm_hz=`s factor=`s",
-//R2Str(nc,x), R2Str(sc,y), R2Str(nh,z), R2Str(sh,a),
-//R2Str(nh/sh,b));
-*/
-      t *= ( Ct2Hz ( _key * 100. +
+/* TStr x,y,z,a,b;
+** real nc,nh,sc,sh;
+** DBG("   key=`d pbnd=`d vs smpKey=`d smpCnt=`d tnow=`s",
+** _key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
+**       nc = _key * 100. + _gOfs +
+**            (c->pbnr * 100. * ((real)(c->pbnd - MID14) / (real)MID14));
+**       sc = _smp->key*100. - (sbyte)(_smp->cnt);
+**       nh = Ct2Hz (nc);
+**       sh = Ct2Hz (sc);
+** DBG("   nt_ct=`s sm_ct=`s nt_hz=`s sm_hz=`s factor=`s",
+** R2Str(nc,x), R2Str(sc,y), R2Str(nh,z), R2Str(sh,a),
+** R2Str(nh/sh,b));
+*/                                 // glissando
+      t *= ( Ct2Hz ( _key * 100. + round(_gOfs/100.0)*100 +
                      (c->pbnr * 100. *
                       ((real)(c->pbnd - MID14) / (real)MID14) // -1..1
                      ) ) /
@@ -454,6 +454,11 @@ void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 // called by synth's NtOn per matching sample of chan's sound
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
    _phase = (Phase)0;   _looped = _rel = false;   _nPer = 0;
+  ubyte pn = Sy._chn [c].pnt;   _gOfs = _gInc = 0.0;
+   if ((c != 9) && pn && (pn != k)) {  // glidin?  (portamento)
+      _gOfs = ((real)pn - k) * 100.0;
+      _gInc = -(_gOfs / (Sy._frq / Sy._nFr));    // always 1 sec fo now :)
+   }
    _flt.Init ();
   real rate  = 0.2 * Sy._frq,          // .2 secs
        ratio = 0.001;                  // mostly exp
@@ -565,6 +570,12 @@ TStr ts, t2;
 //if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
 //                         i, R2Str (mL [i],ts), R2Str (mR [i],t2));
 //    rv [i] += (s * c->rvrb/127.);    // set reverb buf
+   }
+   if (_gOfs != 0.0) {                 // glidin?
+      _gOfs += _gInc;                  // bump n see if we're done
+      if (_gInc > 0.0)  {if (_gOfs >= 0.0)  {_gOfs = 0.0;   _gInc = 0.0;}}
+      else              {if (_gOfs <= 0.0)  {_gOfs = 0.0;   _gInc = 0.0;}}
+      ReFrq ();
    }
 // dooone if rel env hit 0 or nonloop sample ran out
    if ((_rel && (_amp <= 0.0)) || (len < Sy._nFr))  End ();
@@ -763,6 +774,7 @@ ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
       if (v & 0x80)  NtOn (ch, c, v & 0x7F);
       else           NOff (ch, c, v);
       if (_run)  _lok.Toss ();
+      _chn [ch].pnt = c;               // prev note in channel for glide(portam)
       return;
    }
 
