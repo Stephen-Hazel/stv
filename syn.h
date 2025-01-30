@@ -23,7 +23,7 @@ struct Channel {                       // not much to a channel :)
    void Dump ();
 };
 
-struct Sample {                         // stereo .WAVs get split to 2 samples
+struct Sample {                        // stereo .WAVs get split to 2 samples
 public:
    TStr  fn;                           // _k,_v prefix n _l/_r suffix
    ubyt4 pos, lpBgn, len,  frq;        // lpBgn==len means no loop
