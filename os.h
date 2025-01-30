@@ -857,7 +857,7 @@ public:
    // spin it off in another session totally in parallel
    { BStr a, t;
      int  rc;
-      StrFmt (a, "setsid `s/`s </dev/null >/dev/null 2>/dev/null &",
+      StrFmt (a, "`s/`s </dev/null >/dev/null 2>/dev/null &",
               Path (t), cmd);
       if ((rc = system (a)))  DBG("Spinoff `s died rc=`d", a, rc);
    }
