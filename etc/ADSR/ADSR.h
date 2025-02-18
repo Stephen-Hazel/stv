@@ -50,6 +50,8 @@ public:
    }
 
    inline void setAtt (real rate, real ratio)
+   // rate is time actually 0.1 * 44100 (4410.0) would be 0.1 seconds
+   // ratio is curve shape .0001 mostly exponential .. 100 nearly linear
    {  aCoef = Coef (aRate = rate, aRatio = ratio);
       aBase = (1.0      + aRatio) * (1.0 - aCoef);
    }

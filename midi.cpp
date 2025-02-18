@@ -108,7 +108,7 @@ TRC("MidiDevLst::Load");
       }
       if (card < 0)  break;
 
-//DBG("card#=`d", card);
+DBG("card#=`d", card);
       StrFmt (name, "hw:`d", card);
       if ((err = ::snd_ctl_open (& ctl, name, 0)) < 0) {
          DBG ("snd_ctl_open error for card `d: `s", card, ::snd_strerror (err));
@@ -121,7 +121,7 @@ TRC("MidiDevLst::Load");
          }
          if (dev < 0)  break;
 
-//DBG(" dev=`d", dev);
+DBG(" dev=`d", dev);
          isub = osub = 0;
          ::snd_rawmidi_info_set_device (info, dev);
          ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_INPUT);
@@ -131,7 +131,7 @@ TRC("MidiDevLst::Load");
          if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
             osub = ::snd_rawmidi_info_get_subdevices_count (info);
          nsub = isub > osub ? isub : osub;
-//DBG("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
+DBG("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
          for (sub = 0;  sub < nsub;  sub++) {
             ::snd_rawmidi_info_set_stream (
                info, sub < isub ? SND_RAWMIDI_STREAM_INPUT
@@ -158,7 +158,7 @@ TRC("MidiDevLst::Load");
       }
       ::snd_ctl_close (ctl);
    }
-// Dump ();
+Dump ();
 }
 
 
@@ -195,53 +195,28 @@ bool MidiDevLst::GetPos (char io, ubyte pos,
 
 
 //______________________________________________________________________________
-MCCRow MCC [] = { // types are u=0-127(default)
-                            // o=0,127(split at 64)
-                            // s=0-127=>-64-63
-                            // x=tmpo,tsig,ksig,prog
-   {"Tmpo",    'x',120,MC_TMPO},  // tempo (scaled unsigned)    (non midi/mapd)
-   {"TSig",    'x',260,MC_TSIG},  // time signature             (non midi/mapd)
-   {"KSig",    'x',0,  MC_KSIG},  // key signature C(0b,Maj)=0  (non midi/mapd)
-   {"Prog",    'x',0,  MC_PROG},  // set track's sound on it's dev/chn
-   {"MTun",    's',64, MC_US+3},  // master transpose/tune
-   {"Tune",    's',64, MC_RP+4*2},// track transpose
-   {"PBnR",    'u',2,  MC_RP},    // pitchbend range
-   {"PBnd",    's',64, MC_PBND},  // pitchbend tuning
-   {"MVol",    'u',127,MC_US},    // master volume
-   {"Vol",     'u',100,MC_CC+7},  // track overall volume
-   {"Expr",    'u',127,MC_CC+11}, // track volume adjustment
-   {"MBal",    's',64, MC_US+1},  // master balance
-   {"Pan",     's',64, MC_CC+10}, // track pan position
-   {"Bal",     's',64, MC_CC+8},  // track pan adjustment
-   {"Hold",    'o',0,  MC_CC+64}, // sustain/damper pedal
-   {"Soft",    'o',0,  MC_CC+67}, // soft pedal
-   {"Sust",    'o',0,  MC_CC+66}, // sustenuto pedal
-   {"Lega",    'o',0,  MC_CC+68}, // legato pedal
-   {"Rvrb",    'u',0,  MC_CC+91}, // reverb fx amount
-   {"Chor",    'u',0,  MC_CC+93}, // chorus fx amount
-   {"Portamto",'u',0,  MC_CC+65}, // portamento on/off
-   {"PrtTime", 'u',0,  MC_CC+5},  // portamento time hi
-   {"PrtTimeL",'u',0,  MC_CC+37}, // portamento time lo
-   {"PrtNote", 'u',0,  MC_CC+84}, // portamento note
-   {"SnOff",   'u',0,  MC_CC+120},// sounds off
-   {"CtRst",   'u',0,  MC_CC+121},// control reset
-   {"NtOff",   'u',0,  MC_CC+123},// notes off
-   {"LocCtrl", 'u',0,  MC_CC+122},
-   {"OmniOff", 'u',0,  MC_CC+124},
-   {"OmniOn",  'u',0,  MC_CC+125},
-   {"Mono",    'u',0,  MC_CC+126},
-   {"Poly",    'u',0,  MC_CC+127},
-   {"Prss",    'u',0,  MC_PRSS},  // (usually mapped)
-   {"Mod",     'u',0,  MC_CC+1},  // (usually mapped)
-   {"Brth",    'u',0,  MC_CC+2},  // (usually mapped)
-   {"Pedl",    'u',0,  MC_CC+4},  // (usually mapped)
-   {"Hld2",    'o',0,  MC_CC+69}  // sustain/damper pedal 2 (usually mapped)
-};
-ubyte NMCC = BITS (MCC);
+MCCRow MCC [64];
+ubyte NMCC;
+
+void MCCInit ()
+{ TStr   fn, s;
+  STable t;
+  ubyte  r;
+   StrFmt (fn, "`s/device/cc.txt", App.Path (s, 'd'));
+   t.Load (fn, CC("#"), 5, 128);   NMCC = (ubyte)t.NRow ();
+   for (r = 0;  r < NMCC;  r++) {
+//TODO add error checkin...:(
+      StrCp (MCC [r].s,              t.Get (r, 0));
+      MCC [r].typ  =                 t.Get (r, 1) [0];
+      MCC [r].dflt = (ubyt2)Str2Int (t.Get (r, 2));
+      MCC [r].raw  = MCtl           (t.Get (r, 3));
+   }
+}
 
 void MCCDump ()
 { TStr s;
-   for (ubyt4 i = 0;  i < NMCC;  i++)  DBG("s=`<8s typ=`c dflt=`3d raw=`s",
+   for (ubyt4 i = 0;  i < NMCC;  i++)
+DBG("s=`<7s typ=`c dflt=`d raw=`s",
 MCC [i].s, MCC [i].typ, MCC [i].dflt, MCtl2Str (s, MCC [i].raw));
 }
 

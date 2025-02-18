@@ -16,14 +16,19 @@ typedef ubyt8 Phase;                   // hi 4 bytes is int pos
                                        // lo 4 bytes is fract
 const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int
 
-struct Channel {                       // not much to a channel :)
-   ubyte snd,  hold, vol, pan, res, rvrb, pnt;
-   ubyt2       pbnd, pbnr;
+struct Channel {
+   ubyte hold, snd;
+   ubyt2 pBnd, pBnR;
+   ubyte fCut, fRes, vol, pan, rvrb,
+         vel2fCut,
+         glide, glRate, glFrom,        // prev note, portam on/off, rate, fr key
+         nNt, pNt;                     // nt,tm shift reg to set pNt right
+   ubyt4 nTm;
    void Init ();
    void Dump ();
 };
 
-struct Sample {                        // stereo .WAVs get split to 2 samples
+struct Sample {                        // stereo .WAVs get split to L,R samples
 public:
    TStr  fn;                           // _k,_v prefix n _l/_r suffix
    ubyt4 pos, lpBgn, len,  frq;        // lpBgn==len means no loop
@@ -43,9 +48,9 @@ public:
 
    Sound (char *snd, ubyte dKey = 128);
   ~Sound ();
-   void  Dump ();
    bool  LoadFmt (char *wfn, ubyte ky, ubyte vl);
    ubyt4 LoadDat (ubyt4 pos);
+   void  Dump ();
 };
 //______________________________________________________________________________
 class LPF {                            // low pass filter (per voice)
@@ -71,15 +76,15 @@ public:
    ubyte    _ch;
    Sound   *_snd;
    Sample  *_smp;
-   real     _gOfs, _gInc;              // doin glide? (portament) - pitch offset
+   LPF      _flt;                      // lowpass filter for eeevery voice
    bool     _looped,                   // hit loop's end for 1st time?
             _rel;                      // in note release?
    Phase    _phase,                    // pos w/in our sample
             _phInc;                    // amt we scoot per output sample
    real     _amp, _panL, _panR;
    ubyt4    _vcNo, _nPer;              // voice # I am, pers since Bgn
-   LPF      _flt;                      // lowpass filter for eeevery voice
-   real     _rMul, _rInc;              // release ampenv stage (only)
+   real     _gOfs, _gInc,              // doin glide? (portament) - pitch offset
+            _rMul, _rInc;              // release ampenv stage (only)
 
    void  Init ();
    bool  On   ()   {return  _on         ? true : false;}   // down or sust
@@ -97,6 +102,12 @@ public:
    void  Mix ();                       // da guts
 };
 //______________________________________________________________________________
+struct SInfo {                         // song info stuff pch tells syn
+   ubyt4 time;
+   ubyt2 tmpo;
+   ubyte bt, sb;
+};
+
 class Syn: public QThread {
    Q_OBJECT
 
@@ -122,6 +133,8 @@ public:
 
    bool    _run;                       // spinnin our sample writin thread?
    ThLock  _lok;                       // lock - so i don't step on my thread
+   bool    _trx;                       // syn specific TRX like TRC
+   SInfo   _in;
 
    void  Init (char wav = '\0'),  Quit ();
    bool  Dead ()  {return ! _run;}
@@ -138,9 +151,9 @@ public:
 
    sbyt2 r2i (real r, real dth);
    void  Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0);
+   void  Tell (SInfo *in)  {MemCp (& _in, in, sizeof (_in));}
 
    void  Dump (char x = '\0');
-   bool  _trx;
 };
 extern Syn Sy;                         // that's me
 
