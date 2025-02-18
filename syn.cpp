@@ -44,6 +44,10 @@ static void InitDither (void)               // rand real btw -.999 and +.999
    }
 }
                                        // conversion tables...
+static real Cnv_vex [128], Cnv_cav [128];
+static real Convex (ubyte i)  {return Cnv_vex [i];}
+static real Concav (ubyte i)  {return Cnv_cav [i];}
+
 static real Cnv_ct2hz [1200];          // cents to hz
 static real     Ct2Hz (real ct)
 {  if (ct <     0.) return (real)    1.;
@@ -62,12 +66,12 @@ static real     Ct2Hz (real ct)
    return                  (real)    1.;
 }
 
-static real Cnv_pan [127];             // 128 to pan
+static real Cnv_pan [127];             // 1..127 to pan
 static real     Pan (ubyte c, ubyte lr)
 {  if (c ==  0)  c =   1;              // so -64 => -63
    if (c > 127)  c = 127;              // limit at -63 .. 63
-   c--;   if (lr == 0)  c = 126 - c;
-   return Cnv_pan [c-1];
+   c--;   if (lr == 0)  c = 126 - c;   // now 0..126
+   return Cnv_pan [c];
 }
 
 static void InitLookup ()
@@ -78,21 +82,38 @@ static void InitLookup ()
    x = M_PI/2. / (BITS (Cnv_pan) - 1.);
    for (i = 0;  i < BITS (Cnv_pan);  i++)
       Cnv_pan   [i] = (real) sin (i * x);
-//TStr ts;
-//for (i = 0; i < BITS (Cnv_pan); i++)
-//DBG("pan `d `s", i, R2Str (Cnv_pan[i],ts));
+   Cnv_vex [  0] = Cnv_cav [  0] = 0.;
+   Cnv_vex [127] = Cnv_cav [127] = 1.;
+   for (i = 1;  i < 126;  i++) {
+      x = -200. / 96. * log (((real)i * i) / (127. * 127.)) / log (10.);
+      Cnv_vex [i] = 1. - x;            //TODO ^ def broke
+      Cnv_cav [i] =      x;
+   }
    InitInterp ();   InitDither ();
+/*
+TStr ts;
+for (i = 0; i < BITS (Cnv_pan); i++)
+DBG("pan    `d `s", i, R2Str (Cnv_pan[i],ts));
+for (i = 0; i < BITS (Cnv_vex); i++)
+DBG("   vex `d `s", i, R2Str (Cnv_vex[i],ts));
+for (i = 0; i < BITS (Cnv_cav); i++)
+DBG("   cav `d `s", i, R2Str (Cnv_cav[i],ts));
+*/
 }
 //______________________________________________________________________________
 void Channel::Init ()                  // channels are easy as pie at least
-{  hold = 0;   vol = 127;   pan = 64;   pbnd = MID14;   pbnr = 2;
-   res = 0;   rvrb = 6;
+{  hold = snd = 0;
+   pBnd = MID14;   pBnR = 2;
+   fCut = 127;   fRes = 0;   vol = 127;   pan = 64;   rvrb = 0;
+   vel2fCut = 127;   glide = glRate = 0;   glFrom = 64;
+   pNt = nNt = 0;   nTm = 0;
 }
 
 void Channel::Dump ()
 {
-TRX("   snd=`d hold=`d vol=`d pan=`d pbnd=`d pbnr=`d res=`d rvrb=`d",
-snd, hold, vol, pan, (int)MID14-pbnd, pbnr, res, rvrb);
+TRX("   hold=`d snd=`d pBnd=`d pBnr=`d fRes=`d vol=`d pan=`d rvrb=`d\n"
+    "   glide=`d glRate=`d glFrom=`d",
+hold, snd, (int)MID14-pBnd, pBnR, fRes, vol, pan, rvrb, glide, glRate, glFrom);
 }
 //______________________________________________________________________________
 // sounds and their samples
@@ -393,20 +414,20 @@ void Voice::ReFrq ()
    if (! _snd->_xFrq) {
 /* TStr x,y,z,a,b;
 ** real nc,nh,sc,sh;
-** DBG("   key=`d pbnd=`d vs smpKey=`d smpCnt=`d tnow=`s",
-** _key, _chn->pbnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
+** DBG("   key=`d pBnd=`d vs smpKey=`d smpCnt=`d tnow=`s",
+** _key, _chn->pBnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
 **       nc = _key * 100. + _gOfs +
-**            (c->pbnr * 100. * ((real)(c->pbnd - MID14) / (real)MID14));
+**            (c->pBnR * 100. * ((real)(c->pBnd - MID14) / (real)MID14));
 **       sc = _smp->key*100. - (sbyte)(_smp->cnt);
 **       nh = Ct2Hz (nc);
 **       sh = Ct2Hz (sc);
 ** DBG("   nt_ct=`s sm_ct=`s nt_hz=`s sm_hz=`s factor=`s",
 ** R2Str(nc,x), R2Str(sc,y), R2Str(nh,z), R2Str(sh,a),
 ** R2Str(nh/sh,b));
-*/                                 // glissando
-      t *= ( Ct2Hz ( _key * 100. + round(_gOfs/100.0)*100 +
-                     (c->pbnr * 100. *
-                      ((real)(c->pbnd - MID14) / (real)MID14) // -1..1
+*/
+      t *= ( Ct2Hz ( _key * 100. + _gOfs +
+                     (c->pBnR * 100. *      // pb rng cents iz dumbb
+                      ((real)(c->pBnd - MID14) / (real)MID14)   // -1..1
                      ) ) /
              Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
    }
@@ -415,15 +436,17 @@ void Voice::ReFrq ()
 }
 
 
-void Voice::ReFlt ()                   // set flt res,cut
+void Voice::ReFlt ()                   // set filter cut,res
 { Channel *c = & Sy._chn [_ch];
-  real cRng = 9500.;
+  real cut = c->fCut / 127.0,
+       res = c->fRes / 127.0;
 //TRX("ReFlt vel=`d cRng=`d cut=`d res=`d",
 //_vel,  (int)cRng,
-//       (int)(cRng * _vel   / 127. + 4000.),
-//       (int)(960. * c->res / 127.));
-   _flt.Cut (cRng * ((_ch==9)?127:_vel) / 127. + 4000.);
-   _flt.Res (960. * c->res / 127.);
+//       (int)(cRng * _vel    / 127. + 4000.),
+//       (int)(960. * c->fRes / 127.));
+   if ((_ch != 9) && (c->vel2fCut >= 64))  cut = _vel / 127.0;
+   _flt.Cut (9500.0 * cut + 4000.);
+   _flt.Res ( 960.0 * res);
 }
 
 
@@ -440,9 +463,9 @@ void Voice::RePan ()                   // set pan - pan cc
 }
 
 
-void Voice::Redo (char re)             // reset voice params
-{  if      (re == 'n')  ReFrq ();
-   else if (re == 'f')  ReFlt ();
+void Voice::Redo (char re)             // recalc voice params
+{  if      (re == 'n')  ReFrq ();      // oscillator (note)
+   else if (re == 'f')  ReFlt ();      // filter
    else if (re == 'a')  ReAmp ();
    else if (re == 'p')  RePan ();
    else         /*'*'*/{ReFrq ();   ReFlt ();   ReAmp ();   RePan ();}
@@ -454,13 +477,24 @@ void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 // called by synth's NtOn per matching sample of chan's sound
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
    _phase = (Phase)0;   _looped = _rel = false;   _nPer = 0;
-  ubyte pn = Sy._chn [c].pnt;   _gOfs = _gInc = 0.0;
-   if ((c != 9) && pn && (pn != k)) {  // glidin?  (portamento)
+   _gOfs = _gInc = 0.0;
+  Channel *ch = & Sy._chn [c];
+  ubyte    pn = ch->pNt;
+   if ((ch->glide >= 64) && pn && (pn != k) && (c != 9)) {
+TStr s1, s2, s3;
+DBG("glide `s => `s rate=`d", MKey2Str (s1, pn), MKey2Str (s2, k), ch->glRate);
+      if (ch->glFrom != 64)  pn = (ubyte)((ubyt2)k + ch->glFrom - 64);
       _gOfs = ((real)pn - k) * 100.0;
-      _gInc = -(_gOfs / (Sy._frq / Sy._nFr));    // always 1 sec fo now :)
+   // 4 periods per rate step startin at 20 - max of about 0.75 secs
+      _gInc = -_gOfs / (20.0 + 4.0 * ch->glRate);
+   // samp/sec / samp/buf => buf/sec so s4 buffers use 4 secs
+//   real s4 = 4.0 * (real)Sy._frq / Sy._nFr;
+//    _gInc = -_gOfs / (s4 * (ch->glRate+1) / 128.0);
+DBG("   gOfs=`s gInc=`s vcNo=`d",
+R2Str(_gOfs,s1), R2Str(_gInc,s2), _vcNo);
    }
    _flt.Init ();
-  real rate  = 0.2 * Sy._frq,          // .2 secs
+  real rate  = 0.2 * Sy._frq,          // release curve - .2 secs
        ratio = 0.001;                  // mostly exp
    _rMul = exp (-log ((1.0 + ratio) / ratio) / rate);
    _rInc = -ratio * (1.0 - _rMul);
@@ -575,6 +609,7 @@ TStr ts, t2;
       _gOfs += _gInc;                  // bump n see if we're done
       if (_gInc > 0.0)  {if (_gOfs >= 0.0)  {_gOfs = 0.0;   _gInc = 0.0;}}
       else              {if (_gOfs <= 0.0)  {_gOfs = 0.0;   _gInc = 0.0;}}
+if (_gInc == 0.0)  DBG("glide done vcNo=`d nPer=`d", _vcNo, _nPer);
       ReFrq ();
    }
 // dooone if rel env hit 0 or nonloop sample ran out
@@ -758,6 +793,7 @@ TRX(" AllVc ch=`d `s", ch+1,
 }
 //______________________________________________________________________________
 // syn maaain api...
+
 void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 // setup a chan's voices with CC else start/stop a voice with note
 // only drum notes,CCs of ANOFF,ASOFF,ACOFF should be on ch 9
@@ -768,13 +804,25 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
 
 // do note  on/off  (NPrs some day?)
    if (! (c & 0xFF80)) {
-TRX("Syn::Put ch=`d `s`c`d",
+DBG("Syn::Put ch=`d `s`c`d",
 ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
 (v & 0x080) ? ((v2 & 0x080) ? '~' : '_') : '^', v & 0x07F);
-      if (v & 0x80)  NtOn (ch, c, v & 0x7F);
-      else           NOff (ch, c, v);
+      if (v & 0x80) {
+         if (ch != 9) {
+            if ((Sy._in.time < _chn [ch].nTm) ||      // musta restarted
+                (Sy._in.time > _chn [ch].nTm+24)) {   // 32nd nt
+               _chn [ch].pNt = _chn [ch].nNt;    // click!
+               _chn [ch].nNt = c;                // save these for next time
+               _chn [ch].nTm = Sy._in.time;
+            }
+            else                       // use lowest note of chord for pNt
+               if (c < _chn [ch].nNt)  _chn [ch].nNt = c;
+         }
+         NtOn (ch, c, v & 0x7F);
+      }
+      else
+         NOff (ch, c, v);
       if (_run)  _lok.Toss ();
-      _chn [ch].pnt = c;               // prev note in channel for glide(portam)
       return;
    }
 
@@ -785,29 +833,30 @@ DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch+1, c, v);
       if (_run)  _lok.Toss ();
       return;
    }
+  Channel *chn = & _chn [ch];
    switch (c) {
-      case MC_PROG:
-         if ((ch == 9) || (v > _nSnd))
-DBG("Syn::Put M_PROG on drum chan or too high");
-         else  _chn [ch].snd = v;
-         if (_run)  _lok.Toss ();
-         return;
-      case MC_CC|M_ANOFF: re = 'r';   break;   // release em
-      case MC_CC|M_ASOFF: re = 'e';   break;   // end em
-      case MC_CC|M_ACOFF: re = 'i';   break;   // reset all CCs
+      case MC_PROG:       if ((v < _nSnd) && (ch != 9))  chn->snd = v;  else
+DBG("Syn::Put M_PROG past band or on drums");
+                                      break;
+      case MC_CC|M_ANOFF: re = 'r';   break;     // release em
+      case MC_CC|M_ASOFF: re = 'e';   break;     // end em
+      case MC_CC|M_ACOFF: re = 'i';   break;     // reset all CCs
 
    // ...better not be any chan 9s after this
-      case MC_CC|M_HOLD:  if ((_chn [ch].hold = v) < 64)  UnHold (ch);
-                          if (_run)  _lok.Toss ();
-                          return;
-   // above ones don't do voice recalc;  below ones do
-      case MC_PBND:       _chn [ch].pbnd = v << 7 | v2;   re = 'n';   break;
-      case MC_CC|16:      _chn [ch].pbnr = v;             re = 'n';   break;
-      case MC_CC|19:      _chn [ch].res  = v;             re = 'f';   break;
-      case MC_CC|M_VOL:   _chn [ch].vol  = v;             re = 'a';   break;
-      case MC_CC|M_PAN:   _chn [ch].pan  = v;             re = 'p';   break;
+      case MC_CC|M_HOLD:  chn->hold = v;
+                          if (v < 64) UnHold (ch);   break;
+      case MC_PBND:       chn->pBnd = v << 7 | v2;   re = 'n';   break;
+      case MC_CC|16:      chn->pBnR = v;   re = 'n';   break;  // cc# ok??
+      case MC_CC|18:      chn->fCut = v;   re = 'f';   break;
+      case MC_CC|19:      chn->fRes = v;   re = 'f';   break;
+      case MC_CC|M_VOL:   chn->vol  = v;   re = 'a';   break;
+      case MC_CC|M_PAN:   chn->pan  = v;   re = 'p';   break;
+      case MC_CC|24:      chn->rvrb = v;   re = 'p';   break;  // l8r
+      case MC_CC|65:      chn->glide  = v;   break;
+      case MC_CC|5:       chn->glRate = v;   break;
+      case MC_CC|84:      chn->glFrom = v;   break;
+      case MC_CC|20:      chn->vel2fCut = v;   re = 'f';   break;
 /* reverb fixed till i find algos that don't suck
-**    case MC_CC|24:      _chn [ch].rvrb = v;             re = 'p';   break;
 **
 ** // not channel specific fx params
 **    case MC_CC|30:      _fxP.rRoom  = v;                re = 'x';   break;
@@ -815,10 +864,8 @@ DBG("Syn::Put M_PROG on drum chan or too high");
 **    case MC_CC|32:      _fxP.rWidth = v;                re = 'x';   break;
 **    case MC_CC|33:      _fxP.rLevel = v;                re = 'x';   break;
 */
-      default:            if (_run)  _lok.Toss ();
-                          return;
    }
-   AllVc (ch, re);
+   if (re)  AllVc (ch, re);
    if (_run)  _lok.Toss ();
 }
 

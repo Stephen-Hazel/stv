@@ -134,7 +134,7 @@ extern MidiDevLst Midi;
 struct MCCRow {TStr s;  char typ;  ubyt2 dflt, raw;};
 extern MCCRow MCC [];
 extern ubyte NMCC;
-void MCCDump ();
+void MCCInit (), MCCDump ();
 
 char *TmS (char *s, ubyt4 t);
 
