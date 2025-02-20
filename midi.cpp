@@ -108,7 +108,7 @@ TRC("MidiDevLst::Load");
       }
       if (card < 0)  break;
 
-DBG("card#=`d", card);
+//DBG("card#=`d", card);
       StrFmt (name, "hw:`d", card);
       if ((err = ::snd_ctl_open (& ctl, name, 0)) < 0) {
          DBG ("snd_ctl_open error for card `d: `s", card, ::snd_strerror (err));
@@ -121,7 +121,7 @@ DBG("card#=`d", card);
          }
          if (dev < 0)  break;
 
-DBG(" dev=`d", dev);
+//DBG(" dev=`d", dev);
          isub = osub = 0;
          ::snd_rawmidi_info_set_device (info, dev);
          ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_INPUT);
@@ -131,7 +131,7 @@ DBG(" dev=`d", dev);
          if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
             osub = ::snd_rawmidi_info_get_subdevices_count (info);
          nsub = isub > osub ? isub : osub;
-DBG("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
+//DBG("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
          for (sub = 0;  sub < nsub;  sub++) {
             ::snd_rawmidi_info_set_stream (
                info, sub < isub ? SND_RAWMIDI_STREAM_INPUT
