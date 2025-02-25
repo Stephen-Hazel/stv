@@ -325,6 +325,25 @@ TRX("   nSmp=`d", _nSmp);
 
 Sound::~Sound ()  {delete [] _smp;}
 //______________________________________________________________________________
+Env::Env (real iLvl, EnvStg *stg, ubyte nStg)
+{ real ratio, d, l;
+   for (ubyte s = 0;  s < nStg;  s++) {
+      d = stg [s].dur;   l = stg [s].lvl;   ratio = stg [s].crv;
+      if (ratio < 0.000000001)  ratio = 0.000000001;    // -180 dB
+      stg [s].mul = (d <= 0) ? 0. : exp (-log ((1.0 + ratio) / ratio) / d);
+      stg [s].ofs = (l + ratio) * (1.0 - stg [s].mul);
+   }
+   st = 0;   lvl = iLvl;   dir = (lvl < stg [0].lvl) ? 1 : -1;
+}
+
+real Env::Mix ()
+{  if (st >= nStg)  return lvl;
+   lvl = stg [st].ofs + lvl * stg [st].mul;
+   if (dir == 1)  {if (lvl >= stg [st].lvl) {lvl = stg [st].lvl;   st++;}}
+   else            if (lvl <= stg [st].lvl) {lvl = stg [st].lvl;   st++;}
+   return lvl;
+}
+//______________________________________________________________________________
 // low pass filter for each voice
 void LPF::Cut (real c)                 // cutoff frequency in absolute cents
 // limit cut range n convert from cents to hz  (called once per buffer)
