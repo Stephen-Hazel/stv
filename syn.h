@@ -53,6 +53,20 @@ public:
    void  Dump ();
 };
 //______________________________________________________________________________
+struct EnvStg {real crv, dur, lvl,   mul, ofs;};
+                 // crv  .0001 mostly exponential .. 100 mostly linear
+                 // dur  .2   (* _frq(44100)  .2 sec)
+                 // lvl  target (ending) level
+                 // mul, ofs calc'd in env init from these 3 and used thereafter
+class Env {
+   EnvStg *stg;
+   ubyte  nStg, st, dir;
+   real    lvl;
+public:
+   Env (real iLvl, EnvStg *stg, ubyte nStg);
+   real Mix ();
+};
+//______________________________________________________________________________
 class LPF {                            // low pass filter (per voice)
    bool  init;
    ubyt4 inc;
