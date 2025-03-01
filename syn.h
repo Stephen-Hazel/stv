@@ -81,46 +81,47 @@ class Env {        // they calc curve in series til next lvl is hit, then st++
    real  lvl;      // output level
 public:
    void  Init (EnvStg *stg);
-   ubyte Stg ()     {return st;}
-   void  SetStg (sbyte s)  {st = s;}
+   ubyte Stg ()       {return st;}
+   void  SetStg (sbyte s)    {st = s;}
+   bool  End ()  {return stg [st].mul == 0.;}
    real  Mix ();
+};
+//______________________________________________________________________________
+struct Glide {                         // cool modulation on freq
+   real ofs, inc;
+   void Init (ubyte cid, ubyte key);
+   char Mix ();
 };
 //______________________________________________________________________________
 class Voice {
 public:                                // Core stuph:
    char    _on;                        // \0=free, d=down, s=sust(NOff but hold)
+                                       //          r=release(amp curve to 0)
    ubyte   _ch,                        // channel
            _key, _vel;                 // key and velocity of note on
-   bool    _rel;                       // in note release?
    ubyt4   _vcNo, _nPer;               // voice # I am, periods since Bgn
 
    Sound  *_snd;                       // Oscillator:
-   Sample *_smp;
+   Sample *_smp;                       // which wav of instrument wav set
    bool    _looped;                    // hit loop's end for 1st time?
    Phase   _phase,                     // pos w/in our sample
-           _phInc;                     // amt we scoot per output sample
+           _phInc;                     // amt we scoot pos per output sample
 
    LPF     _flt;                       // Filter: lowpass one for eeevery voice
 
    real    _amp, _panL, _panR;         // Amp n Pan
 
-   Env     _ampE;                      // Modulation stuph...
-   real    _gOfs, _gInc,               // doin glide? (portament) - pitch offset
-           _rMul, _rInc;               // release ampenv stage (only)
+   Env     _relE;                      // Modulation stuph...  (always rel env)
+   Glide   _gl;                        // doin glide? (portamento) pitch offset
 
    void  Init ();
-   bool  On   ()   {return  _on         ? true : false;}   // down or sust
-   bool  Down ()   {return (_on == 'd') ? true : false;}
-   bool  Sust ()   {return (_on == 's') ? true : false;}
-   bool  Rels ()   {return _rel;}
-
-   void  Bgn     (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm);
-   void  Release ();
-   void  End     ();
+   void  Bgn  (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm);
+   void  Rels ();
+   void  End  ();
    void  ReFrq (), ReFlt (), ReAmp (), RePan (), Redo (char re);
    void  Dump  (char q = '\0');
 
-   ubyt4 Interp (real *ib);            // tough part (sample=>interpolation buf)
+   ubyt4 Osc (real *ib);               // tough part (sample=>interpolation buf)
    void  Mix ();                       // guts - cook up next sound card buf
 };
 //______________________________________________________________________________
