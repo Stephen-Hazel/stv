@@ -44,15 +44,11 @@ static void InitDither (void)               // rand real btw -.999 and +.999
    }
 }
                                        // conversion tables...
-static real Cnv_vex [128], Cnv_cav [128];
-static real Convex (ubyte i)  {return Cnv_vex [i];}
-static real Concav (ubyte i)  {return Cnv_cav [i];}
-
 static real Cnv_ct2hz [1200];          // cents to hz
 static real     Ct2Hz (real ct)
 {  if (ct <     0.) return (real)    1.;
-   if (ct <   900.) return (real)  6.875 * Cnv_ct2hz [(sbyt4)(ct +   300)];
-   if (ct <  2100.) return (real)  13.75 * Cnv_ct2hz [(sbyt4)(ct -   900)];
+   if (ct <   900.) return (real)    6.875 * Cnv_ct2hz [(sbyt4)(ct + 300)];
+   if (ct <  2100.) return (real)   13.75 * Cnv_ct2hz [(sbyt4)(ct -  900)];
    if (ct <  3300.) return (real)   27.5 * Cnv_ct2hz [(sbyt4)(ct -  2100)];
    if (ct <  4500.) return (real)   55.  * Cnv_ct2hz [(sbyt4)(ct -  3300)];
    if (ct <  5700.) return (real)  110.  * Cnv_ct2hz [(sbyt4)(ct -  4500)];
@@ -82,22 +78,11 @@ static void InitLookup ()
    x = M_PI/2. / (BITS (Cnv_pan) - 1.);
    for (i = 0;  i < BITS (Cnv_pan);  i++)
       Cnv_pan   [i] = (real) sin (i * x);
-   Cnv_vex [  0] = Cnv_cav [  0] = 0.;
-   Cnv_vex [127] = Cnv_cav [127] = 1.;
-   for (i = 1;  i < 126;  i++) {
-      x = -200. / 96. * log (((real)i * i) / (127. * 127.)) / log (10.);
-      Cnv_vex [i] = 1. - x;            //TODO ^ def broke
-      Cnv_cav [i] =      x;
-   }
    InitInterp ();   InitDither ();
 /*
 TStr ts;
 for (i = 0; i < BITS (Cnv_pan); i++)
 DBG("pan    `d `s", i, R2Str (Cnv_pan[i],ts));
-for (i = 0; i < BITS (Cnv_vex); i++)
-DBG("   vex `d `s", i, R2Str (Cnv_vex[i],ts));
-for (i = 0; i < BITS (Cnv_cav); i++)
-DBG("   cav `d `s", i, R2Str (Cnv_cav[i],ts));
 */
 }
 //______________________________________________________________________________
@@ -325,25 +310,6 @@ TRX("   nSmp=`d", _nSmp);
 
 Sound::~Sound ()  {delete [] _smp;}
 //______________________________________________________________________________
-Env::Env (real iLvl, EnvStg *stg, ubyte nStg)
-{ real ratio, d, l;
-   for (ubyte s = 0;  s < nStg;  s++) {
-      d = stg [s].dur;   l = stg [s].lvl;   ratio = stg [s].crv;
-      if (ratio < 0.000000001)  ratio = 0.000000001;    // -180 dB
-      stg [s].mul = (d <= 0) ? 0. : exp (-log ((1.0 + ratio) / ratio) / d);
-      stg [s].ofs = (l + ratio) * (1.0 - stg [s].mul);
-   }
-   st = 0;   lvl = iLvl;   dir = (lvl < stg [0].lvl) ? 1 : -1;
-}
-
-real Env::Mix ()
-{  if (st >= nStg)  return lvl;
-   lvl = stg [st].ofs + lvl * stg [st].mul;
-   if (dir == 1)  {if (lvl >= stg [st].lvl) {lvl = stg [st].lvl;   st++;}}
-   else            if (lvl <= stg [st].lvl) {lvl = stg [st].lvl;   st++;}
-   return lvl;
-}
-//______________________________________________________________________________
 // low pass filter for each voice
 void LPF::Cut (real c)                 // cutoff frequency in absolute cents
 // limit cut range n convert from cents to hz  (called once per buffer)
@@ -408,6 +374,37 @@ real LPF::Mix (real smp)               // actually DO the filterin'
 //R2Str(hist1,t4),R2Str(hist2,t5),R2Str(a1,t6),R2Str(a2,t7),
 //R2Str(b1,t8),R2Str(b2,t9));
    return x;
+}
+//______________________________________________________________________________
+void Env::Init (EnvStg *iStg)
+{ real d, l, el, ratio;
+  ubyte s = 0;
+   stg.Ln = 0;
+   for (;;) {
+      stg.Ln++;     stg [s].lvl = iStg->lvl;
+      d = iStg->dur;    ratio = iStg->crv;
+      if (d == 0)  {stg [s].mul = 0;   break;}
+
+      iStg++;   l = iStg->lvl;
+      if (ratio < 0.000000001)  ratio = 0.000000001;       // -180 dB
+      stg [s].mul = (d <= 0) ? 0. : exp (-log ((1.0 + ratio) / ratio) / d);
+      stg [s].ofs = (l + ratio) * (1.0 - stg [s].mul);
+      s++;
+   }
+   st = 0;   lvl = iLvl;   dir = (stg [0].lvl < stg [1].lvl) ? 1 : -1;
+}
+
+real Env::Mix ()
+{  if ((st >= stg.Ln) || (stg [st].mul == 0))  return lvl; // end or static stg
+
+   lvl = lvl * stg [st].mul + stg [st].ofs;
+   if (dir == 1)  {if (lvl < stg [st+1].lvl)  return lvl;}
+   else            if (lvl > stg [st+1].lvl)  return lvl;
+
+   lvl = stg [++st].lvl;               // bump to next stage !
+   if ((stg [st].mul != 0) && (st < nStg))
+      dir = (lvl < stg [st+1].lvl) ? 1 : -1;
+   return lvl;
 }
 //______________________________________________________________________________
 void Voice::Init ()  {_on = '\0';   _ch = 0xFF;}
@@ -493,7 +490,7 @@ void Voice::Redo (char re)             // recalc voice params
 
 
 void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
-// called by synth's NtOn per matching sample of chan's sound
+// called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
    _phase = (Phase)0;   _looped = _rel = false;   _nPer = 0;
    _gOfs = _gInc = 0.0;
@@ -522,7 +519,7 @@ R2Str(_gOfs,s1), R2Str(_gInc,s2), _vcNo);
 }
 
 
-void Voice::Release ()
+void Voice::Release ()                 // noteoff or hold=off
 // if chan hold, leave on till hold off;  else begin release
 {  if (! _nPer)  {End ();      return;}     // never even got heard - KILL!
    if (_rel)                   return;      // already releasin' - skip out
@@ -538,7 +535,7 @@ void Voice::Release ()
 void Voice::End ()  {_on = '\0';   _ch = 0xFF;   _snd = nullptr;}
 
 
-ubyt4 Voice::Interpolate (real *ip)
+ubyt4 Voice::Interp (real *ip)
 // just linear!  ez, fast, good enough.
 // stretch sample (per note frq vs. root frq) into _intp dsp buffer (*ip/o here)
 // hi byte of phase fraction tells how to balance our 2 samples at a time
@@ -556,7 +553,7 @@ ubyt4 Voice::Interpolate (real *ip)
    else            se = in [_smp->lpBgn];
 
 //TStr s1;
-//DBG("      Interpolate sEnd=`d ph=`d,`u se=`s",
+//DBG("      Interp sEnd=`d ph=`d,`u se=`s",
 //sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF),R2Str(se,s1));
    for (;;) {
       s = PHASE_INDEX (ph);
@@ -607,7 +604,7 @@ void Voice::Mix ()                     // da GUTS :)
    if (! On ())                       return;
    if (_snd == nullptr)    {End ();   return;}
    _nPer++;
-   len = Interpolate (ip);             // stretch/shrink sample into _intp
+   len = Interp (ip);                  // stretch/shrink sample into _intp
 TRX("   interp len=`d", len);
    for (i = 0;  i < len;  i++)  {
 TStr ts, t2;
