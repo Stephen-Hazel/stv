@@ -53,20 +53,6 @@ public:
    void  Dump ();
 };
 //______________________________________________________________________________
-struct EnvStg {real crv, dur, lvl,   mul, ofs;};
-                 // crv  .0001 mostly exponential .. 100 mostly linear
-                 // dur  .2   (* _frq(44100)  .2 sec)
-                 // lvl  target (ending) level
-                 // mul, ofs calc'd in env init from these 3 and used thereafter
-class Env {
-   EnvStg *stg;
-   ubyte  nStg, st, dir;
-   real    lvl;
-public:
-   Env (real iLvl, EnvStg *stg, ubyte nStg);
-   real Mix ();
-};
-//______________________________________________________________________________
 class LPF {                            // low pass filter (per voice)
    bool  init;
    ubyt4 inc;
@@ -83,22 +69,44 @@ public:
    real Mix (real smp);
 };
 //______________________________________________________________________________
-class Voice {
+struct EnvStg {real lvl, dur, crv;};
+                   // lvl  starting level (ending at next stg's .lvl)
+                   // crv  (curve) .0001 mostly exponential .. 100 mostly linear
+                   // dur  .2   (* _frq(44100) = .2 sec)  0 for ENDSTAGE
+struct EnvStX {real lvl, mul, ofs;};
+                   // mul, ofs calc'd in Init from EnvStg parts
+class Env {        // they calc curve in series til next lvl is hit, then st++
+   Arr<EnvStX,8> stg;
+   sbyte st, dir;  // which stage we're on;  dir btw start - target lvl (-/+1)
+   real  lvl;      // output level
 public:
-   char     _on;                       // \0=free, d=down, s=sust(NOff but hold)
-   ubyte    _key, _vel;
-   ubyte    _ch;
-   Sound   *_snd;
-   Sample  *_smp;
-   LPF      _flt;                      // lowpass filter for eeevery voice
-   bool     _looped,                   // hit loop's end for 1st time?
-            _rel;                      // in note release?
-   Phase    _phase,                    // pos w/in our sample
-            _phInc;                    // amt we scoot per output sample
-   real     _amp, _panL, _panR;
-   ubyt4    _vcNo, _nPer;              // voice # I am, pers since Bgn
-   real     _gOfs, _gInc,              // doin glide? (portament) - pitch offset
-            _rMul, _rInc;              // release ampenv stage (only)
+   void  Init (EnvStg *stg);
+   ubyte Stg ()     {return st;}
+   void  SetStg (sbyte s)  {st = s;}
+   real  Mix ();
+};
+//______________________________________________________________________________
+class Voice {
+public:                                // Core stuph:
+   char    _on;                        // \0=free, d=down, s=sust(NOff but hold)
+   ubyte   _ch,                        // channel
+           _key, _vel;                 // key and velocity of note on
+   bool    _rel;                       // in note release?
+   ubyt4   _vcNo, _nPer;               // voice # I am, periods since Bgn
+
+   Sound  *_snd;                       // Oscillator:
+   Sample *_smp;
+   bool    _looped;                    // hit loop's end for 1st time?
+   Phase   _phase,                     // pos w/in our sample
+           _phInc;                     // amt we scoot per output sample
+
+   LPF     _flt;                       // Filter: lowpass one for eeevery voice
+
+   real    _amp, _panL, _panR;         // Amp n Pan
+
+   Env     _ampE;                      // Modulation stuph...
+   real    _gOfs, _gInc,               // doin glide? (portament) - pitch offset
+           _rMul, _rInc;               // release ampenv stage (only)
 
    void  Init ();
    bool  On   ()   {return  _on         ? true : false;}   // down or sust
@@ -112,15 +120,11 @@ public:
    void  ReFrq (), ReFlt (), ReAmp (), RePan (), Redo (char re);
    void  Dump  (char q = '\0');
 
-   ubyt4 Interpolate (real *ib);       // tough part (sample=>interpolation buf)
-   void  Mix ();                       // da guts
+   ubyt4 Interp (real *ib);            // tough part (sample=>interpolation buf)
+   void  Mix ();                       // guts - cook up next sound card buf
 };
 //______________________________________________________________________________
-struct SInfo {                         // song info stuff pch tells syn
-   ubyt4 time;
-   ubyt2 tmpo;
-   ubyte bt, sb;
-};
+struct SInfo  {ubyt4 time;   ubyt2 tmpo;   ubyte bt, sb;}; // song info fer syn
 
 class Syn: public QThread {
    Q_OBJECT
