@@ -529,23 +529,14 @@ void Voice::Redo (char re)             // recalc voice params
 }
 
 
-EnvStg RE [2] = { {1., 0.4, 0.001},
-                  {0., 0., 0.} };
+EnvStg RE [2] = { {1., 0.4, 0.001}, {0., 0., 0.} };
                 // 1>0, .4 sec dur, mostly exponential curve
-EnvStg FE [7] = { {1., 1., 0.001},
-                  {0., 1., 0.001},
-                  {1., 1., 0.001},
-                  {0., 1., 0.001},
-                  {1., 1., 0.001},
-                  {0., 1., 0.001},
-                  {1., 0., 0.} };
 
 void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 // called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
    _phase = (Phase)0;   _looped = false;   _nPer = 0;
    _gl.Init (c, k);   _flt.Init ();   _relE.Init (RE);   Redo ('*');
-                                      _fltE.Init (FE);
    _on = 'd';
 }
 
@@ -635,9 +626,7 @@ void Voice::Mix ()                     // da GUTS :)
    len = Osc (ip);                     // stretch/shrink sample into _intp
 TRX("   Osc len=`d", len);
 
-   if (_ch != 9)  _flt.Cut (9500.0 * _fltE.Mix () + 4000.);
    if (_on == 'r')  r = _relE.Mix ();
-
    for (i = 0;  (i < len) && (! _relE.End ());  i++)  {
 TStr ts, t2;
 //if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
