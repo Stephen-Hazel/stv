@@ -111,8 +111,7 @@ public:                                // Core stuph:
 
    real    _amp, _panL, _panR;         // Amp n Pan
 
-   Env     _relE,                      // Modulation stuph...  (always rel env)
-           _fltE;
+   Env     _relE;                      // Modulation stuph...  (always rel env)
    Glide   _gl;                        // doin glide? (portamento) pitch offset
 
    void  Init ();
