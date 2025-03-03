@@ -374,20 +374,34 @@ real LPF::Mix (real smp)               // actually DO the filterin'
 }
 //______________________________________________________________________________
 void Env::Init (EnvStg *iStg)
-{ real d, l, el, ratio;
+// copy EnvStg spec rows into EnvStX exec rows (last one has dur/mul of 0.)
+{ real d, il, l, ratio, x;
    stg.Ln = 0;
    for (ubyte s = 0;;  s++) {
       stg.Ins ();
-      stg [s].lvl = iStg->lvl;   d = iStg->dur * Sy._frq;
-      if (d == 0)  {stg [s].mul = 0;   break;}   // ya bettera ended it !
+      stg [s].lvl = il = iStg->lvl;    // initial level
 
-      ratio = iStg->crv;   iStg++;   l = iStg->lvl;   // curve n target level
+   // dur from secs to #period bufs
+      d     = iStg->dur / (real)Sy._nFr * (real)Sy._frq;
+
+   // curve ratio;  bump iStg;  target level
+      ratio = iStg->crv;   iStg++;
+      l     = iStg->lvl;
+
+   // ya bettera ended it !
+      if (d == 0.)  {stg [s].mul = 0.;   break;}
+
+   // get multiply factor from ratio and dur
       if (ratio < 0.000000001)  ratio = 0.000000001;  // -180 dB
       stg [s].mul = exp (-log ((1.0 + ratio) / ratio) / d);
-      stg [s].ofs = (l + ratio) * (1.0 - stg [s].mul);
-      s++;
+
+   // offset the addition factor by a little to REACH target, not just approach
+      x = (il < l) ? ratio : (-ratio);
+      stg [s].ofs = (l + x) * (1. - stg [s].mul);
+//TStr s1,s2;
+//DBG("s=`d mul=`s ofs=`s", s, R2Str(stg [s].mul,s1), R2Str(stg[s].ofs,s2));
    }
-   lvl = stg [st = 0].lvl;   dir = (lvl <= stg [1].lvl) ? 1 : -1;
+   dir = ((lvl = stg [st = 0].lvl) <= stg [1].lvl) ? 1 : -1;
 }
 
 real Env::Mix ()
@@ -396,9 +410,8 @@ real Env::Mix ()
    if (dir == 1)  {if (lvl < stg [st+1].lvl)  return lvl;}
    else            if (lvl > stg [st+1].lvl)  return lvl;  // same ole stage?
 
-// bump to next stage !
-   lvl = stg [++st].lvl;
-   if (! End ())             dir = (lvl <= stg [st+1].lvl) ? 1 : -1;
+   lvl = stg [++st].lvl;               // bump ta next stage !
+   if (! End ())  dir = (lvl <= stg [st+1].lvl) ? 1 : -1;
    return lvl;
 }
 //______________________________________________________________________________
@@ -516,14 +529,23 @@ void Voice::Redo (char re)             // recalc voice params
 }
 
 
-EnvStg RE [2] = { {1., 0.4, 0.001},  {0., 0., 0.} };
+EnvStg RE [2] = { {1., 0.4, 0.001},
+                  {0., 0., 0.} };
                 // 1>0, .4 sec dur, mostly exponential curve
+EnvStg FE [7] = { {1., 1., 0.001},
+                  {0., 1., 0.001},
+                  {1., 1., 0.001},
+                  {0., 1., 0.001},
+                  {1., 1., 0.001},
+                  {0., 1., 0.001},
+                  {1., 0., 0.} };
 
 void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
 // called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
 {  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
    _phase = (Phase)0;   _looped = false;   _nPer = 0;
    _gl.Init (c, k);   _flt.Init ();   _relE.Init (RE);   Redo ('*');
+                                      _fltE.Init (FE);
    _on = 'd';
 }
 
@@ -605,18 +627,23 @@ ubyt4 Voice::Osc (real *ip)
 
 void Voice::Mix ()                     // da GUTS :)
 { ubyt4 i, len;
-  real  s, *mL = Sy._mixL, *mR = Sy._mixR, *ip = Sy._intp;
+  real  s, r=1., *mL = Sy._mixL, *mR = Sy._mixR, *ip = Sy._intp;
    if (! _on)                         return;
    if (_snd == nullptr)    {End ();   return;}
+
    _nPer++;
    len = Osc (ip);                     // stretch/shrink sample into _intp
 TRX("   Osc len=`d", len);
+
+   if (_ch != 9)  _flt.Cut (9500.0 * _fltE.Mix () + 4000.);
+   if (_on == 'r')  r = _relE.Mix ();
+
    for (i = 0;  (i < len) && (! _relE.End ());  i++)  {
 TStr ts, t2;
 //if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
       s  = _flt.Mix (ip [i]);          // filter it
 //if (!i||(i==len-1))  TRX("      flt[`d]=`s", i, R2Str (s, ts));
-      s *= _amp;                       // amp it
+      s *= (_amp*r);                   // amp it
       if (_on == 'r')  s *= _relE.Mix ();
 //if (!i||(i==len-1))  TRX("      amp[`d]=`s", i, R2Str (s, ts));
       mL [i] += (s * _panL);           // pan it

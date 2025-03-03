@@ -81,10 +81,10 @@ class Env {        // they calc curve in series til next lvl is hit, then st++
    real  lvl;      // output level
 public:
    void  Init (EnvStg *stg);
+   real  Mix ();
+   bool  End ()  {return stg [st].mul == 0.;}
    ubyte Stg ()       {return st;}
    void  SetStg (sbyte s)    {st = s;}
-   bool  End ()  {return stg [st].mul == 0.;}
-   real  Mix ();
 };
 //______________________________________________________________________________
 struct Glide {                         // cool modulation on freq
@@ -111,7 +111,8 @@ public:                                // Core stuph:
 
    real    _amp, _panL, _panR;         // Amp n Pan
 
-   Env     _relE;                      // Modulation stuph...  (always rel env)
+   Env     _relE,                      // Modulation stuph...  (always rel env)
+           _fltE;
    Glide   _gl;                        // doin glide? (portamento) pitch offset
 
    void  Init ();
