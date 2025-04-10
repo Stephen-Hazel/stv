@@ -288,7 +288,7 @@ char *NowMS (char *s, timeval *ptv)    // now n dur in microsec for debuggin
    gettimeofday (& now, NULL);
    msec = lrint (now.tv_usec / 1000.0);     // Round micro to nearest milli
    if (msec >= 1000)  {msec -= 1000;   now.tv_sec++;}
-   strftime    (b1, sizeof (b1), "%M:%S.",  localtime (& now.tv_sec));
+   strftime    (b1, sizeof (b1), "%H:%M:%S.",  localtime (& now.tv_sec));
 /* this is for when i (rarely) want it down the microsecond with duration
   TStr b2;
   struct timeval dur;
@@ -297,8 +297,8 @@ char *NowMS (char *s, timeval *ptv)    // now n dur in microsec for debuggin
       dur.tv_sec  = now.tv_sec  - ptv->tv_sec;
       dur.tv_usec = now.tv_usec - ptv->tv_usec;
       if (dur.tv_usec < 0)  {dur.tv_sec--;   dur.tv_usec += 1000000;}
-      strftime (b2, sizeof (b2), "%M:%S.",  localtime (& dur.tv_sec));
-      if (StrCm (b2, CC("00:00.")))             dur.tv_usec = 0;
+      strftime (b2, sizeof (b2), "%H:%M:%S.",  localtime (& dur.tv_sec));
+      if (StrCm (b2, CC("00:00:00.")))                      dur.tv_usec = 0;
    }
    if (ptv != nullptr)  MemCp (ptv, & now, sizeof (now));
    return StrFmt (s, "`s`06d `>6d", b1, now.tv_usec, dur.tv_usec);

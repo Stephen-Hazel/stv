@@ -85,7 +85,7 @@ DBG("pan    `d `s", i, R2Str (Cnv_pan[i],ts));
 //______________________________________________________________________________
 void Channel::Init ()                  // channels are easy as pie at least
 {  hold = snd = 0;
-   pBnd = MID14;   pBnR = 2;
+   pBnd = MID14;   pBnR = 2;   pStp = 64;
    fCut = 127;   fRes = 0;   vol = 127;   pan = 64;   rvrb = 0;
    vel2fCut = 127;   glide = glRate = 0;   glFrom = 64;
    pNt = nNt = 0;   nTm = 0;
@@ -93,9 +93,10 @@ void Channel::Init ()                  // channels are easy as pie at least
 
 void Channel::Dump ()
 {
-TRX("   hold=`d snd=`d pBnd=`d pBnr=`d fRes=`d vol=`d pan=`d rvrb=`d\n"
+TRX("   hold=`d snd=`d pBnd=`d pBnr=`d pStp=`d fRes=`d vol=`d pan=`d rvrb=`d\n"
     "   glide=`d glRate=`d glFrom=`d",
-hold, snd, (int)MID14-pBnd, pBnR, fRes, vol, pan, rvrb, glide, glRate, glFrom);
+hold, snd, (int)MID14-pBnd, pBnR, pStp,
+fRes, vol, pan, rvrb, glide, glRate, glFrom);
 }
 //______________________________________________________________________________
 // sounds and their samples
@@ -462,8 +463,9 @@ void Voice::Init ()  {_on = '\0';   _ch = 0xFF;}
 
 void Voice::ReFrq ()
 // set frq - inc based on card vs. smp root vs. note frq  (drum notes unpitched)
-{ real t;
-  TStr s;
+{ sbyt4 k;
+  real  t;
+  TStr  s;
   Channel *c = & Sy._chn [_ch];
 //DBG("Voice::ReFrq smp=`d dev=`d",  _smp->frq, Sy._frq);
    t = (real)_smp->frq / (real)Sy._frq;
@@ -481,7 +483,14 @@ void Voice::ReFrq ()
 ** R2Str(nc,x), R2Str(sc,y), R2Str(nh,z), R2Str(sh,a),
 ** R2Str(nh/sh,b));
 */
-      t *= ( Ct2Hz ( _key * 100. + _gl.ofs +
+//DBG("raw pStp=`d", c->pStp);
+      k  = c->pStp - 64;   if (k < -63)  k = -63;     // -+63
+      k  = k * 24 / 63;                               // -+24
+//DBG(" =>`d", k);
+      k += _key;
+      if (k < MKey (CC("0a")))  k = MKey (CC("0a"));  // limit to keyboard
+      if (k > MKey (CC("8c")))  k = MKey (CC("8c"));
+      t *= ( Ct2Hz ( k * 100. + _gl.ofs +
                      (c->pBnR * 100. *      // pb rng cents iz dumbb
                       ((real)(c->pBnd - MID14) / (real)MID14)   // -1..1
                      ) ) /
@@ -624,7 +633,7 @@ void Voice::Mix ()                     // da GUTS :)
 
    _nPer++;
    len = Osc (ip);                     // stretch/shrink sample into _intp
-TRX("   Osc len=`d", len);
+//TRX("   Osc len=`d vcNo=`d nPer=`d", len, _vcNo, _nPer);
 
    if (_on == 'r')  r = _relE.Mix ();
    for (i = 0;  (i < len) && (! _relE.End ());  i++)  {
@@ -880,15 +889,16 @@ DBG("Syn::Put M_PROG past band or on drums");
                           if (v < 64) UnHold (ch);     break;
       case MC_PBND:       chn->pBnd = v << 7 | v2;   re = 'n';   break;
       case MC_CC|16:      chn->pBnR = v;   re = 'n';   break;  // cc# ok??
+      case MC_CC|21:      chn->pStp = v;   re = 'n';   break;
       case MC_CC|18:      chn->fCut = v;   re = 'f';   break;
       case MC_CC|19:      chn->fRes = v;   re = 'f';   break;
+      case MC_CC|20:      chn->vel2fCut = v;   re = 'f';   break;
       case MC_CC|M_VOL:   chn->vol  = v;   re = 'a';   break;
       case MC_CC|M_PAN:   chn->pan  = v;   re = 'p';   break;
       case MC_CC|24:      chn->rvrb = v;   re = 'p';   break;  // l8r
       case MC_CC|65:      chn->glide  = v;   break;
       case MC_CC|5:       chn->glRate = v;   break;
       case MC_CC|84:      chn->glFrom = v;   break;
-      case MC_CC|20:      chn->vel2fCut = v;   re = 'f';   break;
 /* reverb fixed till i find algos that don't suck
 **
 ** // not channel specific fx params
@@ -991,7 +1001,7 @@ void Syn::Init (char wav)
   TStr fn;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = false;
+   _trx = false;                       // just here no cfg file
 TRX("Syn::Init bgn");
    if (_wav = wav) {                   // goin to .wav file - pretty easy
       *_snDsc = *_snDev = '\0';   _sn = nullptr;

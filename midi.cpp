@@ -103,25 +103,25 @@ TRC("MidiDevLst::Load");
    snd_rawmidi_info_alloca (& info);        // sheesh :/
    for (card = -1;;) {
       if ((err = ::snd_card_next (& card))) {
-         DBG ("snd_card_next error: `s", ::snd_strerror (err));
+         DBG ("snd_card_next gave: `s", ::snd_strerror (err));
          break;
       }
+TRC("card#=`d", card);
       if (card < 0)  break;
 
-//DBG("card#=`d", card);
       StrFmt (name, "hw:`d", card);
       if ((err = ::snd_ctl_open (& ctl, name, 0)) < 0) {
-         DBG ("snd_ctl_open error for card `d: `s", card, ::snd_strerror (err));
+         DBG ("snd_ctl_open for card `d gave: `s", card, ::snd_strerror (err));
          break;
       }
       for (dev = -1;;) {
          if ((err = ::snd_ctl_rawmidi_next_device (ctl, & dev)) < 0) {
-            DBG ("snd_ctl_rm_next_device error: `s", ::snd_strerror (err));
+            DBG ("snd_ctl_rm_next_device gave: `s", ::snd_strerror (err));
             break;
          }
          if (dev < 0)  break;
 
-//DBG(" dev=`d", dev);
+TRC(" dev=`d", dev);
          isub = osub = 0;
          ::snd_rawmidi_info_set_device (info, dev);
          ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_INPUT);
@@ -131,28 +131,30 @@ TRC("MidiDevLst::Load");
          if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
             osub = ::snd_rawmidi_info_get_subdevices_count (info);
          nsub = isub > osub ? isub : osub;
-//DBG("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
-         for (sub = 0;  sub < nsub;  sub++) {
+TRC("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
+         for (sub = 0;  sub <= nsub;  sub++) {
+TRC("   sub=`d", sub);
             ::snd_rawmidi_info_set_stream (
-               info, sub < isub ? SND_RAWMIDI_STREAM_INPUT
-                                : SND_RAWMIDI_STREAM_OUTPUT);
+               info, sub <= isub ? SND_RAWMIDI_STREAM_INPUT
+                                 : SND_RAWMIDI_STREAM_OUTPUT);
             ::snd_rawmidi_info_set_subdevice (info, sub);
             if ((err = ::snd_ctl_rawmidi_info (ctl, info))) {
-               DBG ("snd_rm_info_set_subdevice error: `s\n",
+               DBG ("snd_rm_info_set_subdevice gave: `s\n",
                     ::snd_strerror (err));
-               break;
+               continue;
             }
             desc  = ::snd_rawmidi_info_get_name           (info);
             desc2 = ::snd_rawmidi_info_get_subdevice_name (info);
+TRC("   desc=`s desc2=`s", desc, desc2);
             if (nsub == 1) {           // use hw:9,9   and desc
                StrFmt (sdev, "hw:`d,`d", card, sub);
-               if (sub < isub)  InsDev ('i', CC(desc), sdev);
-               if (sub < osub)  InsDev ('o', CC(desc), sdev);
+               if (sub <= isub)  InsDev ('i', CC(desc), sdev);
+               if (sub <= osub)  InsDev ('o', CC(desc), sdev);
             }
             else {                     // use hw:9,9,9 and desc2
                StrFmt (sdev, "hw:`d,`d,`d", card, dev, sub);
-               if (sub < isub)  InsDev ('i', CC(desc2), sdev);
-               if (sub < osub)  InsDev ('o', CC(desc2), sdev);
+               if (sub <= isub)  InsDev ('i', CC(desc2), sdev);
+               if (sub <= osub)  InsDev ('o', CC(desc2), sdev);
             }
          }
       }
@@ -400,7 +402,7 @@ MidiO::MidiO (char *name, char noinit)
 //TRC("MidiO::MidiO `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
    if (! StrCm (_type, CC("syn"))) {   // fake handle just so not Dead()
       _syn = true;   _hnd = (snd_rawmidi_t *)1;
-      return;                          // GMInit in SynBnk ();
+      return;
    }
    if ((err = ::snd_rawmidi_open (nullptr, & _hnd, _dev, SND_RAWMIDI_NONBLOCK)))
       {DBG("snd_rawmidi_open o `s failed: `s", _name, ::snd_strerror (err));
@@ -579,6 +581,7 @@ TRC("NotesOff on `s.`s", _name, _type);
 
 
 void MidiO::GMInit (ubyte nch)
+// default upon new MidiO (pcheetah doesn't use cuz it chases ctrls exactly)
 { ubyte c = 9;
 TRC("GMInit on `s.`s nch=`d", _name, _type, nch);
    Put (0, MC_MVOL, 127);
