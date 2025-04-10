@@ -382,8 +382,8 @@ void Env::Init (EnvStg *iStg)
       stg.Ins ();
       stg [s].lvl = il = iStg->lvl;    // initial level
 
-   // dur from secs to #period bufs
-      d     = iStg->dur / (real)Sy._nFr * (real)Sy._frq;
+   // dur from secs to #samples (used to be period bufs)
+      d     = iStg->dur * (real)Sy._frq;
 
    // curve ratio;  bump iStg;  target level
       ratio = iStg->crv;   iStg++;
@@ -538,7 +538,7 @@ void Voice::Redo (char re)             // recalc voice params
 }
 
 
-EnvStg RE [2] = { {1., 0.4, 0.001}, {0., 0., 0.} };
+EnvStg RE [2] = { {1., 2.0, 0.001}, {0., 0., 0.} };
                 // 1>0, .4 sec dur, mostly exponential curve
 
 void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
@@ -635,21 +635,21 @@ void Voice::Mix ()                     // da GUTS :)
    len = Osc (ip);                     // stretch/shrink sample into _intp
 //TRX("   Osc len=`d vcNo=`d nPer=`d", len, _vcNo, _nPer);
 
-   if (_on == 'r')  r = _relE.Mix ();
    for (i = 0;  (i < len) && (! _relE.End ());  i++)  {
 TStr ts, t2;
 //if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
       s  = _flt.Mix (ip [i]);          // filter it
 //if (!i||(i==len-1))  TRX("      flt[`d]=`s", i, R2Str (s, ts));
-      s *= (_amp*r);                   // amp it
-      if (_on == 'r')  s *= _relE.Mix ();
+      s *= _amp;                       // amp it
 //if (!i||(i==len-1))  TRX("      amp[`d]=`s", i, R2Str (s, ts));
+      if (_on == 'r')  s *= _relE.Mix ();
       mL [i] += (s * _panL);           // pan it
       mR [i] += (s * _panR);
 //if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
 //                         i, R2Str (mL [i],ts), R2Str (mR [i],t2));
 //Channel *c = & Sy._chn [_ch];
 //    rv [i] += (s * c->rvrb/127.);    // set reverb buf
+      if (_relE.End ())  break;
    }
    if (_gl.Mix ())  ReFrq ();
 //if (g == 'e')  DBG("glide done vcNo=`d nPer=`d", _vcNo, _nPer);
