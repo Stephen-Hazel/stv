@@ -15,6 +15,13 @@ static char *R2Str (real f, char *s)   // fer dbg - no exp, 6 decimals
    return StrFmt (s, "`s`d`s`s", neg?"-":"", i, *t?".":"", t);
 }
 
+static real Str2R (char *s)
+{ QString st = s;
+  bool ok;
+  real r = st.toDouble (& ok);
+   return ok ? r : 0.0;
+}
+
 
 // lookup stufffff _____________________________________________________________
 const ubyt4 MAX_DITHER = 48000;
@@ -84,19 +91,19 @@ DBG("pan    `d `s", i, R2Str (Cnv_pan[i],ts));
 }
 //______________________________________________________________________________
 void Channel::Init ()                  // channels are easy as pie at least
-{  hold = snd = 0;
-   pBnd = MID14;   pBnR = 2;   pStp = 64;
-   fCut = 127;   fRes = 0;   vol = 127;   pan = 64;   rvrb = 0;
-   vel2fCut = 127;   glide = glRate = 0;   glFrom = 64;
-   pNt = nNt = 0;   nTm = 0;
+{  hold = snd = fRes = glide = glRate = pNt = nNt = 0;
+   pBnd = MID14;   pBnR = 2;   fCut = vCut = vol = 127;   pan = glFrom = 64;
+   nTm = 0;   *env = *envR = '\0';
 }
 
 void Channel::Dump ()
 {
-TRX("   hold=`d snd=`d pBnd=`d pBnr=`d pStp=`d fRes=`d vol=`d pan=`d rvrb=`d\n"
-    "   glide=`d glRate=`d glFrom=`d",
-hold, snd, (int)MID14-pBnd, pBnR, pStp,
-fRes, vol, pan, rvrb, glide, glRate, glFrom);
+TRX("   snd=`d hold=`d pBnd=`d pBnr=`d fCut=`d fRes=`d vCut=`d vol=`d pan=`d\n"
+    "   glide=`d glRate=`d glFrom=`d nTm=`d nNt=`d pNt=`d\n"
+    "   env=`s envR=`s",
+        snd, hold, (int)MID14-pBnd, pBnR, fCut, fRes, vCut, vol, pan,
+        glide, glRate, glFrom, nTm, nNt, pNt,
+        env, envR);
 }
 //______________________________________________________________________________
 // sounds and their samples
@@ -374,70 +381,29 @@ real LPF::Mix (real smp)               // actually DO the filterin'
    return x;
 }
 //______________________________________________________________________________
-void Env::Init (EnvStg *iStg)
-// copy EnvStg spec rows into EnvStX exec rows (last one has dur/mul of 0.)
-{ real d, il, l, ratio, x;
-   stg.Ln = 0;
-   for (ubyte s = 0;;  s++) {
-      stg.Ins ();
-      stg [s].lvl = il = iStg->lvl;    // initial level
-
-   // dur from secs to #samples (used to be period bufs)
-      d     = iStg->dur * (real)Sy._frq;
-
-   // curve ratio;  bump iStg;  target level
-      ratio = iStg->crv;   iStg++;
-      l     = iStg->lvl;
-
-   // ya bettera ended it !
-      if (d == 0.)  {stg [s].mul = 0.;   break;}
-
-   // get multiply factor from ratio and dur
-      if (ratio < 0.000000001)  ratio = 0.000000001;  // -180 dB
-      stg [s].mul = exp (-log ((1.0 + ratio) / ratio) / d);
-
-   // offset the addition factor by a little to REACH target, not just approach
-      x = (il < l) ? ratio : (-ratio);
-      stg [s].ofs = (l + x) * (1. - stg [s].mul);
-//TStr s1,s2;
-//DBG("s=`d mul=`s ofs=`s", s, R2Str(stg [s].mul,s1), R2Str(stg[s].ofs,s2));
-   }
-   dir = ((lvl = stg [st = 0].lvl) <= stg [1].lvl) ? 1 : -1;
-}
-
-real Env::Mix ()
-{  if (End ())  return lvl;            // end or static stg
-   lvl = lvl * stg [st].mul + stg [st].ofs;      // git ma next dude
-   if (dir == 1)  {if (lvl < stg [st+1].lvl)  return lvl;}
-   else            if (lvl > stg [st+1].lvl)  return lvl;  // same ole stage?
-
-   lvl = stg [++st].lvl;               // bump ta next stage !
-   if (! End ())  dir = (lvl <= stg [st+1].lvl) ? 1 : -1;
-   return lvl;
-}
-//______________________________________________________________________________
-void Glide::Init (ubyte cid, ubyte key)
+void Glide::Init (ubyte ch, ubyte key)
 // glide (portamento) - tricky yet cool - scoot note freq from prev note
 // get note we're comin from and it's offset to this key - ofs
 // get #buffers to spread this ofs over - inc (per buffer)
-{ Channel *ch = & Sy._chn [cid];
-  ubyte    pn = ch->pNt;
+{ Channel *c = & Sy._chn [ch];
+  ubyte    pn = c->pNt;
    ofs = inc = 0.0;                    // no can do?
-   if ((ch->glide < 64) || (! pn) || (pn == key) || (cid == 9))  return;
+   if ((c->glide < 64) || (! pn) || (pn == key) || (ch == 9))  return;
+
 // ok, we're doin it !
-   if (ch->glFrom != 64)  pn = (ubyte)((ubyt2)key + ch->glFrom - 64);
+   if (c->glFrom != 64)  pn = (ubyte)((ubyt2)key + c->glFrom - 64);
 //TStr s1,s2;
 //DBG("ch=`d glide `s => `s rate=`d",
-//cid, MKey2Str(s1,pn), MKey2Str(s2,key), ch->glRate);
+//ch, MKey2Str(s1,pn), MKey2Str(s2,key), c->glRate);
    ofs = ((real)pn - key) * 100.0;
 //DBG("   ofs=`s inc=`s", R2Str(ofs,s1),R2Str(inc,s2));
 
 // OLD/calc:  samp/sec / samp/buf => buf/sec so s4 buffers use 4 secs
 //real s4 = 4.0 * (real)Sy._frq / Sy._nFr;
-// inc = -ofs / (s4 * (ch->glRate+1) / 128.0);   // not enough quick vals tho
+// inc = -ofs / (s4 * (c->glRate+1) / 128.0);    // not enough quick vals tho
 
 // SHOISH - 4 periods per rate step startin at 20 - max of about 0.75 secs
-   inc = -ofs / (20.0 + 4.0 * ch->glRate);
+   inc = -ofs / (20.0 + 4.0 * c->glRate);
 }
 
 char Glide::Mix ()
@@ -446,6 +412,51 @@ char Glide::Mix ()
    if (inc > 0.)  {if (ofs >= 0.)  {ofs = 0.;  return 'e';}}    // e to dbg :/
    else            if (ofs <= 0.)  {ofs = 0.;  return 'e';}
    return 'y';
+}
+//______________________________________________________________________________
+void Env::Init (ubyte id)
+{ real d, l, ratio, x;
+  char *ch, *p;
+  char *ds = "WHQEST612";              // whole, half, ... 64th, 128th, 256th
+   dst  =            Sy._env [id].dst; // init my destination n stages
+   stg  = & Sy._stg [Sy._env [id].stg];
+   lvl  = stg [s = 0].lvl;             // initial stg pos, level, direction
+   dir  = (lvl <= stg [1].lvl) ? 1 : -1;
+   for (i = 0;  stg [i].dur [0];  i++) {    // lvl,dur,crv => mul,add  per stg
+      for (d = 0, ch = stg [i].dur;  *ch;  ch++) {
+      // add up our dur to songtime dur
+         if (p = StrCh (ds, *ch))  d += M_WHOLE / (1 << (p-ds));
+         if (*ch == '.')           d = d * 3 / 2;     // dotted
+         if (*ch == '3')           d = d * 2 / 3;     // triplet
+      }                                // song dur => seconds w tempo
+      d = d / (M_WHOLE/4) / Sy._in.tmpo * 60.;
+      d /= (real)Sy._frq;              // => # outbound samples dur
+
+   // curve ratio;  target level
+      ratio = stg [i].crv;
+      l     = stg [i].lvl;
+
+   // get multiply factor from ratio and dur
+      if (ratio < 0.000000001)  ratio = 0.000000001;  // -180 dB
+      stg [i].mul = exp (-log ((1.0 + ratio) / ratio) / d);
+
+   // offset the addition factor by a little to REACH target, not just approach
+      x = (l < stg [i+1].lvl) ? (-ratio) : ratio;
+      stg [i].add = (l + x) * (1. - stg [i].mul);
+//TStr s1,s2;
+//DBG("s=`d mul=`s ofs=`s", s, R2Str(stg [s].mul,s1), R2Str(stg[s].ofs,s2));
+   }
+}
+
+real Env::Mix ()
+{  if (End ())  return lvl;                 // end or static stg
+   lvl = lvl * stg [s].mul + stg [s].add;   // git ma next dude
+   if (dir == 1)  {if (lvl < st [s+1].lvl)  return lvl;}
+   else            if (lvl > st [s+1].lvl)  return lvl;    // same ole stage?
+
+   lvl = stg [++s].lvl;                     // bump ta next stage !
+   if (! End ())  dir = (lvl <= stg [s+1].lvl) ? 1 : -1;
+   return lvl;
 }
 //______________________________________________________________________________
 void Voice::Init ()  {_on = '\0';   _ch = 0xFF;}
@@ -466,7 +477,6 @@ void Voice::ReFrq ()
 { sbyt4 k;
   real  t;
   TStr  s;
-  Channel *c = & Sy._chn [_ch];
 //DBG("Voice::ReFrq smp=`d dev=`d",  _smp->frq, Sy._frq);
    t = (real)_smp->frq / (real)Sy._frq;
    if (! _snd->_xFrq) {
@@ -475,7 +485,7 @@ void Voice::ReFrq ()
 ** DBG("   key=`d pBnd=`d vs smpKey=`d smpCnt=`d tnow=`s",
 ** _key, _chn->pBnd-MID14, _smp->key, (sbyte)_smp->cnt, R2Str(t,x));
 **       nc = _key * 100. + _gOfs +
-**            (c->pBnR * 100. * ((real)(c->pBnd - MID14) / (real)MID14));
+**            (_c->pBnR * 100. * ((real)(_c->pBnd - MID14) / (real)MID14));
 **       sc = _smp->key*100. - (sbyte)(_smp->cnt);
 **       nh = Ct2Hz (nc);
 **       sh = Ct2Hz (sc);
@@ -483,16 +493,13 @@ void Voice::ReFrq ()
 ** R2Str(nc,x), R2Str(sc,y), R2Str(nh,z), R2Str(sh,a),
 ** R2Str(nh/sh,b));
 */
-//DBG("raw pStp=`d", c->pStp);
-      k  = c->pStp - 64;   if (k < -63)  k = -63;     // -+63
-      k  = k * 24 / 63;                               // -+24
+      k = _key;
 //DBG(" =>`d", k);
-      k += _key;
       if (k < MKey (CC("0a")))  k = MKey (CC("0a"));  // limit to keyboard
       if (k > MKey (CC("8c")))  k = MKey (CC("8c"));
       t *= ( Ct2Hz ( k * 100. + _gl.ofs +
-                     (c->pBnR * 100. *      // pb rng cents iz dumbb
-                      ((real)(c->pBnd - MID14) / (real)MID14)   // -1..1
+                     (_c->pBnR * 100. *     // pb rng cents iz dumbb
+                      ((real)(_c->pBnd - MID14) / (real)MID14)  // -1..1
                      ) ) /
              Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
    }
@@ -502,77 +509,78 @@ void Voice::ReFrq ()
 
 
 void Voice::ReFlt ()                   // set filter cut,res
-{ Channel *c = & Sy._chn [_ch];
-  real cut = c->fCut / 127.0,
-       res = c->fRes / 127.0;
+{ real cut = _c->fCut / 127.0,
+       res = _c->fRes / 127.0;
 //TRX("ReFlt vel=`d cRng=`d cut=`d res=`d",
 //_vel,  (int)cRng,
 //       (int)(cRng * _vel    / 127. + 4000.),
-//       (int)(960. * c->fRes / 127.));
-   if ((_ch != 9) && (c->vel2fCut >= 64))  cut = _vel / 127.0;
+//       (int)(960. * _c->fRes / 127.));
+   if ((_ch != 9) && (_c->vCut >= 64))  cut = _vel / 127.0;
    _flt.Cut (9500.0 * cut + 4000.);
    _flt.Res ( 960.0 * res);
 }
 
 
 void Voice::ReAmp ()                   // set amp - based on vol cc n velo
-{ Channel *c = & Sy._chn [_ch];
-   _amp  = Sy._vol * (c->vol / 127.) * (_vel / 127.);
-}
+{  _amp  = Sy._vol * (_c->vol / 127.) * (_vel / 127.);  }
 
 
 void Voice::RePan ()                   // set pan - pan cc
-{ Channel *c = & Sy._chn [_ch];
-   _panL = (_smp->lr == 1) ? 0. : Pan (c->pan, 0);
-   _panR = (_smp->lr == 0) ? 0. : Pan (c->pan, 1);
+{  _panL = (_smp->lr == 1) ? 0. : Pan (_c->pan, 0);
+   _panR = (_smp->lr == 0) ? 0. : Pan (_c->pan, 1);
 }
 
 
-void Voice::Redo (char re)             // recalc voice params
+void Voice::Re (char re)               // recalc voice params
 {  if      (re == 'n')  ReFrq ();      // oscillator (note)
    else if (re == 'f')  ReFlt ();      // filter
    else if (re == 'a')  ReAmp ();
    else if (re == 'p')  RePan ();
    else         /*'*'*/{ReFrq ();   ReFlt ();   ReAmp ();   RePan ();}
-//Dump ("Redo");
+//Dump ("Re");
 }
 
 
-EnvStg RE [2] = { {1., 2.0, 0.001}, {0., 0., 0.} };
-                // 1>0, .4 sec dur, mostly exponential curve
-
-void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm)
+void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm,
+                 char *es)
 // called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
-{  _ch = c;   _key = k;   _vel = v;   _vcNo = n;   _snd = s;   _smp = sm;
-   _phase = (Phase)0;   _looped = false;   _nPer = 0;
-   _gl.Init (c, k);   _flt.Init ();   _relE.Init (RE);   Redo ('*');
+{  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _vcNo = n;
+   _snd = s;   _smp = sm;   _phase = (Phase)0;   _looped = false;   _nPer = 0;
+   _flt.Init ();   _gl.Init (c, k);
+   StrCp (_estr, *es ? es : Sy._chn [_ch].env);
+  ColSep ss (_estr, 17);               // envelope init from it's str
+   for (ubyte i = _env.Ln = 0;  ss.Col [i][0];  i++)
+      for (ubyte j = 0;  j < Sy._env.Ln;  j++)
+         if (! StrCm (ss.Col [i], Sy._env [j].nm))
+            {_env.Ins ();   _env [i].Init (j);}
+   Re ('*');
    _on = 'd';
 }
 
 
 void Voice::Rels ()                    // noteoff or hold=off
 // never even got heard?  or samp has no loop and sez NO release?  KILL!
-// if chan hold, sustain till hold off;  else begin release env to amp of 0
+// if chan hold, hold till hold off;  else begin release env to amp of 0
 {  if ((! _nPer)  ||  ((_smp->lpBgn >= _smp->len) && _snd->_xRls))
       {End ();      return;}
    if (_on == 'r')  return;            // already aaam
-   _on = (Sy._chn [_ch].hold >= 64) ? 's' : 'r';
+   _on = (Sy._chn [_ch].hold >= 64) ? 'h' : 'r';
 }
 
 
 void Voice::End ()  {_on = '\0';   _ch = 0xFF;   _snd = nullptr;}
 
 
-ubyt4 Voice::Osc (real *ip)
+ubyt4 Voice::Osc ()
 // just linear!  ez, fast, good enough.
-// stretch sample (per note frq vs. root frq) into _intp dsp buffer (*ip/o here)
+// stretch sample (per note frq vs. root frq) into _intp dsp buffer (o here)
 // hi byte of phase fraction tells how to balance our 2 samples at a time
 { ubyt4 s,  sEnd,   d,   nfr = Sy._nFr;
   real *in, se,    *o, *co;
   Phase ph;
   bool  loopin = (_smp->lpBgn < _smp->len) ? true : false;
 
-   in = & Sy._smp [_smp->pos];   o = ip;
+   in = & Sy._smp [_smp->pos];   o = Sy._intp;
    ph = _phase;                  d = 0;
 
 // sEnd,se to 2nd interp pos,value
@@ -627,32 +635,23 @@ ubyt4 Voice::Osc (real *ip)
 
 void Voice::Mix ()                     // da GUTS :)
 { ubyt4 i, len;
-  real  s, r=1., *mL = Sy._mixL, *mR = Sy._mixR, *ip = Sy._intp;
+  real  s, *mL = Sy._mixL, *mR = Sy._mixR;
    if (! _on)                         return;
    if (_snd == nullptr)    {End ();   return;}
 
    _nPer++;
-   len = Osc (ip);                     // stretch/shrink sample into _intp
+   len = Osc ();                       // stretch/shrink sample into _intp
 //TRX("   Osc len=`d vcNo=`d nPer=`d", len, _vcNo, _nPer);
 
    for (i = 0;  (i < len) && (! _relE.End ());  i++)  {
-TStr ts, t2;
-//if (!i||(i==len-1))  TRX("      smp[`d]=`s", i, R2Str (ip [i], ts));
-      s  = _flt.Mix (ip [i]);          // filter it
-//if (!i||(i==len-1))  TRX("      flt[`d]=`s", i, R2Str (s, ts));
+      s  = _flt.Mix (Sy._intp [i]);    // filter it
       s *= _amp;                       // amp it
-//if (!i||(i==len-1))  TRX("      amp[`d]=`s", i, R2Str (s, ts));
       if (_on == 'r')  s *= _relE.Mix ();
       mL [i] += (s * _panL);           // pan it
       mR [i] += (s * _panR);
-//if (!i||(i==len-1))  TRX("      `d L=`s R=`s",
-//                         i, R2Str (mL [i],ts), R2Str (mR [i],t2));
-//Channel *c = & Sy._chn [_ch];
-//    rv [i] += (s * c->rvrb/127.);    // set reverb buf
       if (_relE.End ())  break;
    }
    if (_gl.Mix ())  ReFrq ();
-//if (g == 'e')  DBG("glide done vcNo=`d nPer=`d", _vcNo, _nPer);
 
 // done w release?  or nonloop sample ran out?  END MEEE
    if (_relE.End () || (len < Sy._nFr))  End ();
@@ -741,7 +740,7 @@ void Syn::NOff (ubyte ch, ubyte key, ubyte vel)
 }
 
 
-void Syn::NtOn (ubyte ch, ubyte key, ubyte vel)
+void Syn::NtOn (ubyte ch, ubyte key, ubyte vel, char *es)
 { Channel *c;
   Sound   *s;
   ubyt2 sm, i, j;
@@ -791,12 +790,15 @@ DBG("Syn maxVoice=`d", i+1);
                   prio = 10000.;
                   if      (_vc [j]._ch == 9)    prio += 4000.;
                   else if (_vc [j]._on == 'r')  prio -= 2000.;
-                  else if (_vc [j]._on == 's')  prio -= 1000.;
+                  else if (_vc [j]._on == 'h')  prio -= 1000.;
                   prio -= (_vcNo - _vc [j]._vcNo);    // older voice
                   if (prio < best)  {i = j;   best = prio;}
                }                       // ^ THAT guy gets stamped on toppa :/
          }                             // i has a nice spot for us
-         _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm]);
+
+      // FINALLY !!
+         _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm], es);
+
 //TRX("start voice=`d", i);
       }
    if (shr)  {for (j = i = _nVc;  i && (! _vc [i-1]._on);  i--)  _nVc--;
@@ -806,9 +808,9 @@ DBG("Syn maxVoice=`d", i+1);
 }
 //______________________________________________________________________________
 // syn CC funcs...
-void Syn::UnHold (ubyte ch)            // release all sust'd vcs on chn
+void Syn::UnHold (ubyte ch)            // release all held vcs on chn
 {  for (ubyt2 i = 0;  i < _nVc;  i++)
-      if ((_vc [i]._on == 's') && (_vc [i]._ch == ch))  _vc [i].Rels ();
+      if ((_vc [i]._on == 'h') && (_vc [i]._ch == ch))  _vc [i].Rels ();
 }
 
 void Syn::AllVc (ubyte ch, char todo)  // mod all vcs on channel
@@ -822,21 +824,20 @@ TRX(" AllVc ch=`d `s", ch+1,
 (todo=='i')?"init"    : (
 (todo=='e')?"endNow"  : (
 (todo=='r')?"release" : "redo") )))))));
-   if (todo == 'i') {               // reset all CCs is kinda different
-      _chn [ch].Init ();   _maxLvl = 1.0;   return;
-   }                                // else we're dealing with just on vcs
-   for (ubyt2 i = 0;  i < _nVc;  i++)
-      if (_vc [i]._on && (_vc [i]._ch == ch))
-         switch (todo) {
-            case 'e':  _vc [i].End  ();      break;   // allsoundoff NOW
-            case 'r':  _vc [i].Rels ();      break;   // allnotesoff(rels)
-            default:   _vc [i].Redo (todo);  break;   // recalc vc live
-         }                             // todo: n f a p = frq flt amp pan
+// reset all CCs is kinda different
+   if (todo == 'i')  {_chn [ch].Init ();   _maxLvl = 1.0;   return;}
+// else we're dealing with just on vcs
+   for (ubyt2 i = 0;  i < _nVc;  i++)  if (_vc [i]._on && (_vc [i]._ch == ch))
+      switch (todo) {
+         case 'e':  _vc [i].End  ();     break;  // allsoundoff NOW
+         case 'r':  _vc [i].Rels ();     break;  // allnotesoff(rels)
+         default:   _vc [i].Re (todo);   break;  // recalc vc live
+      }                                // todo: n f a p = frq flt amp pan
 }
 //______________________________________________________________________________
 // syn maaain api...
 
-void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
+void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2, char *es)
 // setup a chan's voices with CC else start/stop a voice with note
 // only drum notes,CCs of ANOFF,ASOFF,ACOFF should be on ch 9
 // rest should have hi bit set in chn, drum note in LS7bits
@@ -844,13 +845,13 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
   TStr s;
    if (_run)  _lok.Grab ();
 
-// do note  on/off  (NPrs some day?)
+// do note on/off
    if (! (c & 0xFF80)) {
 DBG("Syn::Put ch=`d `s`c`d",
 ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
 (v & 0x080) ? ((v2 & 0x080) ? '~' : '_') : '^', v & 0x07F);
       if (v & 0x80) {
-         if (ch != 9) {
+         if (ch != 9) {                // track pNt of ch for glide
             if ((Sy._in.time < _chn [ch].nTm) ||      // musta restarted
                 (Sy._in.time > _chn [ch].nTm+24)) {   // 32nd nt
                _chn [ch].pNt = _chn [ch].nNt;    // click!
@@ -860,7 +861,7 @@ ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
             else                       // use lowest note of chord for pNt
                if (c < _chn [ch].nNt)  _chn [ch].nNt = c;
          }
-         NtOn (ch, c, v & 0x7F);
+         NtOn (ch, c, v & 0x7F, es);
       }
       else
          NOff (ch, c, v);
@@ -878,7 +879,7 @@ DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch+1, c, v);
   Channel *chn = & _chn [ch];
    switch (c) {
       case MC_PROG:       if ((v < _nSnd) && (ch != 9))  chn->snd = v;  else
-DBG("Syn::Put M_PROG past band or on drums");
+DBG("Syn::Put PROGCH past bank or on drums");
                                       break;
       case MC_CC|M_ANOFF: re = 'r';   break;     // release em
       case MC_CC|M_ASOFF: re = 'e';   break;     // end em
@@ -888,25 +889,17 @@ DBG("Syn::Put M_PROG past band or on drums");
       case MC_CC|M_HOLD:  chn->hold = v;
                           if (v < 64) UnHold (ch);     break;
       case MC_PBND:       chn->pBnd = v << 7 | v2;   re = 'n';   break;
-      case MC_CC|16:      chn->pBnR = v;   re = 'n';   break;  // cc# ok??
-      case MC_CC|21:      chn->pStp = v;   re = 'n';   break;
-      case MC_CC|18:      chn->fCut = v;   re = 'f';   break;
-      case MC_CC|19:      chn->fRes = v;   re = 'f';   break;
-      case MC_CC|20:      chn->vel2fCut = v;   re = 'f';   break;
+      case MC_RP|0:       chn->pBnR = v;   re = 'n';   break;
+      case MC_CC|16:      chn->fCut = v;   re = 'f';   break;
+      case MC_CC|17:      chn->fRes = v;   re = 'f';   break;
+      case MC_CC|18:      chn->vCut = v;   re = 'f';   break;
       case MC_CC|M_VOL:   chn->vol  = v;   re = 'a';   break;
       case MC_CC|M_PAN:   chn->pan  = v;   re = 'p';   break;
-      case MC_CC|24:      chn->rvrb = v;   re = 'p';   break;  // l8r
-      case MC_CC|65:      chn->glide  = v;   break;
-      case MC_CC|5:       chn->glRate = v;   break;
-      case MC_CC|84:      chn->glFrom = v;   break;
-/* reverb fixed till i find algos that don't suck
-**
-** // not channel specific fx params
-**    case MC_CC|30:      _fxP.rRoom  = v;                re = 'x';   break;
-**    case MC_CC|31:      _fxP.rDamp  = v;                re = 'x';   break;
-**    case MC_CC|32:      _fxP.rWidth = v;                re = 'x';   break;
-**    case MC_CC|33:      _fxP.rLevel = v;                re = 'x';   break;
-*/
+      case MC_CC|65:      chn->glide  = v;             break;
+      case MC_CC|5:       chn->glRate = v;             break;
+      case MC_CC|84:      chn->glFrom = v;             break;
+      case MC_CC|20:      StrCp (chn->env,  es);       break;
+      case MC_CC|21:      StrCp (chn->envR, es);       break;
    }
    if (re)  AllVc (ch, re);
    if (_run)  _lok.Toss ();
@@ -978,10 +971,9 @@ void Syn::run ()
 DBGTH("Syn");   DBG("run bgn");
    while (_run) {
       o = & _out [per*_nFr];   per = per ? 0 : 1;     // double bufferin
-      MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);   //MemSet (_rvrb, 0, sz);
+      MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
       _lok.Grab ();
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix ();
-//    _rvP.Mix (_rvrb, _mixL, _mixR);
       for (i = 0;  i < _nFr;  i++) {   // sound card wants interleaved ints
          o [i][0] = r2i (_mixL [i], Dither [0][_dth]);
          o [i][1] = r2i (_mixR [i], Dither [1][_dth]);
@@ -991,6 +983,40 @@ DBGTH("Syn");   DBG("run bgn");
       _sn->Put ((sbyt2 *)o);           // this'll block us on 2nd call and on
    }
 DBG("run end");
+}
+
+
+void Syn::InitEnv ()
+// load _stg,_env from .../device/syn/env.txt  (our envelope bank)
+{ TStr   fn, s;
+  ubyt4  en, st;
+  StrArr t (CC("env"), 128, 128*sizeof(TStr));
+   App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/env.txt"));   t.Load (fn);
+   en = st = 0;   _env.Ln = _stg.Ln = 0;
+   for (i = 0;  i < t.num;  i++) {
+      StrCp (s, t.str [i]);   if ((*s == '#')  continue;
+     ColSep ss (s, 3);
+      if (*s != ' ') {
+         if (_env.Full ())
+{DBG("Syn::InitEnv env is full");   continue;}
+         _env.Ins ();
+         StrCp (_env [en].nm,  ss.Col [0]);
+         StrCp (_env [en].dst, ss.Col [1]);
+         _env        [en].stg  = st;
+         _env        [en].nStg = 0;
+         en++;
+      }
+      else {
+         if (_stg.Full ())
+{DBG("Syn::InitEnv stg is full");   continue;}
+         _stg.Ins ();
+         _stg        [st].lvl = Str2R (ss.Col [0]);
+         StrCp (_stg [st].dur,         ss.Col [1]);
+         _stg        [st].crv = Str2R (ss.Col [2]);
+         st++;
+         if (en)  _env [en-1].nStg++;
+      }
+   }
 }
 
 
@@ -1027,7 +1053,7 @@ DBG("Syn::Init - sound output='`s' device='`s'", _snDsc, _snDev);
 DBG("   nFr=`d frq=`d", _nFr, _frq);
       _vol = 0.07;                     // alsa always does volume=100% :)
    }
-   InitLookup ();
+   InitLookup ();   InitEnv ();
    _smp = nullptr;
    MemSet (_snd, 0, sizeof (_snd));   _nSnd = 0;
    MemSet (_drm, 0, sizeof (_drm));

@@ -19,12 +19,11 @@ const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int
 struct Channel {
    ubyte hold, snd;
    ubyt2 pBnd, pBnR;
-   ubyte pStp,
-         fCut, fRes, vol, pan, rvrb,
-         vel2fCut,
+   ubyte fCut, fRes, vCut, vol, pan,
          glide, glRate, glFrom,        // prev note, portam on/off, rate, fr key
          nNt, pNt;                     // nt,tm shift reg to set pNt right
    ubyt4 nTm;
+   TStr  env, envR;
    void Init ();
    void Dump ();
 };
@@ -70,22 +69,24 @@ public:
    real Mix (real smp);
 };
 //______________________________________________________________________________
-struct EnvStg {real lvl, dur, crv;};
+struct EnvStg {WStr dur;   real lvl, crv, mul, add;};
                    // lvl  starting level (ending at next stg's .lvl)
                    // crv  (curve) .0001 mostly exponential .. 100 mostly linear
-                   // dur  .2   (* _frq(44100) = .2 sec)  0 for ENDSTAGE
-struct EnvStX {real lvl, mul, ofs;};
-                   // mul, ofs calc'd in Init from EnvStg parts
-class Env {        // they calc curve in series til next lvl is hit, then st++
-   Arr<EnvStX,8> stg;
-   sbyte st, dir;  // which stage we're on;  dir btw start - target lvl (-/+1)
-   real  lvl;      // output level
+                   // dur  dur like txt2song or \0 for end stages
+                   // mul, add calc'd
+struct EnvCfg {WStr nm, dst;  ubyt2 stg;};
+
+class Env {
+   char   *dst;
+   EnvStg *stg;
+   ubyte   s;                          // which stg # we're on
+   sbyte   dir;                        // dir from initial to target lvl(-/+1)
+   real    lvl;                        // output level
 public:
-   void  Init (EnvStg *stg);
+   void  Init (ubyt2 id);
    real  Mix ();
-   bool  End ()  {return stg [st].mul == 0.;}
-   ubyte Stg ()       {return st;}
-   void  SetStg (sbyte s)    {st = s;}
+   bool  End ()  {return stg [s].dur [0] == '\0';}
+   void  SetStg (sbyte st2)  {s = st2;}
 };
 //______________________________________________________________________________
 struct Glide {                         // cool modulation on freq
@@ -96,37 +97,41 @@ struct Glide {                         // cool modulation on freq
 //______________________________________________________________________________
 class Voice {
 public:                                // Core stuph:
-   char    _on;                        // \0=free, d=down, s=sust(NOff but hold)
+   char     _on;                       // \0=free, d=down, h=hold(NOff but sust)
                                        //          r=release(amp curve to 0)
-   ubyte   _ch,                        // channel
-           _key, _vel;                 // key and velocity of note on
-   ubyt4   _vcNo, _nPer;               // voice # I am, periods since Bgn
+   ubyte    _ch;                       // channel num n ptr
+   Channel *_c;
+   ubyte    _key, _vel;                // key and velocity of note on
+   ubyt4    _vcNo, _nPer;              // voice # I am, periods since Bgn
 
-   Sound  *_snd;                       // Oscillator:
-   Sample *_smp;                       // which wav of instrument wav set
-   bool    _looped;                    // hit loop's end for 1st time?
-   Phase   _phase,                     // pos w/in our sample
-           _phInc;                     // amt we scoot pos per output sample
+   Sound   *_snd;                      // Oscillator:
+   Sample  *_smp;                      // which wav of instrument wav set
+   bool     _looped;                   // hit end of rep'ing loop for 1st time?
+   Phase    _phase,                    // pos w/in our sample
+            _phInc;                    // amt we scoot pos per output sample
 
-   LPF     _flt;                       // Filter: lowpass one for eeevery voice
+   LPF      _flt;                      // Filter: lowpass one for eeevery voice
 
-   real    _amp, _panL, _panR;         // Amp n Pan
+   real     _amp, _panL, _panR;        // Amp n Pan
 
-   Env     _relE;                      // Modulation stuph...  (always rel env)
-   Glide   _gl;                        // doin glide? (portamento) pitch offset
+   TStr     _estr;                     // Modulation - envelopes string
+   Arr<Env,16> _env;
+   Glide    _gl;                       // doin glide? (portamento) pitch offset
 
    void  Init ();
-   void  Bgn  (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm);
+   void  Bgn  (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm,
+               char *es);
    void  Rels ();
    void  End  ();
-   void  ReFrq (), ReFlt (), ReAmp (), RePan (), Redo (char re);
+   void  ReFrq (), ReFlt (), ReAmp (), RePan (), Re (char todo);
    void  Dump  (char q = '\0');
 
-   ubyt4 Osc (real *ib);               // tough part (sample=>interpolation buf)
+   ubyt4 Osc ();                       // tough part (sample=>interpolation buf)
    void  Mix ();                       // guts - cook up next sound card buf
 };
 //______________________________________________________________________________
 struct SInfo  {ubyt4 time;   ubyt2 tmpo;   ubyte bt, sb;}; // song info fer syn
+
 
 class Syn: public QThread {
    Q_OBJECT
@@ -143,6 +148,8 @@ public:
    Sound  *_snd [128];   ubyte _nSnd;  // melodic sounds (pitched)
    Sound  *_drm [128];                 // percussive   (UNpitched)
    Channel _chn [128];                 // midi chans: "canvases" for voices
+   Arr<EnvStg,128> _stg;               // envelope bank with arr of stages per
+   Arr<EnvCfg,64>  _env;
    Voice   _vc  [256];   ubyt2 _nVc;   // voice per (mono) sample in use
    ubyte   _maxChn;                    // max channel sequencer uses
    ubyt2   _maxVc;                     // #used, max we ever used
@@ -158,19 +165,21 @@ public:
 
    void  Init (char wav = '\0'),  Quit ();
    bool  Dead ()  {return ! _run;}
+   void  InitEnv ();
    void  PutWav (sbyt2 *out, ubyt4 len);
 
    void  WipeSnd ();
    void  LoadSnd (TStr *snd, ubyte maxch);
 
    void  NOff (ubyte ch, ubyte key, ubyte vel);
-   void  NtOn (ubyte ch, ubyte key, ubyte vel);
+   void  NtOn (ubyte ch, ubyte key, ubyte vel, char *es);
 
    void  UnHold (ubyte ch);
    void  AllVc  (ubyte ch, char todo);
 
    sbyt2 r2i (real r, real dth);
-   void  Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0);
+   void  Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0,
+              char *es = nullptr);
    void  Tell (SInfo *in)  {MemCp (& _in, in, sizeof (_in));}
 
    void  Dump (char x = '\0');
