@@ -57,8 +57,8 @@ const ubyte M_RVRB  = 91;
 const ubyte M_CHOR  = 93;
 const ubyte M_ASOFF = 120;             // all sound off
 const ubyte M_ACOFF = 121;             // reset all controls
-const ubyte M_LOCAL = 122;             // 0 means local control off;  127=on
 const ubyte M_ANOFF = 123;             // all notes off
+const ubyte M_LOCAL = 122;             // 0 means local control off;  127=on
 
 const ubyte M_NRPNL = 98;              // to do Non Registered Params via M_CTRL
 const ubyte M_NRPNH = 99;
