@@ -23,7 +23,7 @@ struct Channel {
          glide, glRate, glFrom,        // prev note, portam on/off, rate, fr key
          nNt, pNt;                     // nt,tm shift reg to set pNt right
    ubyt4 nTm;
-   TStr  env, envR;
+   TStr  env;
    void Init ();
    void Dump ();
 };
@@ -69,30 +69,30 @@ public:
    real Mix (real smp);
 };
 //______________________________________________________________________________
-struct EnvStg {WStr dur;   real lvl, crv, mul, add;};
-                   // lvl  starting level (ending at next stg's .lvl)
-                   // crv  (curve) .0001 mostly exponential .. 100 mostly linear
-                   // dur  dur like txt2song or \0 for end stages
-                   // mul, add calc'd
-struct EnvCfg {WStr nm, dst;  ubyt2 stg;};
-
-class Env {
-   char   *dst;
-   EnvStg *stg;
-   ubyte   s;                          // which stg # we're on
-   sbyte   dir;                        // dir from initial to target lvl(-/+1)
-   real    lvl;                        // output level
-public:
-   void  Init (ubyt2 id);
-   real  Mix ();
-   bool  End ()  {return stg [s].dur [0] == '\0';}
-   void  SetStg (sbyte st2)  {s = st2;}
-};
-//______________________________________________________________________________
 struct Glide {                         // cool modulation on freq
    real ofs, inc;
    void Init (ubyte cid, ubyte key);
    char Mix ();
+};
+//______________________________________________________________________________
+struct EnvStg {ubyt4 dur;   real lvl, crv,   mul, add;};
+                   // dur  songtime dur;  0 for last stage (loop stored in add)
+                   // lvl  starting level (ending at next stg's .lvl)
+                   // crv  (curve) .0001 mostly exponential .. 100 mostly linear
+                   // mul, add  calc'd in Init
+struct EnvCfg {WStr nm;  ubyte dst;  ubyt2 stg;};
+
+class Env {
+public:
+   ubyte   dst;
+   EnvStg *stg;
+   ubyte   s;                          // which stg # we're on
+   sbyte   dir;                        // dir from initial to target lvl(-/+1)
+   real    lvl;                        // output level
+   void Init (ubyte id);
+   real Mix ();
+   bool End ()  {return stg [s].dur == 0;}
+   void SetStg (sbyte st2)  {s = st2;}
 };
 //______________________________________________________________________________
 class Voice {
@@ -114,9 +114,10 @@ public:                                // Core stuph:
 
    real     _amp, _panL, _panR;        // Amp n Pan
 
-   TStr     _estr;                     // Modulation - envelopes string
+   TStr        _eStr;                  // Modulation - envelopes string
    Arr<Env,16> _env;
-   Glide    _gl;                       // doin glide? (portamento) pitch offset
+   real        _eVal [6];              // oNt oCnt fCut fRes amp pan
+   Glide       _gl;                    // doin glide? (portamento) pitch offset
 
    void  Init ();
    void  Bgn  (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm,
@@ -165,9 +166,9 @@ public:
 
    void  Init (char wav = '\0'),  Quit ();
    bool  Dead ()  {return ! _run;}
-   void  InitEnv ();
    void  PutWav (sbyt2 *out, ubyt4 len);
 
+   void  LoadEnv ();
    void  WipeSnd ();
    void  LoadSnd (TStr *snd, ubyte maxch);
 
