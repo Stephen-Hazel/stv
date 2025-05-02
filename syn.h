@@ -75,24 +75,25 @@ struct Glide {                         // cool modulation on freq
    char Mix ();
 };
 //______________________________________________________________________________
-struct EnvStg {ubyt4 dur;   real lvl, crv,   mul, add;};
-                   // dur  songtime dur;  0 for last stage (loop stored in add)
-                   // lvl  starting level (ending at next stg's .lvl)
-                   // crv  (curve) .0001 mostly exponential .. 100 mostly linear
-                   // mul, add  calc'd in Init
 struct EnvCfg {WStr nm;  ubyte dst;  ubyt2 stg;};
-
+struct EnvStg {ubyt4 dur;   real lvl, crv,   nper, mul, add;   sbyte dir;};
+// dur  songtime dur;  0 for last stage (add>0 means loop me)
+// nper is # periods (buffers) dur is given tempo
+// lvl  starting level (ending at next stg's .lvl)
+// crv  (curve) .0001 mostly exponential .. 16 mostly linear  (neg means sin)
+// mul, add  calc'd in Init - for running exponential curve calc (sin w lookup)
+// dir is +1 for increasing level, -1 for decreasing level
 class Env {
 public:
-   ubyte   dst;
+   ubyte   id, dst;                    // pos in Sy._env[], voice parm we hit
    EnvStg *stg;
    ubyte   s;                          // which stg # we're on
-   sbyte   dir;                        // dir from initial to target lvl(-/+1)
+   ubyt4   p;                          // period buffer we're on - just incs
    real    lvl;                        // output level
    void Init (ubyte id);
    real Mix ();
    bool End ()  {return stg [s].dur == 0;}
-   void SetStg (sbyte st2)  {s = st2;}
+   void SetStg (sbyte st)   {s = st;}
 };
 //______________________________________________________________________________
 class Voice {

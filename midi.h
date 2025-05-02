@@ -186,7 +186,8 @@ public:
    char *Dev  ()  {return _dev;}
    bool  Syn  ()  {return _syn;}
    void  PutMEv   (ubyte *mev, ubyte len = 3);
-   void  Put      (ubyte chan, ubyt2 ctrl, ubyte valu = 0, ubyte val2 = 0);
+   void  Put      (ubyte chan, ubyt2 ctrl, ubyte valu = 0, ubyte val2 = 0,
+                                           char *estr = nullptr);
    void  NotesOff (ubyte nch = 16),  DumpOns ();
    void  GMInit   (ubyte nch = 16);
    ubyte _MVol, _MBal;

@@ -80,25 +80,33 @@ static real     Pan (ubyte c, ubyte lr)     //TODO check this :/
    return Cnv_pan [c];
 }
 
+static real Cnv_sin [4096];            // 1/4 sin table lookup (other 3/4 calcd)
+static real     Sin (real in, ubyte q = 0)  // q is quad of the full sin curve
+{ ubyt2 i;
+   if (in <= 0.) i = 0;   else if (in >= 1.) i = 4095;
+   else          i = (ubyt2) round (in*4095.);
+  real o = Cnv_sin [(q & 0x01) ? (4095-i) : i];  // sin or cos (q1,2 default)
+   if (q >= 2)  return -o;             // neg swing of sin/cos (q3,4)
+   return o;
+}
+
 static void InitLookup ()
 { sbyt4 i;
   real  x;
    for (i = 0;  i < BITS (Cnv_ct2hz);  i++)
-      Cnv_ct2hz [i] = (real) pow (2., (real) i / 1200.);
-   x = M_PI/2. / (BITS (Cnv_pan) - 1.);
-   for (i = 0;  i < BITS (Cnv_pan);  i++)
-      Cnv_pan   [i] = (real) sin (i * x);
+                              Cnv_ct2hz [i] = (real) pow (2., (real) i / 1200.);
+   x = M_PI/2. /   (BITS (Cnv_pan) - 1.);
+   for (i = 0;  i < BITS (Cnv_pan);  i++)  Cnv_pan [i] = (real) sin (i * x);
+   x = M_PI/2. /   (BITS (Cnv_sin) - 1.);
+   for (i = 0;  i < BITS (Cnv_sin);  i++)  Cnv_sin [i] = (real) sin (i * x);
    InitInterp ();   InitDither ();
-/*
-TStr ts;
-for (i = 0; i < BITS (Cnv_pan); i++)
-DBG("pan    `d `s", i, R2Str (Cnv_pan[i],ts));
-*/
+//TStr ts; for (i = 0; i < BITS (Cnv_sin); i++) DBG("sin `d=`s",
+//                                                  i, R2Str (Cnv_sin[i],ts));
 }
 //______________________________________________________________________________
 void Channel::Init ()                  // channels are easy as pie at least
-{  hold = snd = fRes = glide = glRate = pNt = nNt = 0;
-   pBnd = MID14;   pBnR = 2;   fCut = vCut = vol = 127;   pan = glFrom = 64;
+{  hold = snd = fRes = vCut = glide = glRate = pNt = nNt = 0;
+   pBnd = MID14;   pBnR = 2;   vol = 100;   fCut = 127;   pan = glFrom = 64;
    nTm = 0;   *env = '\0';
 }
 
@@ -419,55 +427,54 @@ char Glide::Mix ()
    return 'y';
 }
 //______________________________________________________________________________
-void Env::Init (ubyte id)
-{ real  d, l, l2, ratio, x;
-  char *ch, *p;
-  ubyte i;
-TStr s1,s2,s3;
-//DBG("Env::Init `d", id);
-   dst  =            Sy._env [id].dst; // init my destination n stages
-   stg  = & Sy._stg [Sy._env [id].stg];
-   lvl  = stg [s = 0].lvl;             // initial stg pos, level, direction
-   dir  = (lvl <= stg [1].lvl) ? 1 : -1;
-   for (i = 0;  stg [i].dur;  i++) {   // lvl,dur,crv => mul,add  per stg
-/* songtime_dur/192 beat / (tmpo beat/min * min/60 sec)
-** dur beat / (tmpo beat/60 sec)
-** dur beat * (60 sec/tmpo beat)
-** dur * 60 / tmpo sec                 sec
-** frq sample/sec / nfr sample/buf
-** frq sample/sec * buf/nfr sample     buf/sec => bufs
-** frq/nfr buf/sec
-*/
-   // songtime dur => # outbound period buffers
-      d = (real)stg [i].dur / ((real)M_WHOLE/4.) / ((real)Sy._in.tmpo / 60.) *
-          (real)Sy._frq/(real)Sy._nFr;
-   // curve ratio;  target level
-      ratio = stg [i].crv;
-      l     = stg [i].lvl;   l2 = stg [i+1].lvl;
+void Env::Init (ubyte iid)
+// init my destination n stages' stuff.
+// songtime_dur/192 beat / (tmpo beat/min * min/60 sec)
+//    dur beat / (tmpo beat/60 sec)
+//    dur beat * (60 sec/tmpo beat)
+//    dur * 60 / tmpo sec                 sec
+//    frq sample/sec / nfr sample/buf
+//    frq sample/sec * buf/nfr sample     buf/sec => bufs
+//    frq/nfr buf/sec
+{ ubyte i;
+  real  np, l2, c;
+   id  = iid;
+   dst =            Sy._env [id].dst;
+   stg = & Sy._stg [Sy._env [id].stg];
+   s = 0;   p = 0;   lvl = stg [0].lvl;     // initial stg pos, per, n level
+   for (i = 0;  stg [i].dur;  i++) {        // lvl,dur,crv => mul,add  per stg
+      stg [i].nper = np =                   // songtime dur => # period buffers
+         (real)stg [i].dur / (M_WHOLE/4.) / (Sy._in.tmpo / 60.) *
+                                                    (real)Sy._frq/(real)Sy._nFr;
+      if ((c = stg [i].crv) < 0.) continue; // curve ratio: sin has no init
 
-   // get multiply factor from ratio and dur
-      if (ratio < 0.000000001)  ratio = 0.000000001;  // -180 dB
-      stg [i].mul = exp (-log ((1.0 + ratio) / ratio) / d);
+      if (c < 0.000000001)  c = 0.000000001;     // -180 dB
+      stg [i].mul = exp (-log ((1.0 + c) / c) / np);
 
-   // offset the addition factor by a little to REACH target, not just approach
-      x = (l > l2) ? (-ratio) : ratio;
-      stg [i].add = (l2 + x) * (1. - stg [i].mul);
+   // offset add factor a little to REACH target, not just approach
+      stg [i].add = (stg [i+1].lvl + stg [i].dir*c) * (1. - stg [i].mul);
    }
 }
 
 real Env::Mix ()
 {  if (End () && stg [s].add == 0.)  return lvl;
+  sbyte d  = stg [s  ].dir;            // git ma next dude
+  real  l2 = stg [s+1].lvl;
+   if (stg [s].crv >= 0.)
+      lvl = lvl * stg [s].mul + stg [s].add;     // exp crv
+   else {                                        // sin curve
+     ubyte q = (d > 0) ? 0 : 1;
+      if ((lvl < 0.) || (l2 < 0.))  q += 2;
+      lvl = Sin (++p/stg [s].nper, q);
+   }                                   // same ole stage?
+   if (d > 0)  {if (lvl < l2)  return lvl;}
+   else         if (lvl > l2)  return lvl;
 
-   lvl = lvl * stg [s].mul + stg [s].add;   // git ma next dude
-   if (dir == 1)  {if (lvl < stg [s+1].lvl)  return lvl;}
-   else            if (lvl > stg [s+1].lvl)  return lvl;   // same ole stage?
-
-   lvl = stg [++s].lvl;                     // bump ta next stage !
+   s++;   lvl = l2;   p = 0;                // bump ta next stage !
    if (End ()) {
       if (stg [s].add == 0.)  return lvl;   // not loopin so dooone
       lvl = stg [s = 0].lvl;                // loop back ta stg 0
    }
-   dir = (lvl <= stg [s+1].lvl) ? 1 : -1;
    return lvl;
 }
 //______________________________________________________________________________
@@ -508,7 +515,10 @@ void Voice::ReFrq ()
 void Voice::ReFlt ()                   // set filter cutoff,resonance
 { real cut = Mu (_c->fCut) * _eVal [2],
        res = Mu (_c->fRes) * _eVal [3];
-   if ((_ch != 9) && Mb (_c->vCut))  cut = Mu (_vel);
+   if ((_ch != 9) && Mb (_c->vCut))  cut *= Mu (_vel);
+TStr s1, s2;
+TRX("ReFlt cut=`s ecut=`s vCut=`b",
+R2Str(cut,s1), R2Str(_eVal [2], s2), Mb (_c->vCut));
    _flt.Cut (9500.0 * cut + 4000.);  // 4000 - 13500 = 0 - 9500
    _flt.Res ( 960.0 * res);          //                0 - 960
 }
@@ -588,14 +598,9 @@ ubyt4 Voice::Osc ()
    if (! loopin)   se = in [_smp->len-1];              // 2nd sample for interp
    else            se = in [_smp->lpBgn];
 
-//TStr s1;
-//DBG("      Interp sEnd=`d ph=`d,`u se=`s",
-//sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF),R2Str(se,s1));
    for (;;) {
       s = PHASE_INDEX (ph);
       while ((s <= sEnd) && (d < nfr)) {
-//DBG("         a: d=`d s=`d ph=`d,`u sEnd=`d",
-//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
          co = Interp [PHASE_FRACT (ph)];
          o [d++] = co[0]*in[s] + co[1]*in[s+1];
          ph += _phInc;   s = PHASE_INDEX (ph);   // bump phase
@@ -605,8 +610,6 @@ ubyt4 Voice::Osc ()
       sEnd++;
 
       while ((s <= sEnd) && (d < nfr)) {         // interp last point
-//DBG("         b: d=`d s=`d ph=`d,`u sEnd=`d",
-//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
          co = Interp [PHASE_FRACT (ph)];
          o [d++] = co[0]*in[s] + co[1]*se;
          ph += _phInc;   s = PHASE_INDEX (ph);
@@ -614,19 +617,13 @@ ubyt4 Voice::Osc ()
       if (! loopin)  break;                      // done !
 
       if (s > sEnd) {                            // back to loop start
-//DBG("         c: d=`d s=`d ph=`d,`u sEnd=`d",
-//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
          ph -= LONG2PHASE (_smp->len - _smp->lpBgn);
          if (! _looped)  _looped = true;
-//DBG("         d: d=`d s=`d ph=`d,`u sEnd=`d",
-//d, s, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), sEnd);
       }
       if (d >= nfr)  break;
 
       sEnd--;                                    // back to 2nd to last sample
    }
-//DBG("      sEnd=`d ph=`d,`u d=`d s=`d",
-//sEnd, (ubyt4)(ph>>32), (ubyt4)(ph & 0xFFFFFFFF), d, s);
 
    _phase = ph;                        // store it for next time
    return d;
@@ -642,15 +639,15 @@ void Voice::Mix ()                     // da GUTS :)
 
    _nPer++;                            // track how many bufs we did
    len = Osc ();                       // stretch/shrink sample into _intp
-//DBG("   Osc len=`d vcNo=`d nPer=`d", len, _vcNo, _nPer);
 
 // run all the _env[]  only do last (rel) upon note up
-   ne = _env.Ln - (_on=='r'?0:1);      // last env goes only upon note release
-   for (i = 0;  i < 6;   i++)  _eVal [i] = 1.;
+   for (i = 0;  i < 6;  i++)  _eVal [i] = 1.;
+   ne = _env.Ln;   if (_on!='r') ne--;      // last env only upon release
    for (i = 0;  i < ne;  i++)
-      {re [d = _env [i].dst] = 1;   _eVal [d] *= _env [i].Mix ();}
+      {d = _env [i].dst;   re [d] = 1;   _eVal [d] *= _env [i].Mix ();}
    if (re [0] || re [1])  Re ('n');   if (re [4]) Re ('a');
    if (re [2] || re [3])  Re ('f');   if (re [5]) Re ('p');
+Dump('q');
 
 // mix in the buffer
    for (i = 0;  i < len;  i++)  {
@@ -672,6 +669,9 @@ void Voice::Dump (char q)
 TRX("   on=`c ch=`d key=`s vel=`d looped=`b vcNo=`d nPer=`d",
 _on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
 _vel, _looped, _vcNo, _nPer);
+   for (ubyte i = 0;  i < _env.Ln;  i++)
+TRX("   env `d=`s", i, Sy._env [_env [i].id].nm);
+// Sy._chn [_ch].Dump ();
    if (q)  return;
 TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
 (ubyt4)(_phase>>32), (ubyt4)(_phase & 0xFFFFFFFF),
@@ -1041,12 +1041,16 @@ DBG("LoadEnv env=`s has bad dest=`s", ss.Col [0], ss.Col [1]);
             }
          _stg [st].lvl = Str2R (ss.Col [0]);
          _stg [st].dur = d;
-         _stg [st].crv = ss.Col [2][0] ? Str2R (ss.Col [2]) : 0.001;
+         if (! StrCm (ss.Col [2], CC("sin")))
+               _stg [st].crv = -1.;
+         else  _stg [st].crv = ss.Col [2][0] ? Str2R (ss.Col [2]) : 0.001;
 //TStr s1;
 //DBG("envstg `d lvl=`s dur=`d", st, R2Str (_stg [st].lvl,s1), d);
          st++;
       }
-   }
+   }                                   // init dir
+   for (i = 0;  i < st;  i++)  if (_stg [i].dur)
+      _stg [i].dir = (_stg [i].lvl <= _stg [i+1].lvl) ? 1 : -1;
 DBG("LoadEnv ne=`d ns=`d", _env.Ln, _stg.Ln);
 }
 
@@ -1058,7 +1062,7 @@ void Syn::Init (char wav)
   TStr fn;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = false;                       // just here no cfg file
+   _trx = true;                        // just here no cfg file
 TRX("Syn::Init bgn");
    if (_wav = wav) {                   // goin to .wav file - pretty easy
       *_snDsc = *_snDev = '\0';   _sn = nullptr;

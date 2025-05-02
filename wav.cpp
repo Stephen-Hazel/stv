@@ -129,10 +129,10 @@ char *Wav::Load (char *fn)
       }
       _smp.num = _loop?1:0;   _smp.bgn = _lBgn;   _smp.end = _lEnd;
    }
-TRC(" Wav::Load fn=`s\nfrq=`d bits=`d byts=`d real=`b mono=`b "
-    "len=`d bgn=`d end=`d loop=`b lBgn=`d lEnd=`d key=`s cnt=`d",
-FnName(fn,_name),_frq,_bits,_byts,_real,_mono,
-_len,_bgn,_end,_loop,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
+//TRC(" Wav::Load fn=`s\nfrq=`d bits=`d byts=`d real=`b mono=`b "
+//    "len=`d bgn=`d end=`d loop=`b lBgn=`d lEnd=`d key=`s cnt=`d",
+//FnName(fn,_name),_frq,_bits,_byts,_real,_mono,
+//_len,_bgn,_end,_loop,_lBgn,_lEnd,MKey2Str(ts,_key),_cnt);
    return nullptr;
 }
 
@@ -146,14 +146,14 @@ void Wav::Save (char *fni)
 { File  f;
   TStr  fn;
   ubyt4 ln1, ln2, ln3, ln4;
-DBG("Wav::Save '`s'", fni);
+//DBG("Wav::Save '`s'", fni);
    if (_fmt.Format.nChannels > 2)
       {DBG("Wav::Save can't do beyond stereo");   return;}
-TStr x;
-DBG(" frq=`d bits=`d byts=`d real=`b mono=`b len=`d bgn=`d end=`d "
-"loop=`b lBgn=`d lEnd=`d key=`s cnt=`d",
-_frq,_bits,_byts,_real,_mono,_len,_bgn,_end,
-_loop,_lBgn,_lEnd,MKey2Str(x,_key),_cnt);
+//TStr x;
+//DBG(" frq=`d bits=`d byts=`d real=`b mono=`b len=`d bgn=`d end=`d "
+//"loop=`b lBgn=`d lEnd=`d key=`s cnt=`d",
+//_frq,_bits,_byts,_real,_mono,_len,_bgn,_end,
+//_loop,_lBgn,_lEnd,MKey2Str(x,_key),_cnt);
    StrCp (fn, fni);
    _fmt.Format.nSamplesPerSec = _frq;  // ONLY _fmt change is frq !
 
@@ -165,24 +165,24 @@ _loop,_lBgn,_lEnd,MKey2Str(x,_key),_cnt);
    else           _smp.num = 1;
    _smp.bgn = _lBgn - _bgn;
    _smp.end = _lEnd - _bgn;
-DBG(" smp manuf=`d prod=`d per=`d key=`d cnt=`d "
-    "sfmt=`d sofs=`d num=`d dat=`d cue=`d "
-    "loop=`d bgn=`d end=`d frc=`d times=`d",
-_smp.manuf,_smp.prod,_smp.per,_smp.key,_smp.cnt,
-_smp.sfmt,_smp.sofs,_smp.num,_smp.dat,_smp.cue,
-_smp.loop,_smp.bgn,_smp.end,_smp.frc,_smp.times);
+//DBG(" smp manuf=`d prod=`d per=`d key=`d cnt=`d "
+//    "sfmt=`d sofs=`d num=`d dat=`d cue=`d "
+//    "loop=`d bgn=`d end=`d frc=`d times=`d",
+//_smp.manuf,_smp.prod,_smp.per,_smp.key,_smp.cnt,
+//_smp.sfmt,_smp.sofs,_smp.num,_smp.dat,_smp.cue,
+//_smp.loop,_smp.bgn,_smp.end,_smp.frc,_smp.times);
 
 // calc lengths n dump into a file
    ln4 = sizeof (WAVESMPL);
    ln3 = _end - _bgn + 1;  if (ln3 == 0) {
-DBG("got end-bgn+1=0 :(");
+//DBG("got end-bgn+1=0 :(");
       return;
    }
    if (! _mono) ln3 <<= 1;   ln3 *= _byts;
    ln2 = _fmtSz;
    ln1 = 4 + 8 + ln2 + 8 + ln3;   ln1 += (8 + ln4);   // smpl too
    if (! f.Open (fn, "w")) {
-DBG("can't write '`s'", fn);
+//DBG("can't write '`s'", fn);
       return;
    }
    f.Put (CC("RIFF"));  f.Put (& ln1, 4);  f.Put (CC("WAVE"));
