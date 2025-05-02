@@ -856,7 +856,7 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2, char *es)
 
 // do note on/off
    if (! (c & 0xFF80)) {
-DBG("Syn::Put ch=`d `s`c`d",
+TRX("Syn::Put ch=`d `s`c`d",
 ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
 (v & 0x080) ? ((v2 & 0x080) ? '~' : '_') : '^', v & 0x07F);
       if (v & 0x80) {
@@ -1051,7 +1051,7 @@ DBG("LoadEnv env=`s has bad dest=`s", ss.Col [0], ss.Col [1]);
    }                                   // init dir
    for (i = 0;  i < st;  i++)  if (_stg [i].dur)
       _stg [i].dir = (_stg [i].lvl <= _stg [i+1].lvl) ? 1 : -1;
-DBG("LoadEnv ne=`d ns=`d", _env.Ln, _stg.Ln);
+TRX("LoadEnv ne=`d ns=`d", _env.Ln, _stg.Ln);
 }
 
 
@@ -1062,7 +1062,7 @@ void Syn::Init (char wav)
   TStr fn;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = true;                        // just here no cfg file
+   _trx = false;                       // just here no cfg file
 TRX("Syn::Init bgn");
    if (_wav = wav) {                   // goin to .wav file - pretty easy
       *_snDsc = *_snDev = '\0';   _sn = nullptr;
