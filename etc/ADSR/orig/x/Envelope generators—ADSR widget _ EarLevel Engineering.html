@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<!-- saved from url=(0073)https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/ -->
+<html lang="en-US"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Envelope generators—ADSR widget | EarLevel Engineering</title>
+<link rel="profile" href="http://gmpg.org/xfn/11">
+<link rel="stylesheet" type="text/css" media="all" href="./Envelope generators—ADSR widget _ EarLevel Engineering_files/style.css">
+<link rel="pingback" href="https://www.earlevel.com/main/xmlrpc.php">
+<meta name="robots" content="max-image-preview:large">
+<link rel="alternate" type="application/rss+xml" title="EarLevel Engineering » Feed" href="https://www.earlevel.com/main/feed/">
+<link rel="alternate" type="application/rss+xml" title="EarLevel Engineering » Comments Feed" href="https://www.earlevel.com/main/comments/feed/">
+<link rel="alternate" type="application/rss+xml" title="EarLevel Engineering » Envelope generators—ADSR widget Comments Feed" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/feed/">
+<script type="text/javascript">
+/* <![CDATA[ */
+window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/15.0.3\/72x72\/","ext":".png","svgUrl":"https:\/\/s.w.org\/images\/core\/emoji\/15.0.3\/svg\/","svgExt":".svg","source":{"concatemoji":"https:\/\/www.earlevel.com\/main\/wp-includes\/js\/wp-emoji-release.min.js?ver=6.5.5"}};
+/*! This file is auto-generated */
+!function(i,n){var o,s,e;function c(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function p(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data),r=(e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0),new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data));return t.every(function(e,t){return e===r[t]})}function u(e,t,n){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\uddfa\ud83c\uddf3","\ud83c\uddfa\u200b\ud83c\uddf3")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!n(e,"\ud83d\udc26\u200d\u2b1b","\ud83d\udc26\u200b\u2b1b")}return!1}function f(e,t,n){var r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):i.createElement("canvas"),a=r.getContext("2d",{willReadFrequently:!0}),o=(a.textBaseline="top",a.font="600 32px Arial",{});return e.forEach(function(e){o[e]=t(a,e,n)}),o}function t(e){var t=i.createElement("script");t.src=e,t.defer=!0,i.head.appendChild(t)}"undefined"!=typeof Promise&&(o="wpEmojiSettingsSupports",s=["flag","emoji"],n.supports={everything:!0,everythingExceptFlag:!0},e=new Promise(function(e){i.addEventListener("DOMContentLoaded",e,{once:!0})}),new Promise(function(t){var n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(s),u.toString(),p.toString()].join(",")+"));",r=new Blob([e],{type:"text/javascript"}),a=new Worker(URL.createObjectURL(r),{name:"wpTestEmojiSupports"});return void(a.onmessage=function(e){c(n=e.data),a.terminate(),t(n)})}catch(e){}c(n=f(s,u,p))}t(n)}).then(function(e){for(var t in e)n.supports[t]=e[t],n.supports.everything=n.supports.everything&&n.supports[t],"flag"!==t&&(n.supports.everythingExceptFlag=n.supports.everythingExceptFlag&&n.supports[t]);n.supports.everythingExceptFlag=n.supports.everythingExceptFlag&&!n.supports.flag,n.DOMReady=!1,n.readyCallback=function(){n.DOMReady=!0}}).then(function(){return e}).then(function(){var e;n.supports.everything||(n.readyCallback(),(e=n.source||{}).concatemoji?t(e.concatemoji):e.wpemoji&&e.twemoji&&(t(e.twemoji),t(e.wpemoji)))}))}((window,document),window._wpemojiSettings);
+/* ]]> */
+</script>
+<style id="wp-emoji-styles-inline-css" type="text/css">
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+</style>
+<link rel="stylesheet" id="wp-block-library-css" href="./Envelope generators—ADSR widget _ EarLevel Engineering_files/style.min.css" type="text/css" media="all">
+<style id="wp-block-library-theme-inline-css" type="text/css">
+.wp-block-audio figcaption{color:#555;font-size:13px;text-align:center}.is-dark-theme .wp-block-audio figcaption{color:#ffffffa6}.wp-block-audio{margin:0 0 1em}.wp-block-code{border:1px solid #ccc;border-radius:4px;font-family:Menlo,Consolas,monaco,monospace;padding:.8em 1em}.wp-block-embed figcaption{color:#555;font-size:13px;text-align:center}.is-dark-theme .wp-block-embed figcaption{color:#ffffffa6}.wp-block-embed{margin:0 0 1em}.blocks-gallery-caption{color:#555;font-size:13px;text-align:center}.is-dark-theme .blocks-gallery-caption{color:#ffffffa6}.wp-block-image figcaption{color:#555;font-size:13px;text-align:center}.is-dark-theme .wp-block-image figcaption{color:#ffffffa6}.wp-block-image{margin:0 0 1em}.wp-block-pullquote{border-bottom:4px solid;border-top:4px solid;color:currentColor;margin-bottom:1.75em}.wp-block-pullquote cite,.wp-block-pullquote footer,.wp-block-pullquote__citation{color:currentColor;font-size:.8125em;font-style:normal;text-transform:uppercase}.wp-block-quote{border-left:.25em solid;margin:0 0 1.75em;padding-left:1em}.wp-block-quote cite,.wp-block-quote footer{color:currentColor;font-size:.8125em;font-style:normal;position:relative}.wp-block-quote.has-text-align-right{border-left:none;border-right:.25em solid;padding-left:0;padding-right:1em}.wp-block-quote.has-text-align-center{border:none;padding-left:0}.wp-block-quote.is-large,.wp-block-quote.is-style-large,.wp-block-quote.is-style-plain{border:none}.wp-block-search .wp-block-search__label{font-weight:700}.wp-block-search__button{border:1px solid #ccc;padding:.375em .625em}:where(.wp-block-group.has-background){padding:1.25em 2.375em}.wp-block-separator.has-css-opacity{opacity:.4}.wp-block-separator{border:none;border-bottom:2px solid;margin-left:auto;margin-right:auto}.wp-block-separator.has-alpha-channel-opacity{opacity:1}.wp-block-separator:not(.is-style-wide):not(.is-style-dots){width:100px}.wp-block-separator.has-background:not(.is-style-dots){border-bottom:none;height:1px}.wp-block-separator.has-background:not(.is-style-wide):not(.is-style-dots){height:2px}.wp-block-table{margin:0 0 1em}.wp-block-table td,.wp-block-table th{word-break:normal}.wp-block-table figcaption{color:#555;font-size:13px;text-align:center}.is-dark-theme .wp-block-table figcaption{color:#ffffffa6}.wp-block-video figcaption{color:#555;font-size:13px;text-align:center}.is-dark-theme .wp-block-video figcaption{color:#ffffffa6}.wp-block-video{margin:0 0 1em}.wp-block-template-part.has-background{margin-bottom:0;margin-top:0;padding:1.25em 2.375em}
+</style>
+<style id="classic-theme-styles-inline-css" type="text/css">
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+</style>
+<style id="global-styles-inline-css" type="text/css">
+body{--wp--preset--color--black: #000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #fff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--blue: #0066cc;--wp--preset--color--medium-gray: #666;--wp--preset--color--light-gray: #f1f1f1;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgba(252,185,0,1) 0%,rgba(255,105,0,1) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgba(255,105,0,1) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgba(255, 255, 255, 1), 6px 6px rgba(0, 0, 0, 1);--wp--preset--shadow--crisp: 6px 6px 0px rgba(0, 0, 0, 1);}:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}body .is-layout-flex{flex-wrap: wrap;align-items: center;}body .is-layout-flex > *{margin: 0;}body .is-layout-grid{display: grid;}body .is-layout-grid > *{margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+.wp-block-navigation a:where(:not(.wp-element-button)){color: inherit;}
+:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}
+:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}
+.wp-block-pullquote{font-size: 1.5em;line-height: 1.6;}
+</style>
+<link rel="stylesheet" id="parent-style-css" href="./Envelope generators—ADSR widget _ EarLevel Engineering_files/style(1).css" type="text/css" media="all">
+<link rel="stylesheet" id="child-style-css" href="./Envelope generators—ADSR widget _ EarLevel Engineering_files/style(2).css" type="text/css" media="all">
+<link rel="stylesheet" id="twentyten-block-style-css" href="./Envelope generators—ADSR widget _ EarLevel Engineering_files/blocks.css" type="text/css" media="all">
+<style id="akismet-widget-style-inline-css" type="text/css">
+
+			.a-stats {
+				--akismet-color-mid-green: #357b49;
+				--akismet-color-white: #fff;
+				--akismet-color-light-grey: #f6f7f7;
+
+				max-width: 350px;
+				width: auto;
+			}
+
+			.a-stats * {
+				all: unset;
+				box-sizing: border-box;
+			}
+
+			.a-stats strong {
+				font-weight: 600;
+			}
+
+			.a-stats a.a-stats__link,
+			.a-stats a.a-stats__link:visited,
+			.a-stats a.a-stats__link:active {
+				background: var(--akismet-color-mid-green);
+				border: none;
+				box-shadow: none;
+				border-radius: 8px;
+				color: var(--akismet-color-white);
+				cursor: pointer;
+				display: block;
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen-Sans', 'Ubuntu', 'Cantarell', 'Helvetica Neue', sans-serif;
+				font-weight: 500;
+				padding: 12px;
+				text-align: center;
+				text-decoration: none;
+				transition: all 0.2s ease;
+			}
+
+			/* Extra specificity to deal with TwentyTwentyOne focus style */
+			.widget .a-stats a.a-stats__link:focus {
+				background: var(--akismet-color-mid-green);
+				color: var(--akismet-color-white);
+				text-decoration: none;
+			}
+
+			.a-stats a.a-stats__link:hover {
+				filter: brightness(110%);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 0 2px rgba(0, 0, 0, 0.16);
+			}
+
+			.a-stats .count {
+				color: var(--akismet-color-white);
+				display: block;
+				font-size: 1.5em;
+				line-height: 1.4;
+				padding: 0 13px;
+				white-space: nowrap;
+			}
+		
+</style>
+<script type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/jquery.min.js" id="jquery-core-js"></script>
+<script type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/jquery-migrate.min.js" id="jquery-migrate-js"></script>
+<link rel="https://api.w.org/" href="https://www.earlevel.com/main/wp-json/"><link rel="alternate" type="application/json" href="https://www.earlevel.com/main/wp-json/wp/v2/posts/200"><link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://www.earlevel.com/main/xmlrpc.php?rsd">
+<link rel="canonical" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/">
+<link rel="shortlink" href="https://www.earlevel.com/main/?p=200">
+<link rel="alternate" type="application/json+oembed" href="https://www.earlevel.com/main/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.earlevel.com%2Fmain%2F2013%2F06%2F23%2Fenvelope-generators-adsr-widget%2F">
+<link rel="alternate" type="text/xml+oembed" href="https://www.earlevel.com/main/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.earlevel.com%2Fmain%2F2013%2F06%2F23%2Fenvelope-generators-adsr-widget%2F&amp;format=xml">
+</head>
+
+<body class="post-template-default single single-post postid-200 single-format-standard">
+<div id="wrapper" class="hfeed">
+	<div id="header">
+		<div id="masthead">
+			<div id="branding" role="banner">
+								<div id="site-title">
+					<span>
+					<a href="https://www.earlevel.com/main" rel="home" title="EarLevel Engineering">
+					<img src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/EarLevel-logo.png" alt="EarLevel Engineering">
+					</a>
+					</span>
+				</div>
+				<div id="site-description">Practical digital audio signal processing</div>
+
+										<img src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/EarLevel-header.png" width="940" height="198" alt="">
+								</div><!-- #branding -->
+
+			<div id="access" role="navigation">
+			  				<div class="skip-link screen-reader-text"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#content" title="Skip to content">Skip to content</a></div>
+								<div class="menu-header"><ul id="menu-main" class="menu"><li id="menu-item-431" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-home menu-item-431"><a href="http://www.earlevel.com/main/">Home</a></li>
+<li id="menu-item-432" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-432"><a href="https://www.earlevel.com/main/about/">About</a></li>
+<li id="menu-item-435" class="menu-item menu-item-type-taxonomy menu-item-object-category current-post-ancestor current-menu-parent current-post-parent menu-item-435"><a href="https://www.earlevel.com/main/category/widgets/">Widgets</a></li>
+</ul></div>			</div><!-- #access -->
+		</div><!-- #masthead -->
+	</div><!-- #header -->
+
+	<div id="main">
+
+		<div id="container">
+			<div id="content" role="main">
+
+			
+
+				<div id="nav-above" class="navigation">
+					<div class="nav-previous"><a href="https://www.earlevel.com/main/2013/06/22/envelope-generators-adsr-video/" rel="prev"><span class="meta-nav">←</span> Envelope generators—ADSR video</a></div>
+					<div class="nav-next"><a href="https://www.earlevel.com/main/2013/10/13/biquad-calculator-v2/" rel="next">Biquad calculator v2 <span class="meta-nav">→</span></a></div>
+				</div><!-- #nav-above -->
+
+				<div id="post-200" class="post-200 post type-post status-publish format-standard hentry category-envelope-generators category-synthesizers category-widgets">
+					<h1 class="entry-title">Envelope generators—ADSR widget</h1>
+
+					<div class="entry-meta">
+						<span class="meta-prep meta-prep-author">Posted on</span> <a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/" title="3:38 pm" rel="bookmark"><span class="entry-date">June 23, 2013</span></a> <span class="meta-sep">by</span> <span class="author vcard"><a class="url fn n" href="https://www.earlevel.com/main/author/codehead/" title="View all posts by Nigel Redmon">Nigel Redmon</a></span>					</div><!-- .entry-meta -->
+
+					<div class="entry-content">
+						<div id="container20130623" style="width: 600px; height: 200px; position: relative;"><canvas class="flotr-canvas" width="600" height="200" style="position: absolute; left: 0px; top: 0px; width: 600px; height: 200px;"></canvas><canvas class="flotr-overlay" width="600" height="200" style="position: absolute; left: 0px; top: 0px; width: 600px; height: 200px;"></canvas><div style="position: absolute; top: -10000px;"><div style="font-size:smaller;" class="flotr-grid-label flotr-dummy-div">100</div></div><div style="position: absolute; top: -10000px;"><div style="font-size:smaller;" class="flotr-grid-label flotr-dummy-div">0.00</div></div><div class="flotr-labels" style="font-size: smaller; color: rgb(84, 84, 84);"><div style="position:absolute; text-align:center;  top:175px;  left:-20.666666666666664px;  width:95.33333333333333px;    " class="flotr-grid-label first flotr-grid-label-x">0</div><div style="position:absolute; text-align:center;  top:175px;  left:74.82582081246522px;  width:95.33333333333333px;    " class="flotr-grid-label flotr-grid-label-x">100</div><div style="position:absolute; text-align:center;  top:175px;  left:170.3183082915971px;  width:95.33333333333333px;    " class="flotr-grid-label flotr-grid-label-x">200</div><div style="position:absolute; text-align:center;  top:175px;  left:265.810795770729px;  width:95.33333333333333px;    " class="flotr-grid-label flotr-grid-label-x">300</div><div style="position:absolute; text-align:center;  top:175px;  left:361.30328324986084px;  width:95.33333333333333px;    " class="flotr-grid-label flotr-grid-label-x">400</div><div style="position:absolute; text-align:center;  top:175px;  left:456.79577072899275px;  width:95.33333333333333px;    " class="flotr-grid-label last flotr-grid-label-x">500</div><div style="position:absolute; text-align:right;  top:160px;  left:0px;  width:24px;    " class="flotr-grid-label first flotr-grid-label-y">0.00</div><div style="position:absolute; text-align:right;  top:125.80000000000001px;  left:0px;  width:24px;    " class="flotr-grid-label flotr-grid-label-y">0.20</div><div style="position:absolute; text-align:right;  top:91.6px;  left:0px;  width:24px;    " class="flotr-grid-label flotr-grid-label-y">0.40</div><div style="position:absolute; text-align:right;  top:57.400000000000006px;  left:0px;  width:24px;    " class="flotr-grid-label flotr-grid-label-y">0.60</div><div style="position:absolute; text-align:right;  top:23.19999999999999px;  left:0px;  width:24px;    " class="flotr-grid-label flotr-grid-label-y">0.80</div><div style="position:absolute; text-align:right;  top:-11px;  left:0px;  width:24px;    " class="flotr-grid-label last flotr-grid-label-y">1.00</div></div><div class="flotr-titles"><div class="flotr-axis-title" style="font-weight:bold;"></div></div></div>
+<p><script type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/ADSR.js"></script><script type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/drawADSR.js"></script><script type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/flotr2.min.js"></script></p>
+<style type="text/css">
+table#controls {
+    background: transparent;
+    border: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+table#controls td {
+    border: none;
+    white-space: nowrap;
+}
+</style>
+<table id="controls">
+<tbody><tr>
+<td>
+<input type="range" min="0" max="200" value="100" name="attackSlider" id="attackSlider" title="attack slider" onchange="envADSR.setAttackRate(value); drawADSR();" oninput="envADSR.setAttackRate(value); drawADSR();"> Attack<br>
+<input type="range" min="0" max="200" value="200" name="decaySlider" id="decaySlider" title="decay slider" onchange="envADSR.setDecayRate(value); drawADSR();" oninput="envADSR.setDecayRate(value); drawADSR();"> Decay<br>
+<input type="range" min="0" max="200" value="120" name="sustainSlider" id="sustainSlider" title="sustain slider" onchange="envADSR.setSustainLevel(value/200); drawADSR();" oninput="envADSR.setSustainLevel(value/200); drawADSR();"> Sustain<br>
+<input type="range" min="0" max="200" value="200" name="releaseSlider" id="releaseSlider" title="release slider" onchange="envADSR.setReleaseRate(value); drawADSR();" oninput="envADSR.setReleaseRate(value); drawADSR();"> Release
+</td>
+<td>
+<input type="range" min="0" max="200" value="0" name="ratioASlider" id="ratioASlider" title="ratio A slider" onchange="envADSR.setTargetRatioA(0.001 * (Math.exp(12.0*value/200)-1.0)); drawADSR();" oninput="envADSR.setTargetRatioA(0.001 * (Math.exp(12.0*value/200)-1.0)); drawADSR();"> Attack Curve value=<span id="ratioa_val">x</a></span><br>
+<input type="range" min="0" max="200" value="0" name="ratioDRSlider" id="ratioDRSlider" title="ratio DR slider" onchange="envADSR.setTargetRatioDR(0.001 * (Math.exp(12.0*value/200)-1.0)); drawADSR();" oninput="envADSR.setTargetRatioDR(0.001 * (Math.exp(12.0*value/200)-1.0)); drawADSR();"> Decay/Release Curve value=<span id=ratiodr_val>x</span><br>
+Plot:<select name="PlotType" id="PlotType" onchange="drawAllADSR()"><option value="linear">linear</option><option value="log">log</option></select></td>
+</tr></tbody></table>
+<p>This is the widget I used in making the ADSR video. It’s a JavaScript recreation of my C++ source code.</p>
+											</div><!-- .entry-content -->
+
+		
+						<div class="entry-utility">
+							This entry was posted in <a href="https://www.earlevel.com/main/category/envelope-generators/" rel="category tag">Envelope Generators</a>, <a href="https://www.earlevel.com/main/category/synthesizers/" rel="category tag">Synthesizers</a>, <a href="https://www.earlevel.com/main/category/widgets/" rel="category tag">Widgets</a>. Bookmark the <a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/" title="Permalink to Envelope generators—ADSR widget" rel="bookmark">permalink</a>.													</div><!-- .entry-utility -->
+					</div><!-- #post-200 -->
+
+					<div id="nav-below" class="navigation">
+						<div class="nav-previous"><a href="https://www.earlevel.com/main/2013/06/22/envelope-generators-adsr-video/" rel="prev"><span class="meta-nav">←</span> Envelope generators—ADSR video</a></div>
+						<div class="nav-next"><a href="https://www.earlevel.com/main/2013/10/13/biquad-calculator-v2/" rel="next">Biquad calculator v2 <span class="meta-nav">→</span></a></div>
+					</div><!-- #nav-below -->
+
+					
+			<div id="comments">
+
+
+			<h3 id="comments-title">
+			22 Responses to <em>Envelope generators—ADSR widget</em>			</h3>
+
+	
+			<ol class="commentlist">
+						<li class="comment even thread-even depth-1" id="li-comment-15071">
+		<div id="comment-15071">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/aa2761ad1bad1ee4f56dd5c3514dd765.png" srcset="https://secure.gravatar.com/avatar/aa2761ad1bad1ee4f56dd5c3514dd765?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" decoding="async">				<cite class="fn">Jon Wolski</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-15071">
+				July 12, 2013 at 6:23 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Does this connect to the Web Audio API?</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=15071#respond" data-commentid="15071" data-postid="200" data-belowelement="comment-15071" data-respondelement="respond" data-replyto="Reply to Jon Wolski" aria-label="Reply to Jon Wolski">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor odd alt depth-2" id="li-comment-15577">
+		<div id="comment-15577">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-15577">
+				July 20, 2013 at 8:36 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>No…just a widget to see the ADSR in action…</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=15577#respond" data-commentid="15577" data-postid="200" data-belowelement="comment-15577" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment even thread-odd thread-alt depth-1" id="li-comment-19588">
+		<div id="comment-19588">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/9e5fc77c53cc4317ddc218293b97b0d9.jpeg" srcset="https://secure.gravatar.com/avatar/9e5fc77c53cc4317ddc218293b97b0d9?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" decoding="async">				<cite class="fn">Tom Maisey</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-19588">
+				October 2, 2013 at 12:58 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>This is really great, but it would be better if you could see the values that the sliders correspond to. That way you can get a feel for the ranges of useful targetRatios.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=19588#respond" data-commentid="19588" data-postid="200" data-belowelement="comment-19588" data-respondelement="respond" data-replyto="Reply to Tom Maisey" aria-label="Reply to Tom Maisey">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor odd alt depth-2" id="li-comment-19598">
+		<div id="comment-19598">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-19598">
+				October 2, 2013 at 10:38 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Tom—You’d be surprised how little help it would be. If you want it linear, then pretty much any large value will do (something like 15 will look pretty straight here—go ahead and pick 200). If you want an exponential segment, you’ll have to switch to log view to have a clue as to how it will sound. For the Decay and Release segments, the smaller the value, the more exponential—0.0001 decays to -80 dB, so you’re probably not going to hear the difference with anything smaller. See the ADSR Part 2 article for more details (“More math”).</p>
+<p>So, that leaves the Attack Curve adjustment. It’s really unlikely you’d want anything close to exponential shape for the Attack segment—the range I’m giving it here are for illustrative purposes, mainly to show how wrong it would be to use that shape. Most likely, you would either want it to be linear, or simulate classic analog ADSRs by targeting something around 1.3 as the asymptote of the curve. We don’t care about dB here, just the ratio of the overshoot to the envelope peak. The peak is always 1.0, so the ratio is always just the amount over 1.0, in this case 0.3. For instance, in a 10v peak ADSR running on a 15v supply, that corresponds to a 13v target (asymptote), a typical design choice. So, in practical applications, the ratio will be either 0.3 or something pretty close to that, or a large number (200).</p>
+<p>I concede that the values would be a little useful for decay when switched to log display. You can see that on the log display, the decay appears pretty linear, then drops off abruptly at a certain dB down. But the controls are pretty rough, and it’s easy enough to calculate. If you want it to drop off abruptly at -40 dB, then 10 raised to the power of -40/20, which equals 0.01 (0.001 for -60 dB, 0.0001 for -80 dB…).</p>
+<p>An aside: Just like the attack target, the decay target is the asymptote of the curve on the other side of the target. So in a real world analog ADSR, it’s not practical to shoot for the precision we have with the -80 dB setting (or at least that would be the far reaches of practical analog). The ADSR might be biased slightly negative to avoid the VCA leaking (the VCA might be biased too for the same reason). But even if everything is designed with precision, -80 dB might be a little much to ask, since it would require no more than 0.001v (a millivolt) offset for a 10v peak envelope, better precision than the analog components have without precision trimming. </p>
+<p>As far as going for even more precision (because we can, in software), it makes little sense. For instance, you could shoot for -120 dB on the curve for a more perfect exponential, but it would just sound like the envelope time is shortened (because we set the rate by number of samples—setting 4 seconds worth of decay to -80 dB will sound a lot longer than 4 seconds to -120 dB, since we’re not going to hear much more when it gets below -80 dB). So, I figure something in the -60 to -80 dB range is going to simulate an analog ADSR pretty well. And again, a big number if you want linear, and probably little use for anything in between.</p>
+<p>So, that’s the long story of why the slider numbers aren’t very useful. In the case of either attack or decay/release, there a relatively small range of useful values that make sense for a curved segment, plus a single large number suitable for simulating linear.</p>
+<p>Nigel</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=19598#respond" data-commentid="19598" data-postid="200" data-belowelement="comment-19598" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment even depth-3" id="li-comment-19646">
+		<div id="comment-19646">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/9e5fc77c53cc4317ddc218293b97b0d9.jpeg" srcset="https://secure.gravatar.com/avatar/9e5fc77c53cc4317ddc218293b97b0d9?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Tom Maisey</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-19646">
+				October 4, 2013 at 6:26 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Nigel,</p>
+<p>Thanks for your extensive reply! That actually cleared up quite a few points for me. I’m building a synthesiser, and I’ve found envelopes, which I thought would be the easiest component to nail, more tricky than I thought to get sounding ‘right’. You have helped immensely.</p>
+<p>Your site is by far and away the best that I’ve found on the internet that explains the murky secrets of audio DSP. Many thanks.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=19646#respond" data-commentid="19646" data-postid="200" data-belowelement="comment-19646" data-respondelement="respond" data-replyto="Reply to Tom Maisey" aria-label="Reply to Tom Maisey">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-even depth-1" id="li-comment-27359">
+		<div id="comment-27359">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/82a47e93d010f6a6e62fab32acef6199.jpg" srcset="https://secure.gravatar.com/avatar/82a47e93d010f6a6e62fab32acef6199?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">nefelia</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-27359">
+				July 18, 2014 at 2:37 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hey Nigel,</p>
+<p>thanks for the great tutorials. Which language do you use to write the widgets? Is it possible for you to share the ADSR Widget source code?</p>
+<p>cheers,<br>
+nefelia</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=27359#respond" data-commentid="27359" data-postid="200" data-belowelement="comment-27359" data-respondelement="respond" data-replyto="Reply to nefelia" aria-label="Reply to nefelia">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-27449">
+		<div id="comment-27449">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-27449">
+				July 23, 2014 at 2:49 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Nefelia,</p>
+<p>They are written in javascript, so if you use a debugger in your browser, you can see and retrieve the source code easily. For instance, ADSR.js is a javascript translation of the C++ code, and drawADSR.js handles the drawing via the charting utility flotr.js (which uses jquery.js and prototype.js—flotr2 doesn’t have those dependences).</p>
+<p>Nigel</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=27449#respond" data-commentid="27449" data-postid="200" data-belowelement="comment-27449" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-53774">
+		<div id="comment-53774">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/0f663efcfb23b954f5a8989032112d7b.jpg" srcset="https://secure.gravatar.com/avatar/0f663efcfb23b954f5a8989032112d7b?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Ben</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-53774">
+				March 24, 2017 at 6:37 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hello,</p>
+<p>Thank you for all the good information on your site. I just discovered it 2 weeks ago, I’m trying to catch all and there’s a lot.<br>
+Selecting the Plot=”log” options seems to prevent any action of the sliders.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=53774#respond" data-commentid="53774" data-postid="200" data-belowelement="comment-53774" data-respondelement="respond" data-replyto="Reply to Ben" aria-label="Reply to Ben">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-53784">
+		<div id="comment-53784">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-53784">
+				March 24, 2017 at 9:08 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Thanks! Fixed now—I made changes when updating the plot engine from flotr to flotr2 recently, and didn’t update the log case.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=53784#respond" data-commentid="53784" data-postid="200" data-belowelement="comment-53784" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-even depth-1" id="li-comment-64899">
+		<div id="comment-64899">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/3dd00707f7ace32b2697a8d9eba8ceba.jpg" srcset="https://secure.gravatar.com/avatar/3dd00707f7ace32b2697a8d9eba8ceba?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Victor</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-64899">
+				July 15, 2018 at 6:15 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Nigel,</p>
+<p>First of all, thanks for writing this blog, I am learning so much from it! And with all the exelent examples it is a pleasure to read as well.</p>
+<p>I had a look at the JavaScript code and in particular the following line:</p>
+<p>return Math.exp(-Math.log((1.0 + targetRatio) / targetRatio) / rate);</p>
+<p>You mentioned in the ADSR articles leading to this widget that “… the constant 1 is because we are moving a distance of 1 (0.0 to 1.0, or 1.0 to 0.0) …”. Am I correct that the widget does not take into account that for decay we move from 1.0 to sustainlevel and for release we move from sustainlevel to 0?</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=64899#respond" data-commentid="64899" data-postid="200" data-belowelement="comment-64899" data-respondelement="respond" data-replyto="Reply to Victor" aria-label="Reply to Victor">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-64901">
+		<div id="comment-64901">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-64901">
+				July 15, 2018 at 10:09 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Right. The easiest way to see how it behaves is with the ADSR widget—move sustain up and down, and you’ll see that it takes the same amount of time to decay to sustain, and to release to zero. That way, it maintains the useful property of being able to set the decay and release time, unaffected by the sustain level (a big advantage for things like auto-retriggered envelopes). It also means that the ADSR doesn’t need to recalculate decay and release times as the sustain level is moved.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=64901#respond" data-commentid="64901" data-postid="200" data-belowelement="comment-64901" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-71188">
+		<div id="comment-71188">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/6d6e06654a85934959c1a98813731360.jpeg" srcset="https://secure.gravatar.com/avatar/6d6e06654a85934959c1a98813731360?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn"><a href="http://www.visualizers.nl/" class="url" rel="ugc external nofollow">Niels W.</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71188">
+				March 30, 2020 at 8:19 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Nigel,</p>
+<p>Sorry for reviving this thread this late. I’ve adapted your ADSR class in my FM synthesizer engine and those have a curvature slider for A, D and R. So far so good, but when I go past 1 second in terms of rate (for ex. SetRate(2.5*1.0*sampleRate)) and I bump the linearity of the attack phase (let’s say 100.0 instead of 0.3) I run into trouble, in that the attack phase is skipped immediately (I believe the coefficient is 1 in this case). Now I’m a bit of a tool when it comes to audio DSP math, but that said, I could of course debug further and see exactly what’s going on. I was however wondering if you could explain this behaviour; that is, if it’s not a dumb bug on my end.</p>
+<p>Thanks for this blog, it’s of massive use to me.</p>
+<p>– Niels</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71188#respond" data-commentid="71188" data-postid="200" data-belowelement="comment-71188" data-respondelement="respond" data-replyto="Reply to Niels W." aria-label="Reply to Niels W.">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-71189">
+		<div id="comment-71189">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71189">
+				March 30, 2020 at 12:28 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>It’s been a few years, but as soon as I looked at the ADSR code and saw “float”, I suspected the issue…</p>
+<p>A combination of the large attack ratio and long attack time makes calcCoef round to 1. Specifically, exp of a tiny number is close to 1, and exp apparently rounds up to 1 when there isn’t enough precision. Subsequently, attackBase is calculated as 0. For me, that means it stays in the attack phase instead of skipping it, but either way it’s a precision problem. You could use a smaller target ratio (something much smaller than 100 would still be effectively linear), or fix it the right way which would be to change all “float” to “double” in ADSR.cpp/.h. While everything doesn’t need to be double, you might as well. I’ve written everything in double for years, since the penalty is pretty slight with modern processors, and it avoids most problems.</p>
+<p>I’ll update the code when I get a chance, thanks for finding it.</p>
+<p>PS—I did update the code, and discovered the exact reason for the issue: For x very close to zero, exp(x) does not evaluate to a value very close to 1, but 1.0 exactly, when “very close to zero” is an unnormalized (“denormal”) number.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71189#respond" data-commentid="71189" data-postid="200" data-belowelement="comment-71189" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment odd alt depth-3" id="li-comment-71190">
+		<div id="comment-71190">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/6d6e06654a85934959c1a98813731360.jpeg" srcset="https://secure.gravatar.com/avatar/6d6e06654a85934959c1a98813731360?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn"><a href="http://www.visualizers.nl/" class="url" rel="ugc external nofollow">Niels W.</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71190">
+				March 30, 2020 at 1:59 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Great! Thanks for the quick reply; I’ll convert to doubles (I’ve tinkered a bit here and there with the implementation to suit my needs).</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71190#respond" data-commentid="71190" data-postid="200" data-belowelement="comment-71190" data-respondelement="respond" data-replyto="Reply to Niels W." aria-label="Reply to Niels W.">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+		<li class="comment even depth-3" id="li-comment-71191">
+		<div id="comment-71191">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/6d6e06654a85934959c1a98813731360.jpeg" srcset="https://secure.gravatar.com/avatar/6d6e06654a85934959c1a98813731360?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn"><a href="http://www.visualizers.nl/" class="url" rel="ugc external nofollow">Niels W.</a></cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71191">
+				March 30, 2020 at 2:03 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>And that also pushes the “convert entire pipeline to double precision” idea I had for my code higher up the priority list 😉</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71191#respond" data-commentid="71191" data-postid="200" data-belowelement="comment-71191" data-respondelement="respond" data-replyto="Reply to Niels W." aria-label="Reply to Niels W.">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-even depth-1" id="li-comment-71641">
+		<div id="comment-71641">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/4b8c9ee9223e011ba7c9c1246b6c1abd.jpg" srcset="https://secure.gravatar.com/avatar/4b8c9ee9223e011ba7c9c1246b6c1abd?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Christopher Pratt</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71641">
+				January 24, 2021 at 4:24 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Nigel, I am fascinated by the prospect of software generated ADSR.<br>
+I have a home designed synthesiser which has individual control of the Fundamental and 9 harmonics i.e. 1F to 10F.<br>
+This requires 10 ADSR generators which, with individual control of A, D, S, R, necessarily needs at least 40 pots.<br>
+I am not understanding much about how your ADSR programming is implemented in hardware/ processor/ DtoA converter, etc, and how the parameters are manually varied to achieve different ADSR waveforms.<br>
+Could you please explain how your project is actually built.</p>
+<p>But I am particularly excited by your ADSR widget on page <a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/" rel="ugc">https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/</a> and how your on screen sliders make real time change to the displayed ADSR.<br>
+Would it be possible for such a widget to run on a Windows PC and directly control the ADSR parameters just by using the sliders on the screen.<br>
+My ideal solution would be to have 10 such widgets on the screen thus removing the need for a panel of 40 pots.</p>
+<p>I would be grateful for any help or advice.</p>
+<p>Best regards<br>
+Christopher Pratt</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71641#respond" data-commentid="71641" data-postid="200" data-belowelement="comment-71641" data-respondelement="respond" data-replyto="Reply to Christopher Pratt" aria-label="Reply to Christopher Pratt">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-71647">
+		<div id="comment-71647">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71647">
+				January 24, 2021 at 11:32 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Christopher,</p>
+<p>Fundamentally, there is a “give me the next output” (process) function. This must get called at a regular rate. It could be the audio sample rate, it could be at a lower control rate to save cycle, but it has to be regularly spaced. The output depends on the state (release, etc.), and the the coefficient values. Both of those things can be set asynchronously—when a key is release via MIDI, when the user turns a knob.</p>
+<p>As for displaying the envelope shape, for a user interface (like the widget), you’d just repeatedly call the process function. But you’d use a relatively low sample rate as your divisor, according to the horizontal resolution you want to display. You only need to iterate through it once, whenever the controls change. You’d instantiate another ADSR to actually do the envelope.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71647#respond" data-commentid="71647" data-postid="200" data-belowelement="comment-71647" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-odd thread-alt depth-1" id="li-comment-71658">
+		<div id="comment-71658">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/4b8c9ee9223e011ba7c9c1246b6c1abd.jpg" srcset="https://secure.gravatar.com/avatar/4b8c9ee9223e011ba7c9c1246b6c1abd?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Christopher Pratt</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71658">
+				January 27, 2021 at 3:15 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Nigel,<br>
+thank you very much for your reply.<br>
+I know very little about software and programing and so I am finding it difficult to picture a complete working ADSR system as your posts and your correspondents<br>
+do not mention any physical hardware on which this system runs or an overview of a working system.<br>
+Perhaps it it beyond my ability to understand but I found it hard to see how to create a real working system.<br>
+My aim would be to create a set of 10 independant ADSRs with A, D, S, and R set by sliders on a PC screen so no physical potentiometers are required.<br>
+I think I would need such a lot of guidance to create such a system that it may be impractical for me to create.<br>
+I will probably have to continue my efforts to build discrete component ADSRs or use a preprogramed ADSR chip like Electric Druid’s ENVGEN 8C with 40 or more pots to control.</p>
+<p>Best regards<br>
+Chris</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71658#respond" data-commentid="71658" data-postid="200" data-belowelement="comment-71658" data-respondelement="respond" data-replyto="Reply to Christopher Pratt" aria-label="Reply to Christopher Pratt">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-71659">
+		<div id="comment-71659">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-71659">
+				January 27, 2021 at 9:49 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>It might be helpful to try a plug-in framework (JUCE, or IPlug2), to get the idea of how things are organized. Basically, you have a thread that services the audio—it gives you a buffer of audio to process, and expects you to return the buffer fully processed, at a rate that keeps up with playback. It has to be timely, to not get dropouts, so you don’t do any user-interface work there, just use settings that you have stored in instance variables. For instance, for each sample in the buffer, you might call the ADSR::process method to get the next envelope output. Maybe you multiply the current sample by it for a loudness envelope, and put the result in the output buffer (often it’s in-place, you just modify the buffer it gave you).</p>
+<p>There is another thread that services the user interface—it’s a lower priority, no great harm if it runs a little sluggish at times. When a user turns a knob, for instance, the framework dispatches that info to your service routines. At that point, you can recognize that the Attack knob changed, and can use it’s new value to calculate a new attack time, and call the setAttackRate procedure of the ADSR instance to set it. That calculates the coefficient needed by the ADSR and saves it in the appropriate ADSR internal variable. So, the next time the audio thread is called, the ADSR has a new setting to act on.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=71659#respond" data-commentid="71659" data-postid="200" data-belowelement="comment-71659" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+		<li class="comment odd alt thread-even depth-1" id="li-comment-76657">
+		<div id="comment-76657">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/b1e73e16888593abe59800e8bcf9e0bd.jpeg" srcset="https://secure.gravatar.com/avatar/b1e73e16888593abe59800e8bcf9e0bd?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Hugo</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-76657">
+				April 18, 2023 at 9:36 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Hi Nigel!</p>
+<p>I’m setting a webpage connected to a MIDI device with ADSR graph on it, and was trying to represent the ADSR graph with sliders, just as your page.<br>
+The device I’m trying to represent has 3 types of curve: Lineal, Exponential and Slow.<br>
+ – Exponential is similar to your example by default<br>
+ – Lineal is similar to when you set “Decay/Release Curve” to maximum (200) and “Attack Curve” to maximum (200), so it’s a lineal graph.<br>
+ – But I haven’t been able to reproduce “Slow”, which in my device is the same graph as the default one, but with the curves reversed (upside down). So instead of an attack going fast from 0.00 to 0.90, and then slow from 0.90 to 1.00, it goes slow from 0.00 to 0.10, and then fast from 0.10 to 1.00. Same with Decay and Release. The opposite curves. How could I achieve this? I’m not an expert in math and logaritmics.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=76657#respond" data-commentid="76657" data-postid="200" data-belowelement="comment-76657" data-respondelement="respond" data-replyto="Reply to Hugo" aria-label="Reply to Hugo">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment byuser comment-author-codehead bypostauthor even depth-2" id="li-comment-76660">
+		<div id="comment-76660">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/eac3fa758886f87242004fc60f9a6d40.jpg" srcset="https://secure.gravatar.com/avatar/eac3fa758886f87242004fc60f9a6d40?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Nigel Redmon</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-76660">
+				April 18, 2023 at 2:43 pm					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>Sorry, Hugo, I don’t have a quick and easily understood way of explaining it, and if I did there would be no guarantee that it would match the MIDI device.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=76660#respond" data-commentid="76660" data-postid="200" data-belowelement="comment-76660" data-respondelement="respond" data-replyto="Reply to Nigel Redmon" aria-label="Reply to Nigel Redmon">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				<ul class="children">
+		<li class="comment odd alt depth-3" id="li-comment-76665">
+		<div id="comment-76665">
+			<div class="comment-author vcard">
+				<img alt="" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/b1e73e16888593abe59800e8bcf9e0bd.jpeg" srcset="https://secure.gravatar.com/avatar/b1e73e16888593abe59800e8bcf9e0bd?s=80&amp;d=mm&amp;r=g 2x" class="avatar avatar-40 photo" height="40" width="40" loading="lazy" decoding="async">				<cite class="fn">Hugo Braulio</cite> <span class="says">says:</span>			</div><!-- .comment-author .vcard -->
+
+				
+				
+			<div class="comment-meta commentmetadata"><a href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#comment-76665">
+				April 19, 2023 at 5:15 am					</a>
+									</div><!-- .comment-meta .commentmetadata -->
+
+				<div class="comment-body"><p>OK, thanks for the fast answer though. </p>
+<p>Just for you to know, the graphical representation I’m doing doesn’t need to be an exact match, but just a way of seing the device in a website with a similar pattern. I don’t even show the grid, xaxis or yaxis or it’s labels. It’s just an approximate representation.</p>
+</div>
+
+				<div class="reply">
+				<a rel="nofollow" class="comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/?replytocom=76665#respond" data-commentid="76665" data-postid="200" data-belowelement="comment-76665" data-respondelement="respond" data-replyto="Reply to Hugo Braulio" aria-label="Reply to Hugo Braulio">Reply</a>				</div><!-- .reply -->
+			</div><!-- #comment-##  -->
+
+				</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+</ul><!-- .children -->
+</li><!-- #comment-## -->
+			</ol>
+
+	
+	
+
+	<div id="respond" class="comment-respond">
+		<h3 id="reply-title" class="comment-reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="https://www.earlevel.com/main/2013/06/23/envelope-generators-adsr-widget/#respond" style="display:none;">Cancel reply</a></small></h3><form action="https://www.earlevel.com/main/wp-comments-post.php" method="post" id="commentform" class="comment-form"><p class="comment-notes"><span id="email-notes">Your email address will not be published.</span> <span class="required-field-message">Required fields are marked <span class="required">*</span></span></p><p class="comment-form-comment"><label for="comment">Comment <span class="required">*</span></label> <textarea id="comment" name="comment" cols="45" rows="8" maxlength="65525" required="required"></textarea></p><p class="comment-form-author"><label for="author">Name <span class="required">*</span></label> <input id="author" name="author" type="text" value="" size="30" maxlength="245" autocomplete="name" required="required"></p>
+<p class="comment-form-email"><label for="email">Email <span class="required">*</span></label> <input id="email" name="email" type="text" value="" size="30" maxlength="100" aria-describedby="email-notes" autocomplete="email" required="required"></p>
+<p class="comment-form-url"><label for="url">Website</label> <input id="url" name="url" type="text" value="" size="30" maxlength="200" autocomplete="url"></p>
+<p class="comment-form-cookies-consent"><input id="wp-comment-cookies-consent" name="wp-comment-cookies-consent" type="checkbox" value="yes"> <label for="wp-comment-cookies-consent">Save my name, email, and website in this browser for the next time I comment.</label></p>
+<p class="form-submit"><input name="submit" type="submit" id="submit" class="submit" value="Post Comment"> <input type="hidden" name="comment_post_ID" value="200" id="comment_post_ID">
+<input type="hidden" name="comment_parent" id="comment_parent" value="0">
+</p><p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="0893f870c4"></p><p style="display: none !important;" class="akismet-fields-container" data-prefix="ak_"><label>Δ<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_1" name="ak_js" value="1746021692523"><script>document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTime() );</script></p></form>	</div><!-- #respond -->
+	
+</div><!-- #comments -->
+
+	
+			</div><!-- #content -->
+		</div><!-- #container -->
+
+
+		<div id="primary" class="widget-area" role="complementary">
+			<ul class="xoxo">
+
+<li id="search-2" class="widget-container widget_search"><form role="search" method="get" id="searchform" class="searchform" action="https://www.earlevel.com/main/">
+				<div>
+					<label class="screen-reader-text" for="s">Search for:</label>
+					<input type="text" value="" name="s" id="s">
+					<input type="submit" id="searchsubmit" value="Search">
+				</div>
+			</form></li>
+		<li id="recent-posts-2" class="widget-container widget_recent_entries">
+		<h3 class="widget-title">Recent Posts</h3>
+		<ul>
+											<li>
+					<a href="https://www.earlevel.com/main/2023/01/16/digital-analog-continuous-discrete/">Analog digital continuous discrete</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2023/01/16/inter-sample-peaks/">Inter-sample peaks</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2023/01/15/special-case-perfect-sine-waves/">Special case: perfect sine waves</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2022/04/10/how-many-bits-can-you-hear-video/">How many bits can you hear? video</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2021/11/04/a-listening-test/">A listening test</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2021/09/02/biquad-calculator-v3/">Biquad calculator v3</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2021/04/08/time-resolution-in-digital-audio/">Time resolution in digital audio</a>
+									</li>
+											<li>
+					<a href="https://www.earlevel.com/main/2020/10/29/amplitude-modulation-principles-and-interactive-widget-video/">Amplitude Modulation Principles and Interactive Widget video</a>
+									</li>
+					</ul>
+
+		</li><li id="archives-2" class="widget-container widget_archive"><h3 class="widget-title">Archives</h3>
+			<ul>
+					<li><a href="https://www.earlevel.com/main/2023/01/">January 2023</a></li>
+	<li><a href="https://www.earlevel.com/main/2022/04/">April 2022</a></li>
+	<li><a href="https://www.earlevel.com/main/2021/11/">November 2021</a></li>
+	<li><a href="https://www.earlevel.com/main/2021/09/">September 2021</a></li>
+	<li><a href="https://www.earlevel.com/main/2021/04/">April 2021</a></li>
+	<li><a href="https://www.earlevel.com/main/2020/10/">October 2020</a></li>
+	<li><a href="https://www.earlevel.com/main/2020/01/">January 2020</a></li>
+	<li><a href="https://www.earlevel.com/main/2019/04/">April 2019</a></li>
+	<li><a href="https://www.earlevel.com/main/2018/09/">September 2018</a></li>
+	<li><a href="https://www.earlevel.com/main/2017/08/">August 2017</a></li>
+	<li><a href="https://www.earlevel.com/main/2017/05/">May 2017</a></li>
+	<li><a href="https://www.earlevel.com/main/2017/01/">January 2017</a></li>
+	<li><a href="https://www.earlevel.com/main/2016/12/">December 2016</a></li>
+	<li><a href="https://www.earlevel.com/main/2016/09/">September 2016</a></li>
+	<li><a href="https://www.earlevel.com/main/2016/02/">February 2016</a></li>
+	<li><a href="https://www.earlevel.com/main/2015/09/">September 2015</a></li>
+	<li><a href="https://www.earlevel.com/main/2015/01/">January 2015</a></li>
+	<li><a href="https://www.earlevel.com/main/2014/03/">March 2014</a></li>
+	<li><a href="https://www.earlevel.com/main/2014/01/">January 2014</a></li>
+	<li><a href="https://www.earlevel.com/main/2013/10/">October 2013</a></li>
+	<li><a href="https://www.earlevel.com/main/2013/06/">June 2013</a></li>
+	<li><a href="https://www.earlevel.com/main/2013/05/">May 2013</a></li>
+	<li><a href="https://www.earlevel.com/main/2013/04/">April 2013</a></li>
+	<li><a href="https://www.earlevel.com/main/2013/03/">March 2013</a></li>
+	<li><a href="https://www.earlevel.com/main/2013/02/">February 2013</a></li>
+	<li><a href="https://www.earlevel.com/main/2012/12/">December 2012</a></li>
+	<li><a href="https://www.earlevel.com/main/2012/11/">November 2012</a></li>
+	<li><a href="https://www.earlevel.com/main/2012/05/">May 2012</a></li>
+	<li><a href="https://www.earlevel.com/main/2012/03/">March 2012</a></li>
+	<li><a href="https://www.earlevel.com/main/2011/01/">January 2011</a></li>
+	<li><a href="https://www.earlevel.com/main/2010/12/">December 2010</a></li>
+	<li><a href="https://www.earlevel.com/main/2010/11/">November 2010</a></li>
+	<li><a href="https://www.earlevel.com/main/2007/07/">July 2007</a></li>
+	<li><a href="https://www.earlevel.com/main/2003/03/">March 2003</a></li>
+	<li><a href="https://www.earlevel.com/main/2003/02/">February 2003</a></li>
+	<li><a href="https://www.earlevel.com/main/2002/08/">August 2002</a></li>
+	<li><a href="https://www.earlevel.com/main/1997/01/">January 1997</a></li>
+	<li><a href="https://www.earlevel.com/main/1996/11/">November 1996</a></li>
+	<li><a href="https://www.earlevel.com/main/1996/10/">October 1996</a></li>
+	<li><a href="https://www.earlevel.com/main/1996/08/">August 1996</a></li>
+	<li><a href="https://www.earlevel.com/main/1996/07/">July 1996</a></li>
+			</ul>
+
+			</li><li id="categories-2" class="widget-container widget_categories"><h3 class="widget-title">Categories</h3>
+			<ul>
+					<li class="cat-item cat-item-4"><a href="https://www.earlevel.com/main/category/digital-audio/">Digital Audio</a> (67)
+<ul class="children">
+	<li class="cat-item cat-item-11"><a href="https://www.earlevel.com/main/category/digital-audio/aliasing/">Aliasing</a> (9)
+</li>
+	<li class="cat-item cat-item-14"><a href="https://www.earlevel.com/main/category/digital-audio/convolution/">Convolution</a> (3)
+</li>
+	<li class="cat-item cat-item-5"><a href="https://www.earlevel.com/main/category/digital-audio/dither-digital-audio/">Dither</a> (7)
+</li>
+	<li class="cat-item cat-item-8"><a href="https://www.earlevel.com/main/category/digital-audio/filters/">Filters</a> (24)
+	<ul class="children">
+	<li class="cat-item cat-item-22"><a href="https://www.earlevel.com/main/category/digital-audio/filters/dc-blocker/">DC Blocker</a> (1)
+</li>
+	<li class="cat-item cat-item-19"><a href="https://www.earlevel.com/main/category/digital-audio/filters/fir-filters/">FIR Filters</a> (7)
+</li>
+	<li class="cat-item cat-item-9"><a href="https://www.earlevel.com/main/category/digital-audio/filters/iir-filters/">IIR Filters</a> (18)
+		<ul class="children">
+	<li class="cat-item cat-item-21"><a href="https://www.earlevel.com/main/category/digital-audio/filters/iir-filters/biquads/">Biquads</a> (12)
+</li>
+		</ul>
+</li>
+	</ul>
+</li>
+	<li class="cat-item cat-item-16"><a href="https://www.earlevel.com/main/category/digital-audio/fourier/">Fourier</a> (3)
+	<ul class="children">
+	<li class="cat-item cat-item-17"><a href="https://www.earlevel.com/main/category/digital-audio/fourier/fft/">FFT</a> (3)
+</li>
+	</ul>
+</li>
+	<li class="cat-item cat-item-47"><a href="https://www.earlevel.com/main/category/digital-audio/fun-facts/">Fun Facts</a> (3)
+</li>
+	<li class="cat-item cat-item-15"><a href="https://www.earlevel.com/main/category/digital-audio/impulse-response/">Impulse Response</a> (5)
+</li>
+	<li class="cat-item cat-item-10"><a href="https://www.earlevel.com/main/category/digital-audio/jitter/">Jitter</a> (2)
+</li>
+	<li class="cat-item cat-item-20"><a href="https://www.earlevel.com/main/category/digital-audio/oscillators/">Oscillators</a> (12)
+	<ul class="children">
+	<li class="cat-item cat-item-24"><a href="https://www.earlevel.com/main/category/digital-audio/oscillators/wavetable-oscillators/">Wavetable Oscillators</a> (12)
+</li>
+	</ul>
+</li>
+	<li class="cat-item cat-item-12"><a href="https://www.earlevel.com/main/category/digital-audio/phase/">Phase</a> (2)
+</li>
+	<li class="cat-item cat-item-13"><a href="https://www.earlevel.com/main/category/digital-audio/reverb/">Reverb</a> (2)
+</li>
+	<li class="cat-item cat-item-6"><a href="https://www.earlevel.com/main/category/digital-audio/sample-rate-conversion/">Sample Rate Conversion</a> (10)
+</li>
+	<li class="cat-item cat-item-7"><a href="https://www.earlevel.com/main/category/digital-audio/sampling-theory/">Sampling Theory</a> (6)
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-33"><a href="https://www.earlevel.com/main/category/effects/">Effects</a> (1)
+<ul class="children">
+	<li class="cat-item cat-item-35"><a href="https://www.earlevel.com/main/category/effects/guitar-amp-simulation/">Guitar Amp Simulation</a> (1)
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-25"><a href="https://www.earlevel.com/main/category/envelope-generators/">Envelope Generators</a> (5)
+</li>
+	<li class="cat-item cat-item-38"><a href="https://www.earlevel.com/main/category/math/">Math</a> (5)
+<ul class="children">
+	<li class="cat-item cat-item-39"><a href="https://www.earlevel.com/main/category/math/amplitude-modulation/">Amplitude Modulation</a> (3)
+</li>
+</ul>
+</li>
+	<li class="cat-item cat-item-18"><a href="https://www.earlevel.com/main/category/midi/">MIDI</a> (2)
+</li>
+	<li class="cat-item cat-item-26"><a href="https://www.earlevel.com/main/category/source-code/">Source Code</a> (10)
+</li>
+	<li class="cat-item cat-item-23"><a href="https://www.earlevel.com/main/category/synthesizers/">Synthesizers</a> (9)
+</li>
+	<li class="cat-item cat-item-1"><a href="https://www.earlevel.com/main/category/uncategorized/">Uncategorized</a> (4)
+</li>
+	<li class="cat-item cat-item-29"><a href="https://www.earlevel.com/main/category/video/">Video</a> (7)
+</li>
+	<li class="cat-item cat-item-30"><a href="https://www.earlevel.com/main/category/widgets/">Widgets</a> (14)
+</li>
+			</ul>
+
+			</li>			</ul>
+		</div><!-- #primary .widget-area -->
+
+	</div><!-- #main -->
+
+	<div id="footer" role="contentinfo">
+		<div id="colophon">
+
+
+
+			<div id="site-info">
+				<a href="https://www.earlevel.com/main/" title="EarLevel Engineering" rel="home">
+					EarLevel Engineering				</a>
+			</div><!-- #site-info -->
+
+			<div id="site-generator">
+							</div><!-- #site-generator -->
+
+		</div><!-- #colophon -->
+	</div><!-- #footer -->
+
+</div><!-- #wrapper -->
+
+<script type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/comment-reply.min.js" id="comment-reply-js" async="async" data-wp-strategy="async"></script>
+<script defer="" type="text/javascript" src="./Envelope generators—ADSR widget _ EarLevel Engineering_files/akismet-frontend.js" id="akismet-frontend-js"></script>
+
+
+</body></html>

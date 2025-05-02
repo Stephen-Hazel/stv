@@ -106,7 +106,7 @@ TRC("MidiDevLst::Load");
          DBG ("snd_card_next gave: `s", ::snd_strerror (err));
          break;
       }
-TRC("card#=`d", card);
+//TRC("card#=`d", card);
       if (card < 0)  break;
 
       StrFmt (name, "hw:`d", card);
@@ -121,7 +121,7 @@ TRC("card#=`d", card);
          }
          if (dev < 0)  break;
 
-TRC(" dev=`d", dev);
+//TRC(" dev=`d", dev);
          isub = osub = 0;
          ::snd_rawmidi_info_set_device (info, dev);
          ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_INPUT);
@@ -131,21 +131,21 @@ TRC(" dev=`d", dev);
          if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
             osub = ::snd_rawmidi_info_get_subdevices_count (info);
          nsub = isub > osub ? isub : osub;
-TRC("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
+//TRC("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
          for (sub = 0;  sub <= nsub;  sub++) {
-TRC("   sub=`d", sub);
+//TRC("   sub=`d", sub);
             ::snd_rawmidi_info_set_stream (
                info, sub <= isub ? SND_RAWMIDI_STREAM_INPUT
                                  : SND_RAWMIDI_STREAM_OUTPUT);
             ::snd_rawmidi_info_set_subdevice (info, sub);
             if ((err = ::snd_ctl_rawmidi_info (ctl, info))) {
-               DBG ("snd_rm_info_set_subdevice gave: `s\n",
-                    ::snd_strerror (err));
+//             DBG ("snd_rm_info_set_subdevice gave: `s\n",
+//                  ::snd_strerror (err));  // blows on last one a lot :/
                continue;
             }
             desc  = ::snd_rawmidi_info_get_name           (info);
             desc2 = ::snd_rawmidi_info_get_subdevice_name (info);
-TRC("   desc=`s desc2=`s", desc, desc2);
+//TRC("   desc=`s desc2=`s", desc, desc2);
             if (nsub == 1) {           // use hw:9,9   and desc
                StrFmt (sdev, "hw:`d,`d", card, sub);
                if (sub <= isub)  InsDev ('i', CC(desc), sdev);
@@ -160,7 +160,7 @@ TRC("   desc=`s desc2=`s", desc, desc2);
       }
       ::snd_ctl_close (ctl);
    }
-Dump ();
+//Dump ();
 }
 
 
@@ -499,13 +499,13 @@ void MidiO::PutMEv (ubyte *mev, ubyte ln)
 }
 
 
-void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2)
+void MidiO::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2, char *estr)
 // build a midi event given args
 // do notes (note/nprs/noff - keepin track of which chan/notes are on),
 {
 //DBG("MidiO::Put on `s.`s ch=`d c=`d v=`d v2=`d", _name, _type, ch, c, v, v2);
 #ifdef USE_SYN
-   if (_syn)  return Sy.Put (ch, c, v, v2);
+   if (_syn)  return Sy.Put (ch, c, v, v2, estr);
 #endif
 
   ubyte mev [4], p, ln = 3;

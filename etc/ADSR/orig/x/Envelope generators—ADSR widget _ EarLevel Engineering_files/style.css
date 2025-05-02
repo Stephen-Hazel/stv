@@ -1,0 +1,15 @@
+/*
+Theme Name: 	Twenty Ten Child
+Theme URI: 		http://wordpress.org/
+Description: 	earlevel.com theme
+Author: 		Nigel Redmon
+Template:		twentyten
+Version: 		1.1
+*/
+
+/* This is the custom header image */
+#branding img {
+	border: none;
+	display: block;
+	float: left;
+}
