@@ -505,7 +505,7 @@ public:
       _mem = nullptr;   _len = 0;
       if (! f.Open (fn, "r"))  return nullptr;
       _len = f.Size (fn);
-      _mem = mmap (NULL, _len, PROT_READ, MAP_PRIVATE, f.Hnd (), 0);
+      _mem = mmap (nullptr, _len, PROT_READ, MAP_PRIVATE, f.Hnd (), 0);
       if (_mem == MAP_FAILED) {
 DBG("MemFile::Open mmap `s died", fn);
          f.Shut ();   _mem = nullptr;   _len = 0;
@@ -535,14 +535,14 @@ inline int StrArrCmp (void *p1, void *p2)
 
 class StrArr {                         // big str arr that's quick to app,sort
 public:
-   TStr   nm, x, y, z;
+   TStr   nm;
    char **str;   ubyt4 maxs, num;
    char  *buf;   ubyt4 maxb, siz;
    char  *skip, *quit;
 
    void Wipe ()
    {  if (str) delete [] str;   if (buf) delete [] buf;
-      str = NULL;   buf = NULL;
+      str = nullptr;   buf = nullptr;
       nm [0] = '\0';   num = maxs = siz = maxb = 0;
    }
 
@@ -558,11 +558,11 @@ public:
    void Init (char *inm, ubyt4 imaxs = 1024)
    {  Init (inm, imaxs, imaxs*MAX_PATH);  }
 
-   StrArr ()    {str = NULL;   buf = NULL;   Wipe ();}
-   StrArr (char *inm, ubyt4 imaxs)               {str = NULL;   buf = NULL;
-                                                  Init (inm, imaxs);}
-   StrArr (char *inm, ubyt4 imaxs, ubyt4 imaxb)  {str = NULL;   buf = NULL;
-                                                  Init (inm, imaxs, imaxb);}
+   StrArr ()    {str = nullptr;   buf = nullptr;   Wipe ();}
+   StrArr (char *inm, ubyt4 imaxs)              {str = nullptr;   buf = nullptr;
+                                                 Init (inm, imaxs);}
+   StrArr (char *inm, ubyt4 imaxs, ubyt4 imaxb) {str = nullptr;   buf = nullptr;
+                                                 Init (inm, imaxs, imaxb);}
   ~StrArr ()  {Wipe ();}
 
    char *Name ()    {return nm;}
@@ -612,13 +612,14 @@ public:
       (void)pos;   (void)len;          // modern DUMB standards
       if (t->quit && (! MemCm (ibuf, t->quit, StrLn (t->quit))))
          return CC("quit");
-      if ((t->skip == NULL) || MemCm (ibuf, t->skip, StrLn (t->skip)))
+      if ((t->skip == nullptr) || MemCm (ibuf, t->skip, StrLn (t->skip)))
          if (! t->Add (ibuf))  return CC("memorygone");
-      return NULL;
+      return nullptr;
    }
 
-   char *Load (char *fn, char *iskip = NULL, char *iquit = NULL)
+   char *Load (char *fn, char *iskip = nullptr, char *iquit = nullptr)
    { File f;   skip = iskip;   quit = iquit;
+
       return f.DoText (fn, this, DoRec);
    }
 
@@ -734,12 +735,12 @@ public:
      ColSep  ss (buf, t->_nCol-1);
      ubyte   c = t->_nCol;
       if (t->_skip && (MemCm (ss.Col [0], t->_skip, StrLn (t->_skip)) == 0))
-         return NULL;
+         return nullptr;
       for (ubyte c = 0; c < t->_nCol; c++)  t->Add (ss.Col [c]);
-      return NULL;
+      return nullptr;
    }
 
-   void Load (char *fn, char *skip = NULL,
+   void Load (char *fn, char *skip = nullptr,
                         ubyte nc = 1, ubyt4 maxRow = STABLE_MAXROW)
    { TStr nm;
      File f;
