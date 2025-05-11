@@ -378,8 +378,8 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop, char wrap)
       if  (*h == '_') {_ed [c] = *h++;   ed = '_';}
       sl << QString::fromStdString (h);
    }
-   _t->horizontalHeader ()->setSectionResizeMode (
-                                                 QHeaderView::ResizeToContents);
+   _t->horizontalHeader ()->setSectionResizeMode (  //QHeaderView::Interactive);
+      QHeaderView::ResizeMode::ResizeToContents);
    _t->setColumnCount (c);   _t->setHorizontalHeaderLabels (sl);
    _t->verticalHeader ()->hide ();
    _t->setAlternatingRowColors (false);
@@ -493,7 +493,9 @@ void CtlTabl::Put (char **rp, char *tip)
 void CtlTabl::Shut (bool rehop)
 {
 //DBG("CtlTabl::Shut show");
-   _t->show ();   if (_wr)  _t->resizeRowsToContents ();
+   _t->show ();
+   _t->resizeColumnsToContents ();
+   if (_wr)  _t->resizeRowsToContents ();
 //DBG("CtlTabl::Shut HopTo");
    if (rehop)  HopTo (_tr, _tc);       // in 6 on CLOSE, ed sets value again:(
 //DBG("CtlTabl::Shut blockSignals(false)");
