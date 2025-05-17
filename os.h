@@ -258,7 +258,8 @@ public:
 
 
 //______________________________________________________________________________
-extern char *Now   (char *s);          // current time as yyyymmdd.hhmmss.Day
+extern char *Now   (char *s, int osec = 0);
+                                       // current time as yyyymmdd.hhmmss.Day
 extern char *NowMS (char *s);          // current time in msec for debuggin
 
 
