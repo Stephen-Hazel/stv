@@ -23,7 +23,7 @@ struct Channel {
          glide, glRate, glFrom,        // prev note, portam on/off, rate, fr key
          nNt, pNt;                     // nt,tm shift reg to set pNt right
    ubyt4 nTm;
-   TStr  env;
+   BStr  env;
    void Init ();
    void Dump ();
 };
@@ -115,9 +115,8 @@ public:                                // Core stuph:
 
    real     _amp, _panL, _panR;        // Amp n Pan
 
-   TStr        _eStr;                  // Modulation - envelopes string
-   Arr<Env,16> _env;
-   real        _eVal [6];              // oNt oCnt fCut fRes amp pan
+   Arr<Env,16> _env;                   // Modulation - envelope array
+   real        _eVal [6];              // oStp oCnt fCut fRes amp pan
    Glide       _gl;                    // doin glide? (portamento) pitch offset
 
    void  Init ();

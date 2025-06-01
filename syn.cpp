@@ -22,11 +22,11 @@ static real Str2R (char *s)
    return ok ? r : 0.0;
 }
                                        // turn pesky midi values into nicer junk
-static bool Mb  (ubyte c)  {return (c >= 64) ? true : false;}
-static real Mu  (ubyte c)  {return (real)c/127.;}
-static real Mu2 (ubyt2 c)  {return (real)c/16383.;}
-static real Ms  (ubyte c)  {if (c == 0) c = 1;   return (  64.-(real)c)/  63.;}
-static real Ms2 (ubyt2 c)  {if (c == 0) c = 1;   return (8192.-(real)c)/8191.;}
+static bool Mb  (ubyte c)                       {return c >= 64;}
+static real Mu  (ubyte c)                       {return  (real)c/  127.;}
+static real Mu2 (ubyt2 c)                       {return  (real)c/16383.;}
+static real Ms  (ubyte c)  {if (c == 0) c = 1;   return ((real)c-   64.)/  63.;}
+static real Ms2 (ubyt2 c)  {if (c == 0) c = 1;   return ((real)c- 8192.)/8191.;}
 
 
 // lookup stufffff _____________________________________________________________
@@ -72,19 +72,22 @@ static real     Ct2Hz (real ct)
    return                  (real)    1.;
 }
 
-static real Cnv_pan [127];             // 0..126 to pan (sin(0..PI/2)
-static real     Pan (ubyte c, ubyte lr)     //TODO check this :/
-{  if (c ==  0)  c =   1;              // so -64 => -63
-   if (c > 127)  c = 127;              // limit at -63 .. 63
-   c--;   if (lr == 0)  c = 126 - c;   // now 0..126
-   return Cnv_pan [c];
+static real Cnv_pan [513];             // 0..512 to pan (sin(0..PI/2)
+static real     Pan (real p, ubyte lr)      // 0..255(256),256,257..512(256)
+{ ubyt2 i;                                  //        left,cnt,right
+   if      (p < -1.) i = 0;
+   else if (p >  1.) i = 512;
+   else              i = (ubyt2) round (256+p*256);
+   if (lr == 0)  i = 512 - i;          // 0..512 => 512..0
+   return Cnv_pan [i];
 }
 
 static real Cnv_sin [4096];            // 1/4 sin table lookup (other 3/4 calcd)
 static real     Sin (real in, ubyte q = 0)  // q is quad of the full sin curve
 { ubyt2 i;
-   if (in <= 0.) i = 0;   else if (in >= 1.) i = 4095;
-   else          i = (ubyt2) round (in*4095.);
+   if      (in < 0.) i = 0;
+   else if (in > 1.) i = 4095;
+   else              i = (ubyt2) round (in*4095.);
   real o = Cnv_sin [(q & 0x01) ? (4095-i) : i];  // sin or cos (q1,2 default)
    if (q >= 2)  return -o;             // neg swing of sin/cos (q3,4)
    return o;
@@ -460,12 +463,13 @@ real Env::Mix ()
 {  if (End () && stg [s].add == 0.)  return lvl;
   sbyte d  = stg [s  ].dir;            // git ma next dude
   real  l2 = stg [s+1].lvl;
+   p++;
    if (stg [s].crv >= 0.)
       lvl = lvl * stg [s].mul + stg [s].add;     // exp crv
    else {                                        // sin curve
-     ubyte q = (d > 0) ? 0 : 1;
-      if ((lvl < 0.) || (l2 < 0.))  q += 2;
-      lvl = Sin (++p/stg [s].nper, q);
+     ubyte q = (d > 0) ? 0 : 1;                  // 1,-1,-1, 1
+      if ((lvl < 0.) || (l2 < 0.))  q = 3-q;     // 0/ 1\ 2\ 3/
+      lvl = Sin (p/stg [s].nper, q);
    }                                   // same ole stage?
    if (d > 0)  {if (lvl < l2)  return lvl;}
    else         if (lvl > l2)  return lvl;
@@ -516,9 +520,9 @@ void Voice::ReFlt ()                   // set filter cutoff,resonance
 { real cut = Mu (_c->fCut) * _eVal [2],
        res = Mu (_c->fRes) * _eVal [3];
    if ((_ch != 9) && Mb (_c->vCut))  cut *= Mu (_vel);
-TStr s1, s2;
-TRX("ReFlt cut=`s ecut=`s vCut=`b",
-R2Str(cut,s1), R2Str(_eVal [2], s2), Mb (_c->vCut));
+//TStr s1, s2;
+//TRX("ReFlt cut=`s (env=`s vCut=`b vel=`d)",
+//R2Str(cut,s1), R2Str(_eVal [2], s2), Mb (_c->vCut), _vel);
    _flt.Cut (9500.0 * cut + 4000.);  // 4000 - 13500 = 0 - 9500
    _flt.Res ( 960.0 * res);          //                0 - 960
 }
@@ -529,8 +533,8 @@ void Voice::ReAmp ()                   // set amp - based on vol cc n velo
 
 
 void Voice::RePan ()                   // set pan - pan cc
-{  _panL = (_smp->lr == 1) ? 0. : Pan (_c->pan * _eVal [5], 0);
-   _panR = (_smp->lr == 0) ? 0. : Pan (_c->pan * _eVal [5], 1);
+{  _panL = (_smp->lr == 1) ? 0. : Pan (Ms (_c->pan) + _eVal [5], 0);
+   _panR = (_smp->lr == 0) ? 0. : Pan (Ms (_c->pan) + _eVal [5], 1);
 }
 
 
@@ -544,14 +548,15 @@ void Voice::Re (char re)               // recalc voice params
 }
 
 
-void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm,
-                 char *es)
+void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n,
+                 Sound *s, Sample *sm, char *es)
 // called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
 {  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _vcNo = n;
    _snd = s;   _smp = sm;   _phase = (Phase)0;   _looped = false;   _nPer = 0;
    _flt.Init ();   _gl.Init (c, k);
-   StrCp (_eStr, (es != nullptr) ? es : _c->env);
-  ColSep ss (_eStr, 17);               // envelope init from it's str
+  BStr b;
+   StrCp (b, es);
+  ColSep ss (b, 17);                   // envelope init from it's str
   ubyte  i, j;
    for (i = 0;  i < 6;  i++)  _eVal [i] = 1.;
    for (i = _env.Ln = 0;  (i < 16) && ss.Col [i][0];  i++)
@@ -640,11 +645,14 @@ void Voice::Mix ()                     // da GUTS :)
    _nPer++;                            // track how many bufs we did
    len = Osc ();                       // stretch/shrink sample into _intp
 
-// run all the _env[]  only do last (rel) upon note up
-   for (i = 0;  i < 6;  i++)  _eVal [i] = 1.;
-   ne = _env.Ln;   if (_on!='r') ne--;      // last env only upon release
+// run all the _env[]
+   for (i = 0;  i < 6;  i++)  {re [i] = 0;   _eVal [i] = 1.;}
+   ne = _env.Ln;   if (_on != 'r') ne--;    // last env (release) starts special
    for (i = 0;  i < ne;  i++)
       {d = _env [i].dst;   re [d] = 1;   _eVal [d] *= _env [i].Mix ();}
+TRX("   re=`s`s`s`s`s`s",
+re[0]?"oStp ":"", re[1]?"oCnt ":"", re[2]?"fCut ":"", re[3]?"fRes ":"",
+re[4]?"amp ":"",  re[5]?"pan":"");
    if (re [0] || re [1])  Re ('n');   if (re [4]) Re ('a');
    if (re [2] || re [3])  Re ('f');   if (re [5]) Re ('p');
 Dump('q');
@@ -669,8 +677,10 @@ void Voice::Dump (char q)
 TRX("   on=`c ch=`d key=`s vel=`d looped=`b vcNo=`d nPer=`d",
 _on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
 _vel, _looped, _vcNo, _nPer);
-   for (ubyte i = 0;  i < _env.Ln;  i++)
-TRX("   env `d=`s", i, Sy._env [_env [i].id].nm);
+   for (ubyte i = 0;  i < _env.Ln;  i++) {
+TRX("      env `d=`s lvl=`s stg=`d p=`d",
+i, Sy._env [_env [i].id].nm, R2Str(_env [i].lvl,s1), _env [i].s, _env [i].p);
+   }
 // Sy._chn [_ch].Dump ();
    if (q)  return;
 TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
@@ -779,36 +789,41 @@ ch+1, MKey2Str(ts,key), c->snd, _nSnd);
 
 // kick new voices for any matchin samples
 // find our _vc spot - possibly findin a spot to replace if full
-  bool shr  = false;
-  real best = 999999., prio;
-   for (sm = 0;  sm < s->_nSmp;  sm++)
-      if ( (key >= s->_smp [sm].mnKey) && (key <= s->_smp [sm].mxKey) &&
-           (vel >= s->_smp [sm].mnVel) && (vel <= s->_smp [sm].mxVel) ) {
-         for (i = 0;  i < _nVc;  i++)  if (! _vc [i]._on)  break;
-         if (i < _nVc)  shr = true;    // got a free spot to replace
-         else {                        // need a new spot
-            if (_nVc < 256) {          // room for new one
-               i = _nVc++;
-               if (i > _maxVc) {_maxVc = i;
+  bool  shr = false;
+  ubyt2 min, prio;
+  BStr  bs;
+   StrCp (bs, (es == nullptr) ? c->env : es);
+  Split sp (bs);
+   while (sp.Len--) {
+      es = sp.Nxt ();
+      for (sm = 0;  sm < s->_nSmp;  sm++)
+         if ( (key >= s->_smp [sm].mnKey) && (key <= s->_smp [sm].mxKey) &&
+              (vel >= s->_smp [sm].mnVel) && (vel <= s->_smp [sm].mxVel) ) {
+            for (i = 0;  i < _nVc;  i++)  if (! _vc [i]._on)  break;
+            if (i < _nVc)  shr = true;    // got a free spot to replace
+            else {                        // need a new spot
+               if (_nVc < 256) {          // room for new one
+                  i = _nVc++;
+                  if (i > _maxVc) {_maxVc = i;
 DBG("Syn maxVoice=`d", i+1);
+                  }
                }
+               else                       // no room - find who ta kill
+                  for (min = 15000, j = 0;  j < _nVc;  j++) {
+                     prio = 10000;
+                     if      (_vc [j]._ch == 9)    prio += 4000;
+                     else if (_vc [j]._on == 'r')  prio -= 2000;
+                     else if (_vc [j]._on == 'h')  prio -= 1000;
+                     prio -= (_vcNo - _vc [j]._vcNo);    // older voice
+                     if (prio < min)  {i = j;   min = prio;}
+                  }                       // ^ THAT guy gets stamped on toppa :/
             }
-            else                       // no room - find who ta kill
-               for (j = 0;  j < _nVc;  j++) {
-                  prio = 10000.;
-                  if      (_vc [j]._ch == 9)    prio += 4000.;
-                  else if (_vc [j]._on == 'r')  prio -= 2000.;
-                  else if (_vc [j]._on == 'h')  prio -= 1000.;
-                  prio -= (_vcNo - _vc [j]._vcNo);    // older voice
-                  if (prio < best)  {i = j;   best = prio;}
-               }                       // ^ THAT guy gets stamped on toppa :/
-         }                             // i has a nice spot for us
 
-      // FINALLY !!
-         _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm], es);
-
+         // FINALLY !!
+            _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm], es);
 //TRX("start voice=`d", i);
       }
+   }
    if (shr)  {for (j = i = _nVc;  i && (! _vc [i-1]._on);  i--)  _nVc--;
 //if (_nVc<j) TRX("  vc shrink `d=>`d", j, _nVc);
              }

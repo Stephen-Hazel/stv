@@ -375,33 +375,6 @@ ubyt4 LinePos (char *s, ubyt4 ln)
    return p;
 }
 
-ubyt4 NextLn (char *str, char *buf, ubyt4 len, ubyt4 p)
-{ char *ch;
-  ubyt4 ln;
-   *str = '\0';
-   if ((ch = StrCh (& buf [p], '\n'))) {
-      MemCp (str, & buf [p], ln = SC(ubyt4,ch - & buf [p]));
-      p += (1 + ln);
-      str [ln] = '\0';
-   }
-   else {StrCp (str, & buf [p]);   p = len;}
-   return p;
-}
-
-char *Chomp (char *str, char end)
-{ char *ch;
-   if (end == 'b') {
-      if ((ch = StrCh (str, '\r')))  *ch = '\0';
-      if ((ch = StrCh (str, '\n')))  *ch = '\0';
-   }
-   else {
-     ubyt4 ln = StrLn (str);
-      if (ln && (str [ln-1] == '\n'))  str [--ln] = '\0';
-      if (ln && (str [ln-1] == '\r'))  str [--ln] = '\0';
-   }
-   return str;
-}
-
 char *ReplCh (char *s, char f, char t)
 { char *in = s;
    while (*s)  {if (*s == f) *s = t;   s++;}
