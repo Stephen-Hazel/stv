@@ -91,6 +91,7 @@ void  DbgX    (char *s, char zz = '\0');
 
 // str array/file-ish stuff
 ubyt4 LinePos (char *s, ubyt4 ln);     // pos of start of line ln in \n sep'd s
+                                       // dumb - rewrite usin Split
 char *ReplCh  (char *str, char fr, char to);
 ubyt4 PosInZZ (char *t, char *s,                   char x = '\0');
 ubyt4 PosInWZ (char *t, char *s, ubyt2 w,          char x = '\0');
@@ -224,8 +225,8 @@ private:
 
 
 //______________________________________________________________________________
-// parses a record with columns separated by (usually) spaces - handy for files
-// NOTE - your Rec string is used as a buffer and will be WRECKED upon return !!
+// parses a rec with cols sep'd by (usually) spaces.  handy for config files
+// NOTE - your Rec string is used as a buffer and is WRECKED upon return !!
 class ColSep {
 public:
    char *Col [90];
@@ -265,15 +266,13 @@ public:                                // each Nxt () sets \0 term str
    { char *o, *p;
       o = _ch;
       if (p = StrCh (o, _sp))  {*p = '\0';   _ch = ++p;}
-//DBG("Split Nxt=`s", o);
       return o;
    }
 
    Split (char *in, char sp = '|')
-   { char *p = in, *p2;
-      for (Len = 0;  p2 = StrCh (p, sp);  Len++)  p = p2+1;
-//DBG("Split constr len=`d", Len);
-      _sp = sp;   _ch = in;
+   {  _ch = in;   _sp = sp;
+     char *p = in, *p2;
+      for (Len = 1;  p2 = StrCh (p, sp);  Len++)  p = p2 + 1;
    }
 };
 
