@@ -388,10 +388,10 @@ public:
                            QWidget *ed, const QStyleOptionViewItem &opt,
                                         const QModelIndex &ind)  const override
    { QComboBox *cb = qobject_cast<QComboBox *>(ed);
-DBG("SIDlg::updateEditorGeometry bgn");
+//DBG("SIDlg::updateEditorGeometry bgn");
       if (cb)  cb->setGeometry (opt.rect);
       else  QStyledItemDelegate::updateEditorGeometry (ed, opt, ind);
-DBG("SIDlg::updateEditorGeometry end");
+//DBG("SIDlg::updateEditorGeometry end");
    }
 
 
@@ -400,8 +400,8 @@ DBG("SIDlg::updateEditorGeometry end");
    // table cell w an editor got clicked
    { BStr bs;
      char ed, *s;
-DBG("SIDlg::createEditor row=`d col=`d _ed=`c",
-ind.row (), ind.column (), _ed [ind.column ()]);
+//DBG("SIDlg::createEditor row=`d col=`d _ed=`c",
+//ind.row (), ind.column (), _ed [ind.column ()]);
       if (_pop == nullptr)  DBG("BUG! edit cell and no pop func!!");
       if (_ed [ind.column ()] == '\0')      // this col never edits
                            return nullptr;  // (prob never happens)
@@ -420,7 +420,7 @@ ind.row (), ind.column (), _ed [ind.column ()]);
          for (s = bs;  *s;  s = & s [StrLn (s)+1])
             cb->addItem (StrCm (s, CC("-")) ? s : "");
          cb->installEventFilter (_ef);
-DBG("SIDlg::createEditor ^ end");
+//DBG("SIDlg::createEditor ^ end");
          return cb;
       }                                     // e = string edit
       return    QStyledItemDelegate::createEditor (tb, opt, ind);
@@ -430,7 +430,7 @@ DBG("SIDlg::createEditor ^ end");
    void     setEditorData (QWidget *ed, const QModelIndex &ind)  const override
    { QComboBox *cb = qobject_cast<QComboBox *>(ed);
       if (cb) {
-DBG("SIDlg::setEditorData ^ bgn");
+//DBG("SIDlg::setEditorData ^ bgn");
         TStr s, t;
          StrCp (s, UnQS (ind.data (Qt::EditRole).toString ()));
         int i = cb->findText (s);
@@ -444,7 +444,7 @@ DBG("SIDlg::setEditorData ^ bgn");
          cb->setCurrentIndex (i);
 //       cb->move (opt.rect.x (), opt.rect.y ());
 //       cb->showPopup ();          // and doesn't work so tryin eventFilter
-DBG("SIDlg::setEditorData ^ end");
+//DBG("SIDlg::setEditorData ^ end");
       }
       else  QStyledItemDelegate::setEditorData (ed, ind);
    }
@@ -453,7 +453,7 @@ DBG("SIDlg::setEditorData ^ end");
    void     setModelData  (QWidget *ed, QAbstractItemModel *mod,
                                         const QModelIndex &ind)  const override
    { QComboBox *cb = qobject_cast<QComboBox *>(ed);
-DBG("SIDlg::setModelData `s", cb?"^":"_");
+//DBG("SIDlg::setModelData `s", cb?"^":"_");
       if (cb) {
 //DBG("   r=`d c=`d s=`s",
 //ind.row (), ind.column (), UnQS (cb->currentText ()));
@@ -461,18 +461,18 @@ DBG("SIDlg::setModelData `s", cb?"^":"_");
 //DBG("   back from mod->setData");
       }
       else  QStyledItemDelegate::setModelData (ed, mod, ind);
-DBG("SIDlg::setModelData end");
+//DBG("SIDlg::setModelData end");
    }
 
 
 public slots:
    void cbChanged ()                   // got a pick !
    { QComboBox *cb = qobject_cast<QComboBox *>(sender ());
-DBG("SIDlg::cbChanged commitData");
+//DBG("SIDlg::cbChanged commitData");
       emit commitData  (cb);
-DBG("SIDlg::cbChanged closeEditor");
+//DBG("SIDlg::cbChanged closeEditor");
       emit closeEditor (cb);
-DBG("SIDlg::cbChanged end");
+//DBG("SIDlg::cbChanged end");
    }
 };
 

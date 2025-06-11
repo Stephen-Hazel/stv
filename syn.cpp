@@ -430,7 +430,7 @@ char Glide::Mix ()
    return 'y';
 }
 //______________________________________________________________________________
-void Env::Init (ubyte iid)
+real Env::Init (ubyte iid)
 // init my destination n stages' stuff.
 // songtime_dur/192 beat / (tmpo beat/min * min/60 sec)
 //    dur beat / (tmpo beat/60 sec)
@@ -457,29 +457,88 @@ void Env::Init (ubyte iid)
    // offset add factor a little to REACH target, not just approach
       stg [i].add = (stg [i+1].lvl + stg [i].dir*c) * (1. - stg [i].mul);
    }
+   return lvl;
 }
 
 real Env::Mix ()
 {  if (End () && stg [s].add == 0.)  return lvl;
   sbyte d  = stg [s  ].dir;            // git ma next dude
-  real  l2 = stg [s+1].lvl;
+  real  l2 = stg [s+1].lvl, mag;
    p++;
    if (stg [s].crv >= 0.)
       lvl = lvl * stg [s].mul + stg [s].add;     // exp crv
    else {                                        // sin curve
      ubyte q = (d > 0) ? 0 : 1;                  // 1,-1,-1, 1
       if ((lvl < 0.) || (l2 < 0.))  q = 3-q;     // 0/ 1\ 2\ 3/
-      lvl = Sin (p/stg [s].nper, q);
+      mag = (l2 != 0.) ? l2 : stg [s].lvl;       // whichev ain't 0
+      lvl = mag * Sin (p/stg [s].nper, q);
    }                                   // same ole stage?
+//TStr s1,s2;
+//DBG("      d=`d lvl=`s l2=`s", d, R2Str(lvl,s1),R2Str(l2,s2));
    if (d > 0)  {if (lvl < l2)  return lvl;}
    else         if (lvl > l2)  return lvl;
 
    s++;   lvl = l2;   p = 0;                // bump ta next stage !
+//DBG("      click - stg=`d lvl=`s", s, R2Str(lvl,s1));
+
    if (End ()) {
+//DBG("      end!");
       if (stg [s].add == 0.)  return lvl;   // not loopin so dooone
       lvl = stg [s = 0].lvl;                // loop back ta stg 0
+//DBG("         loopin - s=`d lvl=`s", s, R2Str(lvl,s1));
    }
    return lvl;
+}
+//______________________________________________________________________________
+void EnvO::Init (char *es)
+// init our array of envelopes given es with space sep'd env names
+{ BStr b;
+   StrCp (b, es);
+  ColSep ss (b, 17);                   // envelope init from it's str
+  ubyte  i, j;
+   MemSet (x, 0, 6);
+   for (e.Ln = i = 0;  (i < 16) && ss.Col [i][0];  i++)
+      for (j = 0;  j < Sy._env.Ln;  j++)
+         if (! StrCm (ss.Col [i], Sy._env [j].nm)) {
+            e.Ins ();       e [i].Init (j);
+            x [e [i].dst] = 1;
+            o [e [i].dst] = e [i].lvl;
+         }
+   if ((i == 0) || MemCm (ss.Col [i-1], CC("rel"), 3)) {
+      if (i >= 16) i--;   else e.Ins ();
+      e [i].Init (0);                  // env bank 0 is default release
+   }
+}
+
+char *EnvO::Mix (char rel)
+// run all the envelopes in e[] so we got our main 6 outputs (or their defaults)
+{ ubyt4 i, ne, len;
+  char  d;
+  static TStr re;
+   MemSet (x, 0, 6);
+   ne = e.Ln;
+   if (rel != 'r') ne--;               // last env (release) starts special
+   for (i = 0;  i < ne;  i++) {
+      d = e [i].dst;
+      if (x [d])  o [d] *= e [i].Mix ();
+      else       {o [d]  = e [i].Mix ();   x [d] = 1;}
+   }
+   *re = '\0';
+   if (x [0] || x [1])  StrAp (re, CC("n"));
+   if (x [2] || x [3])  StrAp (re, CC("f"));
+   if (x [4])           StrAp (re, CC("a"));
+   if (x [5])           StrAp (re, CC("p"));
+//if (*re) TRX("      envo re=`s`s`s`s`s`s",
+//x[0]?"oStp ":"", x[1]?"oCnt ":"", x[2]?"fCut ":"", x[3]?"fRes ":"",
+//x[4]?"amp ":"",  x[5]?"pan":"");
+   return re;
+}
+
+void EnvO::Dump ()
+{ TStr s1;
+   for (ubyte i = 0;  i < e.Ln;  i++)  if (e [i].id)
+TRX("      env `d=`s lvl=`s stg=`d p=`d",
+i, Sy._env [e [i].id].nm, R2Str(e [i].lvl,s1), e [i].s, e [i].p);
 }
 //______________________________________________________________________________
 void Voice::Init ()  {_on = '\0';   _ch = 0xFF;}
@@ -496,45 +555,48 @@ void Voice::Init ()  {_on = '\0';   _ch = 0xFF;}
 
 void Voice::ReFrq ()
 // set frq - inc based on card vs. smp root vs. note frq  (drum notes unpitched)
-{ sbyt4 k;
-  real  t;
-  ubyte mn = MKey (CC("0a")),
-        mx = MKey (CC("8c"));
+{ real n, t;
    t = (real)_smp->frq / (real)Sy._frq;
-   if (! _snd->_xFrq) {
-      k = _key;                        // 2100 - 10800  (0 - 8700)
-      if (k < mn)  k = mn;             // limit to keyboard
-      if (k > mx)  k = mx;                            // pBnR cents iz dumbb
-      t *= ( Ct2Hz ( k         * 100. +
-                     _gl.ofs +
-//                   _eVal [0] * 100. + _eVal [1] +
-                     _c->pBnR  * 100. * Ms2 (_c->pBnd) ) /
-             Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
+   if (! _snd->_xFrq) {                // is the sample pitched?
+      n = _key        * 100. + _gl.ofs     +
+          _eo.oStp () * 100. + _eo.oCnt () +
+          _c->pBnR    * 100. * Ms2 (_c->pBnd);   // pBnR cents iz dumbb
+     ubyte mn = MKey (CC("0a")),  mx = MKey (CC("8c"));
+      if (n < mn*100.)  n = mn*100.;   // limit 0a-8c = 21-108 (0-87)
+      if (n > mx*100.)  n = mx*100.;
+      t *= ( Ct2Hz (n) / Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
    }
    _phInc = REAL2PHASE (t);
-// TStr s; DBG("   phInc=`s", R2Str(t,s));
+TStr s, s2,s3,s4;
+DBG("ReFrq phInc=`s xFrq=`b key=`d gl=`s env=`s pb=`d=`s",
+R2Str(t,s), _snd->_xFrq,
+_key, R2Str(_gl.ofs,s2), R2Str(_eo.oStp()*100+_eo.oCnt(),s3),
+_c->pBnd, R2Str(_c->pBnR*100.*Ms2 (_c->pBnd),s4) );
 }
 
 
-void Voice::ReFlt ()                   // set filter cutoff,resonance
-{ real cut = Mu (_c->fCut) * _eVal [2],
-       res = Mu (_c->fRes) * _eVal [3];
+void Voice::ReFlt ()                   // set filter cutoff,resonance: cc n envs
+{ real cut = Mu (_c->fCut) * _eo.fCut (),
+       res = Mu (_c->fRes) * _eo.fRes ();
    if ((_ch != 9) && Mb (_c->vCut))  cut *= Mu (_vel);
 //TStr s1, s2;
 //TRX("ReFlt cut=`s (env=`s vCut=`b vel=`d)",
-//R2Str(cut,s1), R2Str(_eVal [2], s2), Mb (_c->vCut), _vel);
+//R2Str(cut,s1), R2Str(_eo.fCut (), s2), Mb (_c->vCut), _vel);
    _flt.Cut (9500.0 * cut + 4000.);  // 4000 - 13500 = 0 - 9500
    _flt.Res ( 960.0 * res);          //                0 - 960
 }
 
 
-void Voice::ReAmp ()                   // set amp - based on vol cc n velo
-{  _amp  = Sy._vol * Mu (_c->vol) * Mu (_vel) * _eVal [4];  }
+void Voice::ReAmp ()                   // set amp - based on vol cc, velo, envs
+{ real a = Mu (_c->vol) * Mu (_vel) * _eo.amp ();
+   _amp = Sy._vol * a;
+}
 
 
 void Voice::RePan ()                   // set pan - pan cc
-{  _panL = (_smp->lr == 1) ? 0. : Pan (Ms (_c->pan) + _eVal [5], 0);
-   _panR = (_smp->lr == 0) ? 0. : Pan (Ms (_c->pan) + _eVal [5], 1);
+{ real p = Ms (_c->pan) + _eo.pan ();
+   _panL = (_smp->lr == 1) ? 0. : Pan (p, 0);
+   _panR = (_smp->lr == 0) ? 0. : Pan (p, 1);
 }
 
 
@@ -548,26 +610,13 @@ void Voice::Re (char re)               // recalc voice params
 }
 
 
-void Voice::Bgn (ubyte c, ubyte k, ubyte v, ubyt4 n,
-                 Sound *s, Sample *sm, char *es)
+void Voice::Bgn (ubyte c, ubyte k, ubyte v, Sound *s, Sample *sm, char *es,
+                 ubyt4 no, ubyt2 pos)
 // called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
-{  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _vcNo = n;
-   _snd = s;   _smp = sm;   _phase = (Phase)0;   _looped = false;   _nPer = 0;
-   _flt.Init ();   _gl.Init (c, k);
-  BStr b;
-   StrCp (b, es);
-  ColSep ss (b, 17);                   // envelope init from it's str
-  ubyte  i, j;
-   for (i = 0;  i < 6;  i++)  _eVal [i] = 1.;
-   for (i = _env.Ln = 0;  (i < 16) && ss.Col [i][0];  i++)
-      for (j = 0;  j < Sy._env.Ln;  j++)
-         if (! StrCm (ss.Col [i], Sy._env [j].nm))
-            {_env.Ins ();   _env [i].Init (j);}
-   if ((i == 0) || StrCm (ss.Col [i-1], CC("rel"))) {
-      if (i >= 16) i--;   else _env.Ins ();
-      _env [i].Init (0);               // env bank 0 is default release
-   }
-   Re ('*');
+{  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _snd = s;   _smp = sm;
+   _no = no;   _pos = pos;
+   _nPer = 0;   _phase = (Phase)0;   _looped = false;
+   _flt.Init ();   _gl.Init (c, k);   _eo.Init (es);   Re ('*');
    _on = 'd';
 }
 
@@ -636,51 +685,37 @@ ubyt4 Voice::Osc ()
 
 
 void Voice::Mix ()                     // da GUTS :)
-{ ubyt4 i, ne, len;
+{ ubyt4 i, len;
   real  s, *mL = Sy._mixL, *mR = Sy._mixR;
-  char  re [6], d;
+  char *re;
    if (! _on)                         return;
    if (_snd == nullptr)    {End ();   return;}
 
    _nPer++;                            // track how many bufs we did
    len = Osc ();                       // stretch/shrink sample into _intp
-
-// run all the _env[]
-   for (i = 0;  i < 6;  i++)  {re [i] = 0;   _eVal [i] = 1.;}
-   ne = _env.Ln;   if (_on != 'r') ne--;    // last env (release) starts special
-   for (i = 0;  i < ne;  i++)
-      {d = _env [i].dst;   re [d] = 1;   _eVal [d] *= _env [i].Mix ();}
-TRX("   re=`s`s`s`s`s`s",
-re[0]?"oStp ":"", re[1]?"oCnt ":"", re[2]?"fCut ":"", re[3]?"fRes ":"",
-re[4]?"amp ":"",  re[5]?"pan":"");
-   if (re [0] || re [1])  Re ('n');   if (re [4]) Re ('a');
-   if (re [2] || re [3])  Re ('f');   if (re [5]) Re ('p');
-Dump('q');
-
-// mix in the buffer
-   for (i = 0;  i < len;  i++)  {
+   for (i = 0;  i < len;  i++)  {      // mix inta da L,R out bufs
       s  = _flt.Mix (Sy._intp [i]);    // filter it
       s *= _amp;                       // amp it
       mL [i] += (s * _panL);           // pan it
       mR [i] += (s * _panR);
    }
+   re = _eo.Mix (_on);                 // run our array of envs to output
+   while (*re)  Re (*re++);
    if (_gl.Mix ())  ReFrq ();
+Dump('q');
 
 // done w release?  or nonloop sample ran out?  END MEEE
-   if (_env [_env.Ln-1].End () || (len < Sy._nFr))  End ();
+   if (_eo.RelEnd () || (len < Sy._nFr))  End ();
 }
 
 
 void Voice::Dump (char q)
 { TStr t, s1, s2, s3;
    if (! _on)  {TRX("   (off)");   return;}
-TRX("   on=`c ch=`d key=`s vel=`d looped=`b vcNo=`d nPer=`d",
+TRX("   on=`c ch=`d key=`s vel=`d looped=`b pos=`d/`d nPer=`d",
 _on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
-_vel, _looped, _vcNo, _nPer);
-   for (ubyte i = 0;  i < _env.Ln;  i++) {
-TRX("      env `d=`s lvl=`s stg=`d p=`d",
-i, Sy._env [_env [i].id].nm, R2Str(_env [i].lvl,s1), _env [i].s, _env [i].p);
-   }
+_vel, _looped, _pos, Sy._nVc, _nPer);
+   _eo.Dump ();
 // Sy._chn [_ch].Dump ();
    if (q)  return;
 TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
@@ -792,35 +827,39 @@ ch+1, MKey2Str(ts,key), c->snd, _nSnd);
   bool  shr = false;
   ubyt2 min, prio;
   BStr  bs;
+  char *e;
    StrCp (bs, (es == nullptr) ? c->env : es);
+if (*bs) TRX("c->env=`s", bs);
   Split sp (bs);
    while (sp.Len--) {
-      es = sp.Nxt ();
+      e = sp.Nxt ();
       for (sm = 0;  sm < s->_nSmp;  sm++)
          if ( (key >= s->_smp [sm].mnKey) && (key <= s->_smp [sm].mxKey) &&
               (vel >= s->_smp [sm].mnVel) && (vel <= s->_smp [sm].mxVel) ) {
             for (i = 0;  i < _nVc;  i++)  if (! _vc [i]._on)  break;
-            if (i < _nVc)  shr = true;    // got a free spot to replace
-            else {                        // need a new spot
-               if (_nVc < 256) {          // room for new one
+            if (i < _nVc)  shr = true;      // got a free spot to replace
+            else {                          // need a new spot
+               if (_nVc < 256) {            // room for new one
                   i = _nVc++;
                   if (i > _maxVc) {_maxVc = i;
 DBG("Syn maxVoice=`d", i+1);
                   }
                }
-               else                       // no room - find who ta kill
+               else {                  // no room - find who ta kill
                   for (min = 15000, j = 0;  j < _nVc;  j++) {
-                     prio = 10000;
-                     if      (_vc [j]._ch == 9)    prio += 4000;
-                     else if (_vc [j]._on == 'r')  prio -= 2000;
+                     prio = 10000;     // kill lowest prio
+                     if      (_vc [j]._ch ==  9 )  prio += 4000;
                      else if (_vc [j]._on == 'h')  prio -= 1000;
-                     prio -= (_vcNo - _vc [j]._vcNo);    // older voice
+                     else if (_vc [j]._on == 'r')  prio -= 2000;
+                     prio -= (_vcNo - _vc [j]._no);   // keep newer
                      if (prio < min)  {i = j;   min = prio;}
-                  }                       // ^ THAT guy gets stamped on toppa :/
+                  }                    // ^ THAT guy gets stamped on toppa :/
+DBG("Syn stoleVoice=`d", i+1);
+               }
             }
 
          // FINALLY !!
-            _vc [i].Bgn (ch, key, vel, ++_vcNo, s, & s->_smp [sm], es);
+            _vc [i].Bgn (ch, key, vel, s, & s->_smp [sm], e, ++_vcNo, i);
 //TRX("start voice=`d", i);
       }
    }
@@ -1037,7 +1076,7 @@ DBG("LoadEnv empty env name on # `d", en+1);
 DBG("LoadEnv env=`s has bad dest=`s", ss.Col [0], ss.Col [1]);
          _env [en].dst = (ubyte)d;
          _env [en].stg = st;
-//DBG("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
+DBG("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
          en++;
       }
       else {
@@ -1059,8 +1098,8 @@ DBG("LoadEnv env=`s has bad dest=`s", ss.Col [0], ss.Col [1]);
          if (! StrCm (ss.Col [2], CC("sin")))
                _stg [st].crv = -1.;
          else  _stg [st].crv = ss.Col [2][0] ? Str2R (ss.Col [2]) : 0.001;
-//TStr s1;
-//DBG("envstg `d lvl=`s dur=`d", st, R2Str (_stg [st].lvl,s1), d);
+TStr s1;
+DBG("envstg `d lvl=`s dur=`d", st, R2Str (_stg [st].lvl,s1), d);
          st++;
       }
    }                                   // init dir
@@ -1077,7 +1116,7 @@ void Syn::Init (char wav)
   TStr fn;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = false;                       // just here no cfg file
+   _trx = true;                        // just here no cfg file
 TRX("Syn::Init bgn");
    if (_wav = wav) {                   // goin to .wav file - pretty easy
       *_snDsc = *_snDev = '\0';   _sn = nullptr;

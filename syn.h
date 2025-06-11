@@ -61,7 +61,6 @@ class LPF {                            // low pass filter (per voice)
          a1,    a2,    b1,    b2,
          a1Inc, a2Inc, b1Inc, b2Inc,
          hist1, hist2;                 // buffer past calcs
-
 public:
    void Init ();
    void Cut (real c);
@@ -83,6 +82,8 @@ struct EnvStg {ubyt4 dur;   real lvl, crv,   nper, mul, add;   sbyte dir;};
 // crv  (curve) .0001 mostly exponential .. 16 mostly linear  (neg means sin)
 // mul, add  calc'd in Init - for running exponential curve calc (sin w lookup)
 // dir is +1 for increasing level, -1 for decreasing level
+
+
 class Env {
 public:
    ubyte   id, dst;                    // pos in Sy._env[], voice parm we hit
@@ -90,10 +91,28 @@ public:
    ubyte   s;                          // which stg # we're on
    ubyt4   p;                          // period buffer we're on - just incs
    real    lvl;                        // output level
-   void Init (ubyte id);
+   real Init (ubyte id);
    real Mix ();
    bool End ()  {return stg [s].dur == 0;}
    void SetStg (sbyte st)   {s = st;}
+};
+
+
+class EnvO {
+public:
+   Arr<Env,16> e;  // envelope array
+   real o [6];     // output for oStp=0 oCnt=1 fCut=2 fRes=3 amp=4 pan=5
+   bool x [6];     // was voice dest set?
+   void  Init (char *es);              // init array of envs - e
+   char *Mix  (char r = '\0');         // run em all to o[]
+   void  Dump ();
+   bool  RelEnd ()  {return e [e.Ln-1].End ();}  // done w release envelope?
+   real  oStp ()    {return x [0] ? o [0] : 0.;} // if set return o else default
+   real  oCnt ()    {return x [1] ? o [1] : 0.;}
+   real  fCut ()    {return x [2] ? o [2] : 1.;}
+   real  fRes ()    {return x [3] ? o [3] : 0.;}
+   real  amp  ()    {return x [4] ? o [4] : 1.;}
+   real  pan  ()    {return x [5] ? o [5] : 0.;}
 };
 //______________________________________________________________________________
 class Voice {
@@ -103,8 +122,8 @@ public:                                // Core stuph:
    ubyte    _ch;                       // channel num n ptr
    Channel *_c;
    ubyte    _key, _vel;                // key and velocity of note on
-   ubyt4    _vcNo, _nPer;              // voice # I am, periods since Bgn
-
+   ubyt4    _no,  _nPer;               // voice # I am, periods since Bgn
+   ubyt2    _pos;                      // my spot in syn _vc[]
    Sound   *_snd;                      // Oscillator:
    Sample  *_smp;                      // which wav of instrument wav set
    bool     _looped;                   // hit end of rep'ing loop for 1st time?
@@ -115,13 +134,12 @@ public:                                // Core stuph:
 
    real     _amp, _panL, _panR;        // Amp n Pan
 
-   Arr<Env,16> _env;                   // Modulation - envelope array
-   real        _eVal [6];              // oStp oCnt fCut fRes amp pan
-   Glide       _gl;                    // doin glide? (portamento) pitch offset
+   EnvO     _eo;                       // envs out: oStp oCnt fCut fRes amp pan
+   Glide    _gl;                       // doin glide? (portamento) pitch offset
 
    void  Init ();
-   void  Bgn  (ubyte ch, ubyte k, ubyte v, ubyt4 n, Sound *s, Sample *sm,
-               char *es);
+   void  Bgn  (ubyte ch, ubyte k, ubyte v, Sound *s, Sample *sm, char *es,
+               ubyt4 no, ubyt2 pos);
    void  Rels ();
    void  End  ();
    void  ReFrq (), ReFlt (), ReAmp (), RePan (), Re (char todo);

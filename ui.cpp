@@ -38,7 +38,7 @@ key   KeyMap::Map (Qt::KeyboardModifiers mo, int ky)
 { char  c;
   ulong i;
   key   k = 0;
-DBG("mo=`d ky=`d", mo, ky);
+//DBG("mo=`d ky=`d", mo, ky);
    if ((ky >= ' ') && (ky <= '~')) {   // is it ascii?
       c = SC(char,ky);   if (! mo.testFlag (Qt::ShiftModifier))  c = CHDN (c);
       k = SC(key,c);                   // toss out shift bit (EXCEpt for spc :/)
@@ -95,10 +95,10 @@ ubyt4 QtEr::ClipLen ()
 char *QtEr::ClipGet (char *s, ubyt4 siz)
 {  *s = '\0';
    if ((ClipLen () + 1) <= siz) {
-DBG("clipget ok `d <= `d", ClipLen () + 1, siz);
+//DBG("clipget ok `d <= `d", ClipLen () + 1, siz);
       StrCp (s, CC(UnQS (_a->clipboard ()->text ())));
    }
-DBG("ClipGet returns s=`s", s);
+//DBG("ClipGet returns s=`s", s);
    return s;
 }
 
@@ -426,7 +426,7 @@ char *CtlTabl::Get (ubyt2 r, ubyte c)  {return UnQS (_t->item (r, c)->text ());}
 void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
 { QTableWidgetItem *it = _t->item (r, c);
   TStr ico;
-DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
+//DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
    _t->blockSignals (true);
    if (_ju [c] != '*')      it->setText (s);
    else {
@@ -452,12 +452,12 @@ void CtlTabl::SetColor (ubyt2 r, QColor c)
 
 void CtlTabl::Open ()
 {
-DBG("CtlTabl::Open bgn");
+//DBG("CtlTabl::Open bgn");
    _tr = CurRow ();   _tc = CurCol ();
    _t->hide ();   _t->blockSignals (true);
    _t->clearContents ();   _t->setRowCount (0);
    _nr = 0;
-DBG("CtlTabl::Open end");
+//DBG("CtlTabl::Open end");
 }
 
 void CtlTabl::Put (char **rp, char *tip)
@@ -485,7 +485,7 @@ void CtlTabl::Put (char **rp, char *tip)
 //       else                      it->setTextAlignment (Qt::AlignLeft|
 //                                           ((Qt::Alignment)Qt::TextWordWrap));
          it->setText (*rp);
-DBG("CtlTabl::Put r=`d c=`d d=`s", _nr, c, *rp);
+//DBG("CtlTabl::Put r=`d c=`d d=`s", _nr, c, *rp);
       }
       if (tip != nullptr)  it->setToolTip (tip);
    }
@@ -494,13 +494,13 @@ DBG("CtlTabl::Put r=`d c=`d d=`s", _nr, c, *rp);
 
 void CtlTabl::Shut (bool rehop)
 {
-DBG("CtlTabl::Shut show");
+//DBG("CtlTabl::Shut show");
    _t->show ();
    _t->resizeColumnsToContents ();
    if (_wr)  _t->resizeRowsToContents ();
-DBG("CtlTabl::Shut HopTo");
+//DBG("CtlTabl::Shut HopTo");
    if (rehop)  HopTo (_tr, _tc);       // in 6 on CLOSE, ed sets value again:(
-DBG("CtlTabl::Shut blockSignals(false)");
+//DBG("CtlTabl::Shut blockSignals(false)");
    _t->blockSignals (false);
-DBG("CtlTabl::Shut end");
+//DBG("CtlTabl::Shut end");
 }
