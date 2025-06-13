@@ -470,7 +470,7 @@ real Env::Mix ()
    else {                                        // sin curve
      ubyte q = (d > 0) ? 0 : 1;                  // 1,-1,-1, 1
       if ((lvl < 0.) || (l2 < 0.))  q = 3-q;     // 0/ 1\ 2\ 3/
-      mag = (l2 != 0.) ? l2 : stg [s].lvl;       // whichev ain't 0
+      mag = labs ((l2 != 0.) ? l2 : stg [s].lvl);     // whichev ain't 0
       lvl = mag * Sin (p/stg [s].nper, q);
    }                                   // same ole stage?
 //TStr s1,s2;
@@ -558,8 +558,8 @@ void Voice::ReFrq ()
 { real n, t;
    t = (real)_smp->frq / (real)Sy._frq;
    if (! _snd->_xFrq) {                // is the sample pitched?
-      n = _key        * 100. + _gl.ofs     +
-          _eo.oStp () * 100. + _eo.oCnt () +
+      n = _key        * 100. + _gl.ofs +
+          _eo.oStp () * 100. + round (_eo.oCnt ()) +
           _c->pBnR    * 100. * Ms2 (_c->pBnd);   // pBnR cents iz dumbb
      ubyte mn = MKey (CC("0a")),  mx = MKey (CC("8c"));
       if (n < mn*100.)  n = mn*100.;   // limit 0a-8c = 21-108 (0-87)
@@ -567,11 +567,13 @@ void Voice::ReFrq ()
       t *= ( Ct2Hz (n) / Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
    }
    _phInc = REAL2PHASE (t);
+/*
 TStr s, s2,s3,s4;
 DBG("ReFrq phInc=`s xFrq=`b key=`d gl=`s env=`s pb=`d=`s",
 R2Str(t,s), _snd->_xFrq,
 _key, R2Str(_gl.ofs,s2), R2Str(_eo.oStp()*100+_eo.oCnt(),s3),
 _c->pBnd, R2Str(_c->pBnR*100.*Ms2 (_c->pBnd),s4) );
+*/
 }
 
 
@@ -702,21 +704,21 @@ void Voice::Mix ()                     // da GUTS :)
    re = _eo.Mix (_on);                 // run our array of envs to output
    while (*re)  Re (*re++);
    if (_gl.Mix ())  ReFrq ();
-Dump('q');
+Dump();
 
 // done w release?  or nonloop sample ran out?  END MEEE
    if (_eo.RelEnd () || (len < Sy._nFr))  End ();
 }
 
 
-void Voice::Dump (char q)
+void Voice::Dump ()
 { TStr t, s1, s2, s3;
    if (! _on)  {TRX("   (off)");   return;}
 TRX("   on=`c ch=`d key=`s vel=`d looped=`b pos=`d/`d nPer=`d",
 _on, _ch+1, (_ch==9)?MDrm2Str (t,_key):MKey2Str (t,_key),
 _vel, _looped, _pos, Sy._nVc, _nPer);
    _eo.Dump ();
-// Sy._chn [_ch].Dump ();
+/* Sy._chn [_ch].Dump ();
    if (q)  return;
 TRX("   phase=`u.`u phInc=`u.`u amp=`s panL=`s panR=`s",
 (ubyt4)(_phase>>32), (ubyt4)(_phase & 0xFFFFFFFF),
@@ -725,6 +727,7 @@ R2Str(_amp,s3), R2Str(_panL,s1), R2Str(_panR,s2));
    _c->Dump ();
    if (_snd)  _snd->Dump ();
    if (_smp)  _smp->Dump (_ch == 9);
+*/
 }
 //______________________________________________________________________________
 // syn sound bank management
@@ -1048,7 +1051,7 @@ DBG("run end");
 
 void Syn::LoadEnv ()
 // load _stg,_env from .../device/syn/env.txt  (our envelope bank)
-{ TStr  fn, s;
+{ TStr  fn, s, s1;
   ubyt4 en, st, d, i;
   char *ch, *p, *ds = CC("WHQEST612");   // whole, half, ... 64th, 128th, 256th
   StrArr t (CC("env"), 128, 128*sizeof(TStr));
@@ -1076,7 +1079,7 @@ DBG("LoadEnv empty env name on # `d", en+1);
 DBG("LoadEnv env=`s has bad dest=`s", ss.Col [0], ss.Col [1]);
          _env [en].dst = (ubyte)d;
          _env [en].stg = st;
-DBG("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
+TRX("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
          en++;
       }
       else {
@@ -1098,8 +1101,7 @@ DBG("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
          if (! StrCm (ss.Col [2], CC("sin")))
                _stg [st].crv = -1.;
          else  _stg [st].crv = ss.Col [2][0] ? Str2R (ss.Col [2]) : 0.001;
-TStr s1;
-DBG("envstg `d lvl=`s dur=`d", st, R2Str (_stg [st].lvl,s1), d);
+TRX("   envstg `d lvl=`s dur=`d", st, R2Str (_stg [st].lvl,s1), d);
          st++;
       }
    }                                   // init dir
