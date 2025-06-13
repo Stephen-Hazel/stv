@@ -143,7 +143,7 @@ public:                                // Core stuph:
    void  Rels ();
    void  End  ();
    void  ReFrq (), ReFlt (), ReAmp (), RePan (), Re (char todo);
-   void  Dump  (char q = '\0');
+   void  Dump  ();
 
    ubyt4 Osc ();                       // tough part (sample=>interpolation buf)
    void  Mix ();                       // guts - cook up next sound card buf
