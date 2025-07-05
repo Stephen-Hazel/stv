@@ -704,7 +704,7 @@ void Voice::Mix ()                     // da GUTS :)
    re = _eo.Mix (_on);                 // run our array of envs to output
    while (*re)  Re (*re++);
    if (_gl.Mix ())  ReFrq ();
-Dump();
+//Dump();
 
 // done w release?  or nonloop sample ran out?  END MEEE
    if (_eo.RelEnd () || (len < Sy._nFr))  End ();
