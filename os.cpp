@@ -281,29 +281,32 @@ char *Now (char *s, int osec)
    return s;
 }
 
-char *NowMS (char *s, timeval *ptv)    // now n dur in microsec for debuggin
+char *NowMSxnaw (char *s, timeval *ptv)    // just microsec for debuggin
 { struct timeval now;
   TStr b1;
   int  msec;
    gettimeofday (& now, NULL);
    msec = lrint (now.tv_usec / 1000.0);     // Round micro to nearest milli
    if (msec >= 1000)  {msec -= 1000;   now.tv_sec++;}
-   strftime    (b1, sizeof (b1), "%H:%M:%S.",  localtime (& now.tv_sec));
-/* this is for when i (rarely) want it down the microsecond with duration
-  TStr b2;
-  struct timeval dur;
-   if ((ptv == nullptr) || (ptv->tv_sec == 0))  dur.tv_usec = 0;
+   strftime (b1, sizeof (b1), "%H:%M:%S.",  localtime (& now.tv_sec));
+   return StrFmt (s, "`s`03d", b1, msec);
+}
+
+char *NowMS (char *s, timeval *ptv)    // millisec n dur for debuggin
+{ struct timeval now, dur;
+  TStr b1, b2;
+  int  msec;
+   gettimeofday (& now, NULL);
+   strftime (b1, sizeof (b1), "%H:%M:%S.",  localtime (& now.tv_sec));
+   if (ptv->tv_sec == 0)  dur.tv_usec = 0;
    else {
       dur.tv_sec  = now.tv_sec  - ptv->tv_sec;
       dur.tv_usec = now.tv_usec - ptv->tv_usec;
       if (dur.tv_usec < 0)  {dur.tv_sec--;   dur.tv_usec += 1000000;}
-      strftime (b2, sizeof (b2), "%H:%M:%S.",  localtime (& dur.tv_sec));
-      if (StrCm (b2, CC("00:00:00.")))                      dur.tv_usec = 0;
+      strftime (b2, sizeof (b2), "%M:%S.", localtime (& dur.tv_sec));
    }
-   if (ptv != nullptr)  MemCp (ptv, & now, sizeof (now));
-   return StrFmt (s, "`s`06d `>6d", b1, now.tv_usec, dur.tv_usec);
-*/
-   return StrFmt (s, "`s`03d", b1, msec);
+   MemCp (ptv, & now, sizeof (now));
+   return StrFmt (s, "`s`06d `s`06d", b1, now.tv_usec, b2, dur.tv_usec);
 }
 
 #include "pthread.h"
@@ -322,12 +325,10 @@ void DbgX (char *s, char zz)
    StrFmt (buf, "`08x", SC(int,pthread_self ()));
    for (i = 0;  i < BITS (DbgTh);  i++) {
       if (!DbgTh [i][0])  break;
-      if (! MemCm (DbgTh [i], buf, 8, 'x')) {
-         ptv = & Ptv [i];
-         StrCp (me, & DbgTh [i][8]);   break;
-      }
+      if (! MemCm (DbgTh [i], buf, 8, 'x'))
+         {ptv = & Ptv [i];   StrCp (me, & DbgTh [i][8]);   break;}
    }
-   if (*me == '\0')  StrCp (me, buf);
+   if (*me == '\0')  return;
 
    App.Path (fn, 'c');   StrAp (fn, CC("/dbg.txt"));   f = fopen (fn, "a");
    if (f == NULL)  return;
@@ -339,7 +340,6 @@ void DbgX (char *s, char zz)
    }
    else
       fprintf (f, "%s %s %s\n",     NowMS (buf, ptv), me, s);
-
    fclose (f);
 }
 
