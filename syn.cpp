@@ -1033,6 +1033,7 @@ void Syn::run ()
   sbyt2 (*o)[2];
 DBGTH("Syn");   DBG("run bgn");
    while (_run) {
+DBG("  syn run top");
       o = & _out [per*_nFr];   per = per ? 0 : 1;     // double bufferin
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
       _lok.Grab ();
@@ -1043,7 +1044,9 @@ DBGTH("Syn");   DBG("run bgn");
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
       _lok.Toss ();
+DBG("  syn run put");
       _sn->Put ((sbyt2 *)o);           // this'll block us on 2nd call and on
+DBG("  syn run bot");
    }
 DBG("run end");
 }
@@ -1142,7 +1145,7 @@ DBG("Syn::Init - sound output='`s' device='`s'", _snDsc, _snDev);
       _nFr = _sn->_nFr;                // everbody needz theedz
       _frq = _sn->_frq;
 DBG("   nFr=`d frq=`d", _nFr, _frq);
-      _vol = 0.07;                     // alsa always does volume=100% :)
+      _vol = 0.1;                      // alsa always does volume=100% :)
    }
    InitLookup ();   LoadEnv ();
    _smp = nullptr;
