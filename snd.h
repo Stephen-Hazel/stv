@@ -20,7 +20,7 @@ extern SndLst Snd;
 
 class SndO {
 public:
-   SndO (char *dev, ubyt4 nfr = 64, ubyt4 frq = 44100);
+   SndO (char *dev, ubyt4 nfr = 64, ubyt4 frq = 48000);
   ~SndO ();
 
    ubyt4 _nFr, _frq;                   // device may change these 2

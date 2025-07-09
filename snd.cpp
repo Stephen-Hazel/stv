@@ -250,7 +250,7 @@ DBG("pcm_channels stereo died - `s", snd_strerror (e));
    }
 
    if ((e = snd_pcm_hw_params_set_rate_near (_hnd, hw, & frq, 0)) < 0) {
-DBG("pcm_rate 44100 died - `s", snd_strerror (e));
+DBG("pcm_rate died - `s", snd_strerror (e));
       snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
    if (_frq != frq)  DBG("pcm_rate wanted `d got `d :/", _frq, frq);

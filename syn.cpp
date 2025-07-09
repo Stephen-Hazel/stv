@@ -1033,8 +1033,8 @@ void Syn::run ()
   sbyt2 (*o)[2];
 DBGTH("Syn");   DBG("run bgn");
    while (_run) {
-DBG("  syn run top");
       o = & _out [per*_nFr];   per = per ? 0 : 1;     // double bufferin
+DBG("  syn run top o=`d", o);
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
       _lok.Grab ();
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix ();
