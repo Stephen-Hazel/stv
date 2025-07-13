@@ -1034,7 +1034,6 @@ void Syn::run ()
 DBGTH("Syn");   DBG("run bgn");
    while (_run) {
       o = & _out [per*_nFr];   per = per ? 0 : 1;     // double bufferin
-DBG("  syn run top o=`d", o);
       MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
       _lok.Grab ();
       for (i = 0;  i < _nVc;  i++)  _vc [i].Mix ();
@@ -1044,9 +1043,7 @@ DBG("  syn run top o=`d", o);
          if (++_dth >= MAX_DITHER)  _dth = 0;
       }
       _lok.Toss ();
-DBG("  syn run put");
       _sn->Put ((sbyt2 *)o);           // this'll block us on 2nd call and on
-DBG("  syn run bot");
    }
 DBG("run end");
 }
@@ -1118,28 +1115,28 @@ void Syn::Init (char wav)
 // open sound output device
 // init samples, sounds, voices, buffers, and kick our soundcard writin thread
 {  _run = false;                       // default to "no workie"
-  TStr fn;
+  TStr fn, s;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = true;                        // just here no cfg file
+   _trx = false;                       // just here no cfg file
 TRX("Syn::Init bgn");
+  StrArr t (CC("cfg"), 2, 2*sizeof(TStr));
+   App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/cfg.txt"));   t.Load (fn);
+   StrCp (_snDsc, t.str [0]);
+   _nFr = (t.num > 1) ? Str2Int (t.str [1]) : 64;
+   _frq = 44100;
    if (_wav = wav) {                   // goin to .wav file - pretty easy
       *_snDsc = *_snDev = '\0';   _sn = nullptr;
-      _nFr = 64;   _frq = 44100;   _vol = 1.0;
+      _vol = 1.0;
    }
    else {                              // goin live to sound card
-      App.Path (fn, 'd');   StrAp (fn, CC("/device/syn.txt"));
-      ln = f.Load (fn, _snDsc, sizeof (_snDsc)-1);
-      _snDsc [ln] = '\0';
-      while (ln && (_snDsc [ln-1] == '\n'))  _snDsc [--ln] = '\0';
-
       Snd.Load ();   StrCp (_snDev, Snd.Get (_snDsc));   // resolve to device
 DBG("Syn::Init - sound output='`s' device='`s'", _snDsc, _snDev);
       if (*_snDev == '\0')
 {DBG("   no sound device :(");       return;}
       if (*_snDev == '?')
 {DBG("   sound device is off :(");   return;}
-      _sn = new SndO (_snDev);
+      _sn = new SndO (_snDev, _nFr);
       if (_sn->Dead ())  return;       // with _run false :(
 
       _nFr = _sn->_nFr;                // everbody needz theedz
