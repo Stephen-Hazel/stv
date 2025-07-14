@@ -274,7 +274,7 @@ DBG("pcm_periods is `d not 2 :(", nPer);
 DBG("pcm_hw died - `s", snd_strerror (e));
       snd_pcm_close (_hnd);   _hnd = nullptr;   return;
    }
-Dump (hw);
+//Dump (hw);
 
   snd_pcm_sw_params_t *sw;
    snd_pcm_sw_params_alloca (& sw);
