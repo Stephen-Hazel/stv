@@ -113,7 +113,7 @@ ubyt2 ZZLn (char *s)
 }
 
 void ZZAp (char *dzz, char *szz)
-{ char *p, *dp;
+{ char *p;
   ubyt4 ln, sln;                                 // get len of szz
    for (p = szz, sln = 1;  (ln = StrLn (p));  p += (ln+1))  sln += (ln+1);
    for (p = dzz;  *p;  p += (StrLn (p)+1))  ;    // get dzz end ta tack onta
@@ -122,10 +122,19 @@ void ZZAp (char *dzz, char *szz)
 
 void ZZCp (char *d, char *s)   {*d = '\0';   ZZAp (d, s);}
 
+void ZZApS (char *dzz, char *s)
+{ char *p;
+  ubyt4 ln;
+   for (p = dzz;  *p;  p += (StrLn (p)+1))  ;    // get dzz end ta tack onta
+   ln = StrLn (s) + 1;                 // include s's term \0
+   MemCp (p, s, ln);   p [ln] = '\0';  // reterminate
+}
+
 
 //______________________________________________________________________________
 // int convert string ops
 char *Int2Str (sbyt4 i, char *buf12, char x)
+// REMEMBER - start of string is returned, but AIN'T &buf[0] !!
 { char *so, dg;
   bool  ng = false;
   ubyt2 bs = (x == 'x') ? 16 : 10;
@@ -281,7 +290,7 @@ char *Now (char *s, int osec)
    return s;
 }
 
-char *NowMSxnaw (char *s, timeval *ptv)    // just microsec for debuggin
+char *NowMS (char *s, timeval *ptv)    // just microsec for debuggin
 { struct timeval now;
   TStr b1;
   int  msec;
@@ -292,7 +301,7 @@ char *NowMSxnaw (char *s, timeval *ptv)    // just microsec for debuggin
    return StrFmt (s, "`s`03d", b1, msec);
 }
 
-char *NowMS (char *s, timeval *ptv)    // millisec n dur for debuggin
+char *nawNowMS (char *s, timeval *ptv)    // millisec n dur for debuggin
 { struct timeval now, dur;
   TStr b1, b2;
   int  msec;

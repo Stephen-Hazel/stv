@@ -417,8 +417,7 @@ public:
 //                this,      & SIDlg::cbChanged);
          cb->setSizeAdjustPolicy (QComboBox::AdjustToContents);
 //cb->view ()->window ()->setWidth ();
-         for (s = bs;  *s;  s = & s [StrLn (s)+1])
-            cb->addItem (StrCm (s, CC("-")) ? s : "");
+         for (s = bs;  *s;  s = & s [StrLn (s)+1])  cb->addItem (s);
          cb->installEventFilter (_ef);
 //DBG("SIDlg::createEditor ^ end");
          return cb;

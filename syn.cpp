@@ -110,16 +110,19 @@ static void InitLookup ()
 void Channel::Init ()                  // channels are easy as pie at least
 {  hold = snd = fRes = vCut = glide = glRate = pNt = nNt = 0;
    pBnd = MID14;   pBnR = 2;   vol = 100;   fCut = 127;   pan = glFrom = 64;
-   nTm = 0;   *env = '\0';
+   nTm = 0;   *env = '\0';   MemSet (x, 0, sizeof (x));
 }
 
 void Channel::Dump ()
 {
 TRX("   snd=`d hold=`d pBnd=`d pBnr=`d fCut=`d fRes=`d vCut=`d vol=`d pan=`d\n"
     "   glide=`d glRate=`d glFrom=`d nTm=`d nNt=`d pNt=`d\n"
-    "   env=`s",
+    "   env=`s x1=`d x2=`d x3=`d x4=`d x5=`d x6=`d x7=`d\n"
+    "   x8=`d x9=`d x10=`d x11=`d x12=`d",
         snd, hold, (int)MID14-pBnd, pBnR, fCut, fRes, vCut, vol, pan,
-        glide, glRate, glFrom, nTm, nNt, pNt, env);
+        glide, glRate, glFrom, nTm, nNt, pNt, env,
+        x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7],
+        x[8], x[9], x[10], x[11]);
 }
 //______________________________________________________________________________
 // sounds and their samples
@@ -430,7 +433,7 @@ char Glide::Mix ()
    return 'y';
 }
 //______________________________________________________________________________
-real Env::Init (ubyte iid)
+real Env::Init (ubyte iid, ubyte cid, char *mod)
 // init my destination n stages' stuff.
 // songtime_dur/192 beat / (tmpo beat/min * min/60 sec)
 //    dur beat / (tmpo beat/60 sec)
@@ -441,13 +444,19 @@ real Env::Init (ubyte iid)
 //    frq/nfr buf/sec
 { ubyte i;
   real  np, l2, c;
+  char *p;
+   lvlX = durX = 0;
+   if (mod)  {lvlX = Str2Int (mod, & p);   if (*p) durX = Str2Int (++p);}
+  Channel *ch = & Sy._chn [cid];
+  real dx = durX ? (((int)(15. * Mu (ch->x [durX])) + 1) / 16.) : 1.;
    id  = iid;
+   cid = cid;
    dst =            Sy._env [id].dst;
    stg = & Sy._stg [Sy._env [id].stg];
    s = 0;   p = 0;   lvl = stg [0].lvl;     // initial stg pos, per, n level
    for (i = 0;  stg [i].dur;  i++) {        // lvl,dur,crv => mul,add  per stg
       stg [i].nper = np =                   // songtime dur => # period buffers
-         (real)stg [i].dur / (M_WHOLE/4.) / (Sy._in.tmpo / 60.) *
+         (real)stg [i].dur / (M_WHOLE/4.) / (Sy._in.tmpo / 60.) * dx *
                                                     (real)Sy._frq/(real)Sy._nFr;
       if ((c = stg [i].crv) < 0.) continue; // curve ratio: sin has no init
 
@@ -461,52 +470,58 @@ real Env::Init (ubyte iid)
 }
 
 real Env::Mix ()
-{  if (End () && stg [s].add == 0.)  return lvl;
+{ Channel *ch = & Sy._chn [cid];
+  real lx = lvlX ? (1. - Mu (ch->x [lvlX])) : 1.;
+   if (End () && stg [s].add == 0.)  return lvl*lx;
   sbyte d  = stg [s  ].dir;            // git ma next dude
   real  l2 = stg [s+1].lvl, mag;
    p++;
    if (stg [s].crv >= 0.)
       lvl = lvl * stg [s].mul + stg [s].add;     // exp crv
-   else {                                        // sin curve
-     ubyte q = (d > 0) ? 0 : 1;                  // 1,-1,-1, 1
-      if ((lvl < 0.) || (l2 < 0.))  q = 3-q;     // 0/ 1\ 2\ 3/
+   else {                                        // sin curve - which quad?
+     ubyte q = (d > 0) ? 0 : 1;                  // 0/ 1\ 1\ 0/
+      if ((lvl < 0.) || (l2 < 0.))  q = 3-q;     // 0  1  2  3
       mag = labs ((l2 != 0.) ? l2 : stg [s].lvl);     // whichev ain't 0
       lvl = mag * Sin (p/stg [s].nper, q);
    }                                   // same ole stage?
 //TStr s1,s2;
 //DBG("      d=`d lvl=`s l2=`s", d, R2Str(lvl,s1),R2Str(l2,s2));
-   if (d > 0)  {if (lvl < l2)  return lvl;}
-   else         if (lvl > l2)  return lvl;
+   if (d > 0)  {if (lvl < l2)  return lvl*lx;}
+   else         if (lvl > l2)  return lvl*lx;
 
    s++;   lvl = l2;   p = 0;                // bump ta next stage !
 //DBG("      click - stg=`d lvl=`s", s, R2Str(lvl,s1));
 
    if (End ()) {
 //DBG("      end!");
-      if (stg [s].add == 0.)  return lvl;   // not loopin so dooone
-      lvl = stg [s = 0].lvl;                // loop back ta stg 0
+      if (stg [s].add == 0.)  return lvl*lx;     // not loopin so dooone
+      lvl = stg [s = 0].lvl;                     // loop back ta stg 0
 //DBG("         loopin - s=`d lvl=`s", s, R2Str(lvl,s1));
    }
-   return lvl;
+   return lvl*lx;
 }
 //______________________________________________________________________________
-void EnvO::Init (char *es)
+void EnvO::Init (ubyte cid, char *es)
 // init our array of envelopes given es with space sep'd env names
-{ BStr b;
+{ BStr  b, enm;
+  char *p;
+  ubyte i, j;
    StrCp (b, es);
   ColSep ss (b, 17);                   // envelope init from it's str
-  ubyte  i, j;
    MemSet (x, 0, 6);
-   for (e.Ln = i = 0;  (i < 16) && ss.Col [i][0];  i++)
-      for (j = 0;  j < Sy._env.Ln;  j++)
-         if (! StrCm (ss.Col [i], Sy._env [j].nm)) {
-            e.Ins ();       e [i].Init (j);
+   for (e.Ln = i = 0;  (i < 16) && ss.Col [i][0];  i++) {
+      StrCp (enm, ss.Col [i]);         // get just the env name (split on .)
+      if (p = StrCh (enm, '.'))  *p++ = '\0';    // p set to any env modulators
+      for (j = 0;  j < Sy._env.Ln;  j++)         // (or nullptr)
+         if (! StrCm (enm, Sy._env [j].nm)) {
+            e.Ins ();       e [i].Init (j, cid, p);
             x [e [i].dst] = 1;
             o [e [i].dst] = e [i].lvl;
          }
-   if ((i == 0) || MemCm (ss.Col [i-1], CC("rel"), 3)) {
-      if (i >= 16) i--;   else e.Ins ();
-      e [i].Init (0);                  // env bank 0 is default release
+   }
+   if ((i == 0) || MemCm (ss.Col [i-1], CC("rel"), 3)) {   // only skip rel if
+      if (i >= 16) i--;   else e.Ins ();                   // last env is rel*
+      e [i].Init (0, cid);             // env bank 0 is default release
    }
 }
 
@@ -618,7 +633,7 @@ void Voice::Bgn (ubyte c, ubyte k, ubyte v, Sound *s, Sample *sm, char *es,
 {  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _snd = s;   _smp = sm;
    _no = no;   _pos = pos;
    _nPer = 0;   _phase = (Phase)0;   _looped = false;
-   _flt.Init ();   _gl.Init (c, k);   _eo.Init (es);   Re ('*');
+   _flt.Init ();   _gl.Init (c, k);   _eo.Init (c, es);   Re ('*');
    _on = 'd';
 }
 
@@ -833,12 +848,13 @@ ch+1, MKey2Str(ts,key), c->snd, _nSnd);
   char *e;
    StrCp (bs, (es == nullptr) ? c->env : es);
 if (*bs) TRX("c->env=`s", bs);
-  Split sp (bs);
+  Split sp (bs);                       // our env str may have |  (multi voice)
    while (sp.Len--) {
       e = sp.Nxt ();
-      for (sm = 0;  sm < s->_nSmp;  sm++)
+      for (sm = 0;  sm < s->_nSmp;  sm++)   // pick sample given key,vel
          if ( (key >= s->_smp [sm].mnKey) && (key <= s->_smp [sm].mxKey) &&
               (vel >= s->_smp [sm].mnVel) && (vel <= s->_smp [sm].mxVel) ) {
+         // find new voice slot
             for (i = 0;  i < _nVc;  i++)  if (! _vc [i]._on)  break;
             if (i < _nVc)  shr = true;      // got a free spot to replace
             else {                          // need a new spot
@@ -861,7 +877,7 @@ DBG("Syn stoleVoice=`d", i+1);
                }
             }
 
-         // FINALLY !!
+         // FINALLY !!  kick the voice on
             _vc [i].Bgn (ch, key, vel, s, & s->_smp [sm], e, ++_vcNo, i);
 //TRX("start voice=`d", i);
       }
@@ -963,6 +979,10 @@ DBG("Syn::Put PROGCH past bank or on drums");
       case MC_CC|5:       chn->glRate = v;             break;
       case MC_CC|84:      chn->glFrom = v;             break;
       case MC_CC|19:      StrCp (chn->env, es);        break;
+      case MC_CC|20: case MC_CC|21: case MC_CC|22: case MC_CC|23:
+      case MC_CC|24: case MC_CC|25: case MC_CC|26: case MC_CC|27:
+      case MC_CC|28: case MC_CC|29: case MC_CC|30: case MC_CC|31:
+                          chn->x [c - (MC_CC|20)] = v;   break;
    }
    if (re)  AllVc (ch, re);
    if (_run)  _lok.Toss ();

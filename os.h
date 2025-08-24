@@ -75,9 +75,12 @@ char *StrCh   (char *str, char c);
 char *StrSt   (char *big, char *sm,    char x = '\0');    // exact? or caseless
 sbyt4 StrCm   (char *s1,  char *sbyt2, char x = '\0');
 int   StrCm2  (void *p1, void *p2);
-ubyt2 ZZLn    (char *zz);                   // zz num strs in list (not StrLn)
+// zz list of strings has empty string at end of list (\0 within it per str)
+// so can't hold an empty string within it - ONLY at end
+ubyt2 ZZLn    (char *zz);                   // num strs in list (not StrLn)
 void  ZZCp    (char *dzz, char *szz);
 void  ZZAp    (char *dzz, char *szz);       // zz str list append
+void  ZZApS   (char *dzz, char *sz);        // append one normal str
 
 // str formattin stuff
 char *Int2Str (sbyt4 Int, char *buf12, char base = 'd');   // 'x' for hex

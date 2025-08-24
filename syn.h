@@ -12,16 +12,15 @@
 
 #define TRX(...)  if(Sy._trx)DBG(__VA_ARGS__)    // syn local TRC
 
-typedef ubyt8 Phase;                   // hi 4 bytes is int pos
-                                       // lo 4 bytes is fract
-const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int
+typedef ubyt8 Phase;                   // hi ubyt4 is int pos, lo ubyt4 is fract
+const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int (pBnd)
 
 struct Channel {
    ubyte hold, snd;
    ubyt2 pBnd, pBnR;
    ubyte fCut, fRes, vCut, vol, pan,
          glide, glRate, glFrom,        // prev note, portam on/off, rate, fr key
-         nNt, pNt;                     // nt,tm shift reg to set pNt right
+         nNt, pNt, x [12];             // nt,tm shift reg to set pNt right
    ubyt4 nTm;
    BStr  env;
    void Init ();
@@ -74,36 +73,46 @@ struct Glide {                         // cool modulation on freq
    char Mix ();
 };
 //______________________________________________________________________________
-struct EnvCfg {WStr nm;  ubyte dst;  ubyt2 stg;};
-struct EnvStg {ubyt4 dur;   real lvl, crv,   nper, mul, add;   sbyte dir;};
-// dur  songtime dur;  0 for last stage (add>0 means loop me)
-// nper is # periods (buffers) dur is given tempo
-// lvl  starting level (ending at next stg's .lvl)
-// crv  (curve) .0001 mostly exponential .. 16 mostly linear  (neg means sin)
-// mul, add  calc'd in Init - for running exponential curve calc (sin w lookup)
-// dir is +1 for increasing level, -1 for decreasing level
+
+// first, our envelope config with each named env and it's stages
+struct EnvCfg {
+   WStr  nm;                           // my name
+   ubyte dst;                          // which voice param is mod'd (oStep,etc)
+   ubyt2 stg;                          // stage id#
+};
+struct EnvStg {
+   ubyt4 dur;                          // songtime dur;  0 for last stage
+   real  lvl,                          // starting level, ending at next stg lvl
+         crv,                          // .0001 mostly exponential -
+// ...calc'd:                                16 mostly linear  (neg means sin)
+         nper,                         // # periods (buffers) dur in given tempo
+         mul,                          // running exponential curve calc
+         add;                          //    (>0 means loop me)
+   sbyte dir;                          // +1 increasing level, -1 decr
+};
 
 
-class Env {
+class Env {   // next, one envelope operating
 public:
-   ubyte   id, dst;                    // pos in Sy._env[], voice parm we hit
+   ubyte   id, cid, dst;               // pos in Sy._env[], voice parm we hit
    EnvStg *stg;
+   ubyte   lvlX, durX;                 // x* ctrls that mod me
    ubyte   s;                          // which stg # we're on
    ubyt4   p;                          // period buffer we're on - just incs
    real    lvl;                        // output level
-   real Init (ubyte id);
+   real Init (ubyte id, ubyte cid, char *mod = nullptr);
    real Mix ();
    bool End ()  {return stg [s].dur == 0;}
    void SetStg (sbyte st)   {s = st;}
 };
 
 
-class EnvO {
+class EnvO {  // a full set of envelopes operating on the voice
 public:
    Arr<Env,16> e;  // envelope array
    real o [6];     // output for oStp=0 oCnt=1 fCut=2 fRes=3 amp=4 pan=5
    bool x [6];     // was voice dest set?
-   void  Init (char *es);              // init array of envs - e
+   void  Init (ubyte cid, char *es);   // init array of envs - es
    char *Mix  (char r = '\0');         // run em all to o[]
    void  Dump ();
    bool  RelEnd ()  {return e [e.Ln-1].End ();}  // done w release envelope?
