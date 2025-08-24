@@ -200,6 +200,13 @@ bool MidiDevLst::GetPos (char io, ubyte pos,
 MCCRow MCC [64];
 ubyte NMCC;
 
+void MCCDump ()
+{ TStr s;
+   for (ubyt4 i = 0;  i < NMCC;  i++)
+DBG("s=`<7s typ=`c dflt=`d raw=`s",
+MCC [i].s, MCC [i].typ, MCC [i].dflt, MCtl2Str (s, MCC [i].raw));
+}
+
 void MCCInit ()
 { TStr   fn, s;
   STable t;
@@ -213,13 +220,7 @@ void MCCInit ()
       MCC [r].dflt = (ubyt2)Str2Int (t.Get (r, 2));
       MCC [r].raw  = MCtl           (t.Get (r, 3));
    }
-}
-
-void MCCDump ()
-{ TStr s;
-   for (ubyt4 i = 0;  i < NMCC;  i++)
-DBG("s=`<7s typ=`c dflt=`d raw=`s",
-MCC [i].s, MCC [i].typ, MCC [i].dflt, MCtl2Str (s, MCC [i].raw));
+// MCCDump ();
 }
 
 
