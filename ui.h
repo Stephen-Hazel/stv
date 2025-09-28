@@ -495,7 +495,7 @@ public:
    void  SetColW (ubyte c, ubyt2 w);
    ubyt2 NRow    ();
    ubyte NCol    ();
-   ubyt2 CurRow  ();
+   sbyt2 CurRow  ();
    ubyte CurCol  ();
    char *Get     (ubyt2 r, ubyte c);
    void  Set     (ubyt2 r, ubyte c, char *s, char *tip = nullptr);

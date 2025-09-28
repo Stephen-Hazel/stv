@@ -88,6 +88,7 @@ void MidiDevLst::Dump ()               // test Load()
 
 
 void MidiDevLst::Load ()
+// frickin' ALSA...:/  so hard to query...
 { TStr  fn, name, sdev;
   File  f;
   int   card, dev, sub, nsub, isub, osub, err;
@@ -279,15 +280,15 @@ char *MKey2Str (char *s, ubyte b, char fl)
    return s;
 }
 
-ubyt2 MCtl (char *s)                   // cc raw str to ubyt2
+ubyt2 MCtl (char *s)                             // cc raw str to ubyt2
 { ubyt2 rc;
   char *s2;
    if      (! StrCm (s, CC("prog")))   return MC_PROG;
    else if (! StrCm (s, CC("prss")))   return MC_PRSS;
-   else if (! StrCm (s, CC("pbnd")))   return MC_PBND;
+   else if (! StrCm (s, CC("pBnd")))   return MC_PBND;
    else if (! StrCm (s, CC("tmpo")))   return MC_TMPO;
-   else if (! StrCm (s, CC("tsig")))   return MC_TSIG;
-   else if (! StrCm (s, CC("ksig")))   return MC_KSIG;
+   else if (! StrCm (s, CC("tSig")))   return MC_TSIG;
+   else if (! StrCm (s, CC("kSig")))   return MC_KSIG;
    else if (! MemCm (s, CC("cc"), 2))  return MC_CC + (ubyt2)Str2Int (s+2);
    else if (! MemCm (s, CC("us"), 2))  return MC_US + (ubyt2)Str2Int (s+2);
    else if (! MemCm (s, CC("rp"), 2))  rc = MC_RP;
@@ -301,26 +302,23 @@ char *MCtl2Str (char *s, ubyt2 c, char raw)      // cc ubyt2 to raw str
 {  *s = '\0';
    if (c < 128)  return MKey2Str (s, (ubyte)c);
    if (c < MC_CC) {
-      if      (c == MC_PROG)  StrCp (s, CC("Prog"));
-      else if (c == MC_PRSS)  StrCp (s, CC("Prss"));
-      else if (c == MC_PBND)  StrCp (s, CC("PBnd"));
-      else if (c == MC_TMPO)  StrCp (s, CC("Tmpo"));
-      else if (c == MC_TSIG)  StrCp (s, CC("TSig"));
-      else if (c == MC_KSIG)  StrCp (s, CC("KSig"));
+      if      (c == MC_PROG)  StrCp (s, CC("prog"));
+      else if (c == MC_PRSS)  StrCp (s, CC("prss"));
+      else if (c == MC_PBND)  StrCp (s, CC("pBnd"));
+      else if (c == MC_TMPO)  StrCp (s, CC("tmpo"));
+      else if (c == MC_TSIG)  StrCp (s, CC("tSig"));
+      else if (c == MC_KSIG)  StrCp (s, CC("kSig"));
    }
    else if (c < MC_US) {
       StrFmt (s, "cc`d", c - MC_CC);
       if (raw)  for (ubyte i = 0;  i < NMCC;  i++)  if (c == MCC [i].raw)
          StrFmt (& s [StrLn (s)], "(`s)", MCC [i].s);
    }
-   else if (c < MC_RP) {
-      StrFmt (s, "us`d", c - MC_US);
-   }
-   else if (c < MC_NP) {
-      StrFmt (s, "rp`d`s", (c - MC_RP) >> 1, c & 0x01 ? "L" : "");
-   }
-   else
-      StrFmt (s, "np`d`s", (c - MC_NP) >> 1, c & 0x01 ? "L" : "");
+   else if (c < MC_RP)  StrFmt (s, "us`d", c - MC_US);
+   else if (c < MC_NP)  StrFmt (s, "rp`d`s", (c - MC_RP) >> 1,
+                                              c & 0x01 ? "L" : "");
+   else                 StrFmt (s, "np`d`s", (c - MC_NP) >> 1,
+                                              c & 0x01 ? "L" : "");
    return s;
 }
 
@@ -333,7 +331,28 @@ char *MNt2Str (char *o, MidiEv *e)
       e->valu & 0x007F);
 }
 
+CtlPDef CtlPBnR [] = {
+   {2,  "w"},
+   {1,  "h"},
+   {4,  "3rd"},
+   {7,  "5th"},
+   {12, "oct"},
+   {19, "oct+5th"},
+   {24, "2oct"},
+   {36, "3oct"},
+   {48, "4oct"}
+};
+CtlPDef CtlPStp [] = {
+   {0, "smooth"},
+   {1, "key"},
+   {2, "kSig"}                         // chord? arp? phaser?
+};
+ubyte CtlPBnRLn = BITS (CtlPBnR),
+      CtlPStpLn = BITS (CtlPStp);
+
 char *CtlX2Str (char *s, char *cs, TrkEv *in)
+// take TrkEv valu if unnull  else cs's default valu
+// return valu of xctl as str
 { TrkEv e;
   ubyte r;
    if (in)  MemCp (& e, in, sizeof (TrkEv));
@@ -343,51 +362,53 @@ char *CtlX2Str (char *s, char *cs, TrkEv *in)
       else            {e.valu = MCC [r].dflt & 0x7F;
                        e.val2 = MCC [r].dflt >> 7;}
    }
+   *s = '\0';
    if      (! StrCm (cs, CC("tmpo")))
       StrFmt (s, "`d",  e.valu + (e.val2 << 8));
-   else if (! StrCm (cs, CC("tsig")))
+   else if (! StrCm (cs, CC("tSig")))
       if (e.val2 >> 4)
             StrFmt (s, "`d/`d/`d", e.valu, 1 << (e.val2 & 0x0F),
                                            1 +  (e.val2 >> 4)  );
       else  StrFmt (s, "`d/`d",    e.valu, 1 << (e.val2 & 0x0F));
-   else if (! StrCm (cs, CC("ksig"))) {
+   else if (! StrCm (cs, CC("kSig"))) {
       if   (! (e.val2 & 0x80))  StrCp (s, MKeyStr  [e.valu]);
       else if (e.valu != 11)    StrCp (s, MKeyStrB [e.valu]);
       else                      StrCp (s, CC("Cb"));
       if (e.val2 & 0x01)  StrAp (s, CC("m"));
       *s = CHUP (*s);
-   }             // else "prog"
-   else
+   }
+   else if (! StrCm (cs, CC("prog")))
       StrCp (s, CC("*"));
    return s;
 }
 
 void CtlX2Val (TrkEv *e, char *cs, char *s)
+// take s (str representation of cs' valu) and store it in e.valu,val2
+// if s is empty, store default valu for cs
 { ubyte r;
   ubyt2 w;
+   e->valu = e->val2 = 0;
    if (*s == '\0') {
       for (r = 0;  r < NMCC;  r++)  if (! StrCm (cs, MCC [r].s))  break;
-      if (r >= NMCC)  {e->valu = e->val2 = 0;   DBG ("CtlX2Val not an x ctl");}
-      else            {e->valu = MCC [r].dflt & 0x7F;
-                       e->val2 = MCC [r].dflt >> 7;}
+      if (r >= NMCC)  DBG ("CtlX2Val not an x ctl");
+      else           {e->valu = MCC [r].dflt & 0x7F;
+                      e->val2 = MCC [r].dflt >> 7;}
    }
    else if (! StrCm (cs, CC("tmpo"))) {
       w = (ubyt2)Str2Int (s);   e->valu = (ubyte)(w & 0xFF);
                                 e->val2 = (ubyte)(w >> 8);
    }
-   else if (! StrCm (cs, CC("tsig"))) {
+   else if (! StrCm (cs, CC("tSig"))) {
       e->valu = (ubyte)Str2Int (s, & s);   if (*s == '/')  s++;
       w       = (ubyt2)Str2Int (s, & s);
       for (r = 0;  r < 16;  r++)  if ((1 << r) == w)  {e->val2 = r;   break;}
       if (*s == '/')  {w = (ubyt2)Str2Int (++s);   e->val2 |= ((w-1) << 4);}
    }
-   else if (! StrCm (cs, CC("ksig"))) {
+   else if (! StrCm (cs, CC("kSig"))) {
       e->val2 = (s [StrLn (s)-1] == 'm') ? 1 : 0;
       e->valu = MNt (s);
       if (s [1] == 'b')  e->val2 |= 0x80;
-   }
-   else                  // "prog"
-      e->valu = e->val2 = 0;
+   }                      // prog is fine w 0,0
 }
 
 

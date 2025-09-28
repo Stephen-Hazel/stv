@@ -17,8 +17,9 @@ const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int (pBnd)
 
 struct Channel {
    ubyte hold, snd;
-   ubyt2 pBnd, pBnR;
-   ubyte fCut, fRes, vCut, vol, pan,
+   ubyt2 pBnd;
+   ubyte pBnR, pStp,
+         fCut, fRes, vCut, vol, pan,
          glide, glRate, glFrom,        // prev note, portam on/off, rate, fr key
          nNt, pNt, x [12];             // nt,tm shift reg to set pNt right
    ubyt4 nTm;

@@ -13,7 +13,7 @@ char *QtEr::Arg (ubyte pos)
    return CC("");
 }
 //______________________________________________________________________________
-typedef struct {int in;   char str [6];   key k;} kmap;
+struct kmap {int in;   char str [6];   key k;};
 
 static kmap KMap [] = {
    {Qt::Key_Return,    "ret", RET_KEY},  {Qt::Key_Tab,      "tab", TAB_KEY},
@@ -300,7 +300,7 @@ CtlTBar::CtlTBar (QMainWindow *w, const char *tip, const char *nm)
         ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
          StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
                                    StrCp (ks, cs.Col [2]);
-         if (*ks)  StrAp (tp, StrFmt (ts, " (`s)", ks));
+         if (*ks)  StrAp (tp, StrFmt (ts, "  [`s]", ks));
          if (*is == '*') {
             _ac [p] = new QAction (& is [1], w);
             _ac [p]->setToolTip (tp);
@@ -332,7 +332,7 @@ CtlTBar::CtlTBar (QDialog *d, const char *tip)
         ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
          StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
                                    StrCp (ks, cs.Col [2]);
-         if (*ks)  StrAp (tp, StrFmt (ts, " (`s)", ks));
+         if (*ks)  StrAp (tp, StrFmt (ts, "  [`s]", ks));
          if (*is == '*') {
             _ac [p] = new QAction (& is [1], tb);
             _ac [p]->setToolTip (tp);
@@ -419,7 +419,7 @@ void  CtlTabl::SetColW (ubyte c, ubyt2 w)
 
 ubyt2 CtlTabl::NRow ()    {return _t->rowCount ();}
 ubyte CtlTabl::NCol ()    {return _t->columnCount ();}
-ubyt2 CtlTabl::CurRow ()  {return _t->currentRow ();}
+sbyt2 CtlTabl::CurRow ()  {return _t->currentRow ();}
 ubyte CtlTabl::CurCol ()  {return _t->currentColumn ();}
 char *CtlTabl::Get (ubyt2 r, ubyte c)  {return UnQS (_t->item (r, c)->text ());}
 
@@ -442,7 +442,8 @@ void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
 }
 
 void CtlTabl::HopTo (ubyt2 r, ubyte c)  {_t->scrollToItem   (_t->item (r, c));
-                                         _t->setCurrentItem (_t->item (r, c));}
+                                         _t->setCurrentItem (_t->item (r, c));
+                                         _t->selectRow (r);}
 void CtlTabl::SetColor (ubyt2 r, QColor c)
 {  for (ubyte i = NCol ();  i;  i--) {
 //    _t->item (r, i-1)->setForeground (QBrush (CBLACK));

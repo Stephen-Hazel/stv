@@ -110,8 +110,8 @@ const ubyt2 MC_MBAL = MC_US|2;         // master balance
 
 
 // raw midi ev w ubyt2 ctrl and chan (comin from a midiin)
-typedef struct {ubyt4 time,  msec;
-                ubyt2 ctrl;  ubyte valu, val2, chan;}  MidiEv;
+struct MidiEv {ubyt4 time,  msec;
+               ubyt2 ctrl;  ubyte valu, val2, chan;};
 
 struct MidiDevLst {
 public:                                // only MidiCfg app should reach in herez
@@ -200,7 +200,7 @@ private:
 
 
 // my TrkEv format...
-typedef struct {ubyt4 time;  ubyte ctrl, valu, val2, x;} TrkEv;
+struct TrkEv {ubyt4 time;  ubyte ctrl, valu, val2, x;};
 
 // ctrl - hi bit clear for noteOn/Prs/Off;  set for controls
 // for notes: on  - valu hi bit set, val2 hi bit clear
@@ -254,9 +254,8 @@ extern ubyte MNt      (char *s);
 extern ubyte MKey     (char *s, char **news = nullptr);
 extern char *MKey2Str (char *s, ubyte b, char fl = '#');
 
-typedef struct {char sym [5];  ubyte nDr;}  MDGrpDef;
-typedef struct {char key [4], gs [4], sym [5];   ubyte grp;  WStr dsc;}
-                                            MDrumDef;
+struct MDGrpDef {char sym [5];  ubyte nDr;};
+struct MDrumDef {char key [4], gs [4], sym [5];   ubyte grp;  WStr dsc;};
 extern char     MKeyStr [12][3], MKeyStrB [12][3];
 extern char    *MProg [128];
 extern MDGrpDef MDGrp [];
@@ -272,6 +271,10 @@ extern ubyte MDrm2Grp (ubyte b);            // key to grp #
 extern ubyt2 MCtl     (char *s);
 extern char *MCtl2Str (char *s, ubyt2 c, char raw = '\0');
 extern char *MNt2Str  (char *s, MidiEv *e);
+
+struct CtlPDef {ubyte val;  WStr str;};
+extern CtlPDef CtlPBnR [], CtlPStp [];
+extern ubyte   CtlPBnRLn,  CtlPStpLn;
 extern char *CtlX2Str (char *s, char *cs, TrkEv *in);
 extern void  CtlX2Val (TrkEv *e, char *cs, char *s);
 
