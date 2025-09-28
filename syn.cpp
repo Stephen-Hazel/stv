@@ -21,12 +21,15 @@ static real Str2R (char *s)
   real r = st.toDouble (& ok);
    return ok ? r : 0.0;
 }
-                                       // turn pesky midi values into nicer junk
-static bool Mb  (ubyte c)                       {return c >= 64;}
-static real Mu  (ubyte c)                       {return  (real)c/  127.;}
-static real Mu2 (ubyt2 c)                       {return  (real)c/16383.;}
-static real Ms  (ubyte c)  {if (c == 0) c = 1;   return ((real)c-   64.)/  63.;}
-static real Ms2 (ubyt2 c)  {if (c == 0) c = 1;   return ((real)c- 8192.)/8191.;}
+
+// turn pesky midi values into nicer junk: bool, step, 0..1,  0..1 from bend,
+//                                                    -1..1, -1..1 from bend
+static bool  Mb  (ubyte c)                      {return c >= 64;}
+static ubyte Mst (ubyte c, ubyte max)           {return (ubyte)(max*c/127);}
+static real  Mu  (ubyte c)                      {return  (real)c/  127.;}
+static real  Mu2 (ubyt2 c)                      {return  (real)c/16383.;}
+static real  Ms  (ubyte c)  {if (c == 0) c = 1;  return ((real)c-   64.)/  63.;}
+static real  Ms2 (ubyt2 c)  {if (c == 0) c = 1;  return ((real)c- 8192.)/8191.;}
 
 
 // lookup stufffff _____________________________________________________________
@@ -108,8 +111,8 @@ static void InitLookup ()
 }
 //______________________________________________________________________________
 void Channel::Init ()                  // channels are easy as pie at least
-{  hold = snd = fRes = vCut = glide = glRate = pNt = nNt = 0;
-   pBnd = MID14;   pBnR = 2;   vol = 100;   fCut = 127;   pan = glFrom = 64;
+{  hold = snd = pStp = fRes = vCut = glide = glRate = pNt = nNt = 0;
+   pBnd = MID14;   pBnR = 2;   fCut = 127;   vol = 100;   pan = glFrom = 64;
    nTm = 0;   *env = '\0';   MemSet (x, 0, sizeof (x));
 }
 
@@ -447,6 +450,7 @@ real Env::Init (ubyte iid, ubyte cid, char *mod)
   char *p;
    lvlX = durX = 0;
    if (mod)  {lvlX = Str2Int (mod, & p);   if (*p) durX = Str2Int (++p);}
+DBG("Env::Init lvlX=`d durX=`d", lvlX, durX);
   Channel *ch = & Sy._chn [cid];
   real dx = durX ? (((int)(15. * Mu (ch->x [durX])) + 1) / 16.) : 1.;
    id  = iid;
@@ -472,6 +476,8 @@ real Env::Init (ubyte iid, ubyte cid, char *mod)
 real Env::Mix ()
 { Channel *ch = & Sy._chn [cid];
   real lx = lvlX ? (1. - Mu (ch->x [lvlX])) : 1.;
+TStr ts;
+DBG("Env::Mix lx=`s", R2Str(lx,ts));
    if (End () && stg [s].add == 0.)  return lvl*lx;
   sbyte d  = stg [s  ].dir;            // git ma next dude
   real  l2 = stg [s+1].lvl, mag;
@@ -484,8 +490,8 @@ real Env::Mix ()
       mag = labs ((l2 != 0.) ? l2 : stg [s].lvl);     // whichev ain't 0
       lvl = mag * Sin (p/stg [s].nper, q);
    }                                   // same ole stage?
-//TStr s1,s2;
-//DBG("      d=`d lvl=`s l2=`s", d, R2Str(lvl,s1),R2Str(l2,s2));
+TStr s1,s2;
+DBG("      d=`d lvl=`s l2=`s", d, R2Str(lvl,s1),R2Str(l2,s2));
    if (d > 0)  {if (lvl < l2)  return lvl*lx;}
    else         if (lvl > l2)  return lvl*lx;
 
@@ -507,6 +513,7 @@ void EnvO::Init (ubyte cid, char *es)
   char *p;
   ubyte i, j;
    StrCp (b, es);
+DBG("EnvO::Init cid=`d es=`s", cid, es);
   ColSep ss (b, 17);                   // envelope init from it's str
    MemSet (x, 0, 6);
    for (e.Ln = i = 0;  (i < 16) && ss.Col [i][0];  i++) {
@@ -514,6 +521,7 @@ void EnvO::Init (ubyte cid, char *es)
       if (p = StrCh (enm, '.'))  *p++ = '\0';    // p set to any env modulators
       for (j = 0;  j < Sy._env.Ln;  j++)         // (or nullptr)
          if (! StrCm (enm, Sy._env [j].nm)) {
+DBG("callin Env::Init p=`s", p?p:CC("null"));
             e.Ins ();       e [i].Init (j, cid, p);
             x [e [i].dst] = 1;
             o [e [i].dst] = e [i].lvl;
@@ -579,6 +587,8 @@ void Voice::ReFrq ()
      ubyte mn = MKey (CC("0a")),  mx = MKey (CC("8c"));
       if (n < mn*100.)  n = mn*100.;   // limit 0a-8c = 21-108 (0-87)
       if (n > mx*100.)  n = mx*100.;
+      if (_c->pStp == 1)  n = round (n / 100.) * 100.;     // round cents
+      if (_c->pStp == 2)  n = round (n /  25.) *  25.;     // to nearest 1/4 cnt
       t *= ( Ct2Hz (n) / Ct2Hz (_smp->key*100. - (sbyte)(_smp->cnt)) );
    }
    _phInc = REAL2PHASE (t);
@@ -952,7 +962,7 @@ ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
    }
 
 // else do CC - check valu but always let prog thru
-TRX("Syn::Put ch=`d `s v=`d v2=`d", ch+1, MCtl2Str(s,c,'r'), v, v2);
+TRX("Syn::Put ch=`d `s v=`d v2=`d", ch+1, MCtl2Str (s,c,'r'), v, v2);
    if ((v >= 128) && (c != MC_PROG)) {
 DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch+1, c, v);
       if (_run)  _lok.Toss ();
@@ -970,6 +980,7 @@ DBG("Syn::Put PROGCH past bank or on drums");
       case MC_CC|M_HOLD:  if (! Mb (chn->hold = v))  UnHold (ch);   break;
       case MC_PBND:       chn->pBnd = v << 7 | v2;   re = 'n';      break;
       case MC_RP|0:       chn->pBnR = v;   re = 'n';   break;
+      case MC_CC|40:      chn->pStp = v;   re = 'n';   break;
       case MC_CC|16:      chn->fCut = v;   re = 'f';   break;
       case MC_CC|17:      chn->fRes = v;   re = 'f';   break;
       case MC_CC|18:      chn->vCut = v;   re = 'f';   break;
@@ -979,10 +990,9 @@ DBG("Syn::Put PROGCH past bank or on drums");
       case MC_CC|5:       chn->glRate = v;             break;
       case MC_CC|84:      chn->glFrom = v;             break;
       case MC_CC|19:      StrCp (chn->env, es);        break;
-      case MC_CC|20: case MC_CC|21: case MC_CC|22: case MC_CC|23:
-      case MC_CC|24: case MC_CC|25: case MC_CC|26: case MC_CC|27:
-      case MC_CC|28: case MC_CC|29: case MC_CC|30: case MC_CC|31:
-                          chn->x [c - (MC_CC|20)] = v;   break;
+      default:                         // env level,dur mods
+         if ((c >= (MC_CC|28)) && (c <= (MC_CC|39)))
+                          chn->x [c - (MC_CC|28)] = v;
    }
    if (re)  AllVc (ch, re);
    if (_run)  _lok.Toss ();
