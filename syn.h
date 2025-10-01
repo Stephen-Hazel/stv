@@ -98,10 +98,12 @@ public:
    ubyte   id, cid, dst;               // pos in Sy._env[], voice parm we hit
    EnvStg *stg;
    ubyte   lvlX, durX;                 // x* ctrls that mod me
+   real          dx;                   // last durX val to see if it changes
    ubyte   s;                          // which stg # we're on
    ubyt4   p;                          // period buffer we're on - just incs
    real    lvl;                        // output level
-   real Init (ubyte id, ubyte cid, char *mod = nullptr);
+   void ReDur ();
+   void Init (ubyte id, ubyte cid, char *mod = nullptr);
    real Mix ();
    bool End ()  {return stg [s].dur == 0;}
    void SetStg (sbyte st)   {s = st;}

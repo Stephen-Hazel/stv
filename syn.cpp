@@ -436,8 +436,9 @@ char Glide::Mix ()
    return 'y';
 }
 //______________________________________________________________________________
-real Env::Init (ubyte iid, ubyte cid, char *mod)
-// init my destination n stages' stuff.
+void Env::ReDur ()
+// redo duration/period stuff with dx
+// lvl,dur,crv => mul,add  per stg
 // songtime_dur/192 beat / (tmpo beat/min * min/60 sec)
 //    dur beat / (tmpo beat/60 sec)
 //    dur beat * (60 sec/tmpo beat)
@@ -445,24 +446,13 @@ real Env::Init (ubyte iid, ubyte cid, char *mod)
 //    frq sample/sec / nfr sample/buf
 //    frq sample/sec * buf/nfr sample     buf/sec => bufs
 //    frq/nfr buf/sec
-{ ubyte i;
-  real  np, l2, c;
-  char *p;
-   lvlX = durX = 0;
-   if (mod)  {lvlX = Str2Int (mod, & p);   if (*p) durX = Str2Int (++p);}
-DBG("Env::Init lvlX=`d durX=`d", lvlX, durX);
-  Channel *ch = & Sy._chn [cid];
-  real dx = durX ? (((int)(15. * Mu (ch->x [durX])) + 1) / 16.) : 1.;
-   id  = iid;
-   cid = cid;
-   dst =            Sy._env [id].dst;
-   stg = & Sy._stg [Sy._env [id].stg];
-   s = 0;   p = 0;   lvl = stg [0].lvl;     // initial stg pos, per, n level
-   for (i = 0;  stg [i].dur;  i++) {        // lvl,dur,crv => mul,add  per stg
-      stg [i].nper = np =                   // songtime dur => # period buffers
+{ real np, c;
+   for (ubyte i = 0;  stg [i].dur;  i++) {
+   // songtime dur => # period buffers
+      stg [i].nper = np =
          (real)stg [i].dur / (M_WHOLE/4.) / (Sy._in.tmpo / 60.) * dx *
-                                                    (real)Sy._frq/(real)Sy._nFr;
-      if ((c = stg [i].crv) < 0.) continue; // curve ratio: sin has no init
+         (real)Sy._frq/(real)Sy._nFr;
+      if ((c = stg [i].crv) < 0.)  continue;     // curve ratio: sin has no init
 
       if (c < 0.000000001)  c = 0.000000001;     // -180 dB
       stg [i].mul = exp (-log ((1.0 + c) / c) / np);
@@ -470,15 +460,35 @@ DBG("Env::Init lvlX=`d durX=`d", lvlX, durX);
    // offset add factor a little to REACH target, not just approach
       stg [i].add = (stg [i+1].lvl + stg [i].dir*c) * (1. - stg [i].mul);
    }
-   return lvl;
+}
+
+void Env::Init (ubyte iid, ubyte icid, char *mod)
+// init my destination n stages' stuff.
+{ char *p;
+   id = iid;   cid = icid;   lvlX = durX = 0;
+  Channel *ch = & Sy._chn [cid];
+   if (mod) {
+      lvlX = Str2Int (mod, & p);
+      if (*p)  durX = Str2Int (++p);
+      if (lvlX > 12) {                 // don't want typos blowin things up
+DBG("hey lvlX=`d => 12", lvlX);   lvlX = 12;}
+      if (durX > 12) {
+DBG("hey durX=`d => 12", durX);   durX = 12;}
+   }
+   dx  =     durX ? (((int)(31. * Mu (ch->x [durX-1])) + 1) / 32.) : 1.;
+   dst =            Sy._env [id].dst;       // ^so we can see if it changes :/
+   stg = & Sy._stg [Sy._env [id].stg];
+   s = 0;   p = 0;   lvl = stg [0].lvl;     // initial stg pos, n level
+   ReDur ();                                // period
 }
 
 real Env::Mix ()
 { Channel *ch = & Sy._chn [cid];
-  real lx = lvlX ? (1. - Mu (ch->x [lvlX])) : 1.;
-TStr ts;
-DBG("Env::Mix lx=`s", R2Str(lx,ts));
-   if (End () && stg [s].add == 0.)  return lvl*lx;
+  real  lx = lvlX ?               Mu (ch->x [lvlX-1])              : 1.;
+  real ndx = durX ? (((int)(31. * Mu (ch->x [durX-1])) + 1) / 32.) : 1.;
+   if (ndx != dx)  {dx = ndx;   ReDur ();}
+
+   if (End () && (stg [s].add == 0.))  return lvl*lx;
   sbyte d  = stg [s  ].dir;            // git ma next dude
   real  l2 = stg [s+1].lvl, mag;
    p++;
@@ -490,8 +500,6 @@ DBG("Env::Mix lx=`s", R2Str(lx,ts));
       mag = labs ((l2 != 0.) ? l2 : stg [s].lvl);     // whichev ain't 0
       lvl = mag * Sin (p/stg [s].nper, q);
    }                                   // same ole stage?
-TStr s1,s2;
-DBG("      d=`d lvl=`s l2=`s", d, R2Str(lvl,s1),R2Str(l2,s2));
    if (d > 0)  {if (lvl < l2)  return lvl*lx;}
    else         if (lvl > l2)  return lvl*lx;
 
@@ -513,7 +521,6 @@ void EnvO::Init (ubyte cid, char *es)
   char *p;
   ubyte i, j;
    StrCp (b, es);
-DBG("EnvO::Init cid=`d es=`s", cid, es);
   ColSep ss (b, 17);                   // envelope init from it's str
    MemSet (x, 0, 6);
    for (e.Ln = i = 0;  (i < 16) && ss.Col [i][0];  i++) {
@@ -521,7 +528,6 @@ DBG("EnvO::Init cid=`d es=`s", cid, es);
       if (p = StrCh (enm, '.'))  *p++ = '\0';    // p set to any env modulators
       for (j = 0;  j < Sy._env.Ln;  j++)         // (or nullptr)
          if (! StrCm (enm, Sy._env [j].nm)) {
-DBG("callin Env::Init p=`s", p?p:CC("null"));
             e.Ins ();       e [i].Init (j, cid, p);
             x [e [i].dst] = 1;
             o [e [i].dst] = e [i].lvl;
@@ -643,7 +649,8 @@ void Voice::Bgn (ubyte c, ubyte k, ubyte v, Sound *s, Sample *sm, char *es,
 {  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _snd = s;   _smp = sm;
    _no = no;   _pos = pos;
    _nPer = 0;   _phase = (Phase)0;   _looped = false;
-   _flt.Init ();   _gl.Init (c, k);   _eo.Init (c, es);   Re ('*');
+   _flt.Init ();   _gl.Init (c, k);
+   _eo.Init (c, es);   Re ('*');
    _on = 'd';
 }
 
