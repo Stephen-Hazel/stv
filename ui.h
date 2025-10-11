@@ -196,7 +196,8 @@ public:
    CtlTBar (QMainWindow *w, const char *tipIcoKey, const char *nm = "");
    CtlTBar (QDialog *d,     const char *tipIcoKey);
    QAction *Act (ubyte p)
-   {  if (p >= _na)  {DBG("BAD toolbar button=`d :(", p);   return nullptr;}
+   {  if (p >= _na)  {DBG("BAD toolbar button=`d/`d :(", p, _na);
+                      return nullptr;}
       return _ac [p];
    }
    QToolButton *Btn (ubyte p)

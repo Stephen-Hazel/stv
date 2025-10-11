@@ -183,17 +183,17 @@ char *StrFmtX (char *out, char const *fmti, va_list va)  // sprintf replacement
 // u   unsigned int decimal
 // d     signed int decimal
 // x   hex int
-{ char *fmt, ju, fc,   *s, buf [12],  c, *pc;
-  ubyt4      ln,        sLn, padLn,   u;
+// z   \0  to make zz strings
+{ char *op, *fmt, ju, fc,   *s, buf [12],  c, *pc;
+  ubyt4           ln,        sLn, padLn,   u;
   sbyt4 i;
   bool  b;
   BStr  bs;
   real  r;
-   *out = '\0';   if ((fmt = CC(fmti)) == nullptr)  return out;
+   op = out;   *op = '\0';   if ((fmt = CC(fmti)) == nullptr)  return out;
    while (*fmt) {
       if (*fmt != '`')                 // un-substitued char (HAS to be ascii)
-         {ln = StrLn (out);   out [ln] = *fmt++;   out [ln+1] = '\0';
-          continue;}
+         {*op++ = *fmt++;   *op = '\0';   continue;}
 
    // init to stringize dat arg
       ++fmt;   ju = '\0';   s = buf;   ln = padLn = 0;
@@ -206,8 +206,10 @@ char *StrFmtX (char *out, char const *fmti, va_list va)  // sprintf replacement
 
    // set fc n va_arg in whatev we gots.  we end w s pointin to it's str
       switch (fc = *fmt++) {
+         case 'z':  *op++ = '\0';   *op = '\0';   continue;     // makin zz str
+
          case '`':
-            s = CC("`");               // allow `` => `
+            s = CC("`");               // `` => `
             break;
          case 's': case 'p':
             s =          va_arg (va, char *);
@@ -235,44 +237,44 @@ char *StrFmtX (char *out, char const *fmti, va_list va)  // sprintf replacement
             DBG("StrFmtX: bad args (fmt=`s fc=`d)", fmti, fc);   return out;
       }
 
-   // do ju,ln make us put stuff in front of s?
+   // do ju,ln make us put stuff before s?
       if ( ju && ((sLn = StrLn (s)) < ln) ) {
          padLn = ln - sLn;
          if (ju != '<') {              // < means put stuff aaafter s (later)
             if (ju != '0')  ju = ' ';
-            ln = StrLn (out);   MemSet (& out [ln], SC(ubyte,ju), padLn);
-                                          out [ln+padLn] = '\0';
+            MemSet (op, SC(ubyte,ju), padLn);   op += padLn;   *op = '\0';
             padLn = 0;
          }
       }
 
    // in goes s
-      if      (s == nullptr)  StrAp (out, CC("NULL"));
-      else if (fc != 'p')     StrAp (out, s);
+      if      (s == nullptr)  {StrCp (op, CC("NULL"));   op += 4;   *op = '\0';}
+      else if (fc != 'p')     {StrCp (op, s);    op += StrLn (s);   *op = '\0';}
       else {                           // fuckin linux
-         ln = StrLn (out);   StrCp (bs, s);   s = bs;
+         StrCp (bs, s);   s = bs;
          while (*s) {
             if ((pc = StrCh (s, '\'')) != nullptr) {
                if (pc != s) {
                   *pc = '\0';          // now string ends where ' was
-                  StrAp (out, CC("'"));   StrAp (out, s);
-                  StrAp (out, CC("'"));
+                  sLn = StrLn (s);
+                  *op++ = '\'';   MemCp (op, s, sLn);   op += sLn;
+                  *op++ = '\'';   *op = '\0';
                }
-               do StrAp (out, CC("\\'"));   while (*(++pc) == '\'');
-                                        s = pc;
+               do {*op++ = '\'';   *op = '\0';}
+               while (*(++pc) == '\'');
+               s = pc;
             }
             else {
-               StrAp (out, CC("'"));   StrAp (out, s);
-               StrAp (out, CC("'"));   *s = '\0';     // DONE !!
+               sLn = StrLn (s);
+               *op++ = '\'';   MemCp (op, s, sLn);   op += sLn;
+               *op++ = '\'';   *op = '\0';
+               *s = '\0';              // DONE !!
             }
          }
       }
 
-   // did ju,ln make us put stuff after s?
-      if (padLn) {
-         ln = StrLn (out);   MemSet (& out [ln], ' ', padLn);
-                                       out [ln+padLn] = '\0';
-      }
+   // do ju,ln make us put stuff after s?
+      if (padLn)  {MemSet (op, ' ', padLn);   op += padLn;   *op = '\0';}
    }
    return out;
 }
