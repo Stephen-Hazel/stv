@@ -300,6 +300,7 @@ CtlTBar::CtlTBar (QMainWindow *w, const char *tip, const char *nm)
         ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
          StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
                                    StrCp (ks, cs.Col [2]);
+TRC("   tbar `s: '`s' '`s' '`s'", nm, tp, is, ks);
          if (*ks)  StrAp (tp, StrFmt (ts, "  [`s]", ks));
          if (*is == '*') {
             _ac [p] = new QAction (& is [1], w);
