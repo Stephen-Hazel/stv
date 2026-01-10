@@ -1,0 +1,5 @@
+os.cpp  File::Open(paths/fn,r)
+   make it case INsensitive on read
+   that's the dumbest thing about linux sigh
+   if open fails  (prob cuz case),
+      lowercase the paths/fn and StrCm existing paths/fn to find it to open,r
