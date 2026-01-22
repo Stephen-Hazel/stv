@@ -286,8 +286,9 @@ public:
    QColor Hi ()  {return Gui.A ()->palette ().color (QPalette::Highlight);}
    void   SetFg (QColor fg)  {_w->setTextColor (fg);}
    void   Clr ()             {_w->clear ();}
-   char  *Get ()             {return UnQS (_w->toPlainText ());}
    void   Add (char *txt)    {_w->insertPlainText (txt);}
+   char  *Get ()             {return UnQS (_w->toPlainText ());}
+   void   Set (char *txt)    {Clr ();   Add (txt);}
    QTextEdit *_w;
 };
 
