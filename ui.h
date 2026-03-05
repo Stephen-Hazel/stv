@@ -39,6 +39,7 @@
 #include <QKeyEvent>
 #include <QPaintEvent>
 #include <QResizeEvent>
+#include <QStyleHints>
 
 
 inline char *UnQS (QString s)  {return CC(s.toLocal8Bit ().constData ());}
@@ -94,6 +95,8 @@ public:
    key   Map (Qt::KeyboardModifiers mo, int ky);
    char *Str (key);
 };
+
+
 //______________________________________________________________________________
 struct QtEr {                          // my layer on toppa Qt
 public:
@@ -103,6 +106,11 @@ public:
    ubyt2 FontH ()
    { QFontMetrics fm (_a->font ());
       return fm.capHeight () + 1 + fm.descent ();
+   }
+
+   bool Dark ()                        // so many words :/
+   { const auto s = QGuiApplication::styleHints ()->colorScheme ();
+      return s == Qt::ColorScheme::Dark;
    }
 
    ubyte NArg ();                      // argv [0] AIN'T an arg !  [0]=1st arg
@@ -191,30 +199,39 @@ void DumpSig ()
 
 
 //______________________________________________________________________________
+struct CtlBtn {
+   QAction *ac;                        // button action
+   ubyte    ni, ic;                    // num icons, which one currently
+   QIcon    i [8], di [8];             // actual icon ptrs w dark unless null
+};
+
 class CtlTBar {
 public:
-   CtlTBar (QMainWindow *w, const char *tipIcoKey, const char *nm = "");
-   CtlTBar (QDialog *d,     const char *tipIcoKey);
-   QAction *Act (ubyte p)
-   {  if (p >= _na)  {DBG("BAD toolbar button=`d/`d :(", p, _na);
-                      return nullptr;}
-      return _ac [p];
-   }
-   QToolButton *Btn (ubyte p)
-   { QAction *a = Act (p);
-      return a ? dynamic_cast<QToolButton *>(_w->widgetForAction (a)) : nullptr;
-   }
+   CtlTBar ()  {}
+  ~CtlTBar ()  {}
+
+   void Init (QMainWindow *w, const char *nm);
+   void Init (QDialog     *d, const char *nm);
+
+   void Btn  (ubyte b, char *tip, const char *ico = "", const char *key = "");
+   QAction *Act (ubyte b)  {return _b [b].ac;}
+   void Sep  (ubyte b);                                 // seperator
+   void Ico  (ubyte b, ubyte i, const char *ico = "");  // extra ico(s)
+   void Set  (ubyte b, ubyte i);                        // set which ico
+   void ReDo ();                                        // redraw on Gui.Dark?
 private:
    QToolBar *_w;
-   ubyte     _na;
-   QAction  *_ac [32];
+   TStr      _nm;                      // tbar name
+   ubyte     _nb;                      // num buttons in toolbar
+   CtlBtn    _b [48];
 };
 
 
 class CtlLabl {
 public:
    CtlLabl (QLabel *w)  {_w = w;}
-   void Set (char *s)   {_w->setText (s);}
+   char *Get ()  {return UnQS (_w->text ());}
+   void  Set (char *s)     {_w->setText (s);}
 private:
    QLabel *_w;
 };
@@ -223,9 +240,9 @@ private:
 class CtlBttn {
 public:
    CtlBttn (QPushButton *w)  {_w = w;}
-   char *Get    (char *s)   {return UnQS (_w->text ());}
-   void  Set    (char *s)   {_w->setText    (s);}
-   void  Enable (bool  s)   {_w->setEnabled (s);}
+   char *Get    ()  {return UnQS (_w->text ());}
+   void  Set    (char *s)     {_w->setText (s);}
+   void  Enable (bool  s)     {_w->setEnabled (s);}
 private:
    QPushButton *_w;
 };
@@ -614,7 +631,6 @@ public:
    }
 };
 
-// window.palette ().window ().color ().lightnessF () - check bg for dark mode
 
 class Canvas: public QPainter {
 public:
@@ -867,7 +883,6 @@ private:
 ** RGB(0x8A,0x70,0x47),  // brn
 ** RGB(0xE4,0xA1,0x45),  // org
 */
-
 
 
 #endif
