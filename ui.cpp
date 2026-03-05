@@ -111,14 +111,14 @@ void QtEr::ClipPut (char *s)
 //______________________________________________________________________________
 void QtEr::Hey (char const *msg)
 { QMessageBox m;
-   m.setWindowIcon (QIcon (":/app"));
+   m.setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);
 DBG("hey `s", msg);   m.setText (msg);   m.exec ();
 }
 
 bool QtEr::YNo (char const *msg)
 { QMessageBox m;
 DBG("YNo `s", msg);
-   m.setWindowIcon (QIcon (":/app"));
+   m.setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);
    m.setText (msg);
    m.setStandardButtons (QMessageBox::Yes | QMessageBox::No);
    m.setDefaultButton   (QMessageBox::Yes);
@@ -201,7 +201,7 @@ void QtEr::WinLoad (QSplitter *spl)
       for (ubyte i = 0;  i < p.count ();  i++)  p [i] = Str2Int (cs.Col [i]);
       spl->setSizes (p);
    }
-   _w->setWindowIcon (QIcon (":/app"));
+   _w->setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);
    SetTtl (_ttl);
 }
 
@@ -225,8 +225,12 @@ void QtEr::WinSave (QSplitter *spl)
 }
 
 
-void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, char fixw)
-{  _a = a;   _w = w;   StrCp (_ttl, CC(ttl));   _fixw = fixw;  _q = false;  }
+void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, bool d2,
+                 char fixw)
+{  _a = a;   _w = w;   StrCp (_ttl, CC(ttl));   _fixw = fixw;   _q = false;
+   _ico  =      QIcon (":/app");
+   _icoD = d2 ? QIcon (":/app_d") : QIcon ();
+}
 
 
 void QtEr::DlgLoad (QDialog *d, QString nm, QSplitter *spl)
