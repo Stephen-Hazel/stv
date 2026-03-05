@@ -25,7 +25,7 @@
 #define RECOFS(s,f)  ((ubyte *)(& s.f) - (ubyte *)(& s))
 #define SC(t,x)      (static_cast<t>(x))    // modern c++ iz duuumb
 #define RC(t,x)      (reinterpret_cast<t>(x))
-#define CC(s)        (const_cast<char *>(s))
+#define CC(s)        (const_cast<char *>(s))     // modern c++ - annoyin
 
 
 // jist mah types_______________________________________________________________
@@ -40,7 +40,9 @@ typedef u_int64_t      ubyt8;
 typedef double          real;          // float is worthless
 ubyt4 const FIX1  = 10000;             // fixed int holding 99999.9999
 ubyt4 const MAXUL = 0xFFFFFFFF;
-                                       // char shall be utf-8 !!  always !!
+
+// char shall be utf-8 !!  always !!
+typedef const char *CStr;
 typedef char WStr [32];                // ascii word str - 31 chars max
 typedef char TStr [MAX_PATH+1];        // utf8 temp str
 typedef char BStr [10*1024];           // bigger than one line, a page-ISH

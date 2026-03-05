@@ -111,14 +111,14 @@ void QtEr::ClipPut (char *s)
 //______________________________________________________________________________
 void QtEr::Hey (char const *msg)
 { QMessageBox m;
-   m.setWindowIcon (QIcon (":/app.ico"));
+   m.setWindowIcon (QIcon (":/app"));
 DBG("hey `s", msg);   m.setText (msg);   m.exec ();
 }
 
 bool QtEr::YNo (char const *msg)
 { QMessageBox m;
 DBG("YNo `s", msg);
-   m.setWindowIcon (QIcon (":/app.ico"));
+   m.setWindowIcon (QIcon (":/app"));
    m.setText (msg);
    m.setStandardButtons (QMessageBox::Yes | QMessageBox::No);
    m.setDefaultButton   (QMessageBox::Yes);
@@ -201,7 +201,7 @@ void QtEr::WinLoad (QSplitter *spl)
       for (ubyte i = 0;  i < p.count ();  i++)  p [i] = Str2Int (cs.Col [i]);
       spl->setSizes (p);
    }
-   _w->setWindowIcon (QIcon (":/app.ico"));
+   _w->setWindowIcon (QIcon (":/app"));
    SetTtl (_ttl);
 }
 
@@ -284,71 +284,90 @@ void QtEr::DlgMv (QDialog *d, QPointF p, char const *anch)
 
 
 //______________________________________________________________________________
-CtlTBar::CtlTBar (QMainWindow *w, const char *tip, const char *nm)
-{ ubyte p;
-  char *t;
-  TStr  s, ts, tp, is, ks;
-  QToolBar *tb;
-   if (! StrCm (CC(nm), CC("")))
-        {tb = w->addToolBar ("toolbar");   tb->setMovable (false);}
-   else {tb = w->addToolBar (nm);          tb->setMovable (true);}
-   _w = tb;
-   for (p = 0, t = CC(tip);  *t;  p++, t = & t [StrLn (t)+1]) {
-      if (*t == '|')  tb->addSeparator ();
-      else {
-         StrCp (s, t);
-        ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
-         StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
-                                   StrCp (ks, cs.Col [2]);
-//TRC("   tbar `s: '`s' '`s' '`s'", nm, tp, is, ks);
-         if (*ks)  StrAp (tp, StrFmt (ts, "  [`s]", ks));
-         if (*is == '*') {
-            _ac [p] = new QAction (& is [1], w);
-            _ac [p]->setToolTip (tp);
-         }
-         else {
-           QIcon ico = (*is == ':') ? QIcon (is)
-                                    : QIcon::fromTheme (is, QIcon (is));
-            _ac [p] = new QAction (ico, tp, w);
-         }
-         if (*ks)  _ac [p]->setShortcut (QKeySequence (ks));
-         tb->addAction (_ac [p]);
-      }
-   }
-   _na = p;
+void CtlTBar::Init (QMainWindow *w, const char *nm)
+{ QToolBar *tb = w->addToolBar (nm);
+   _w = tb;   StrCp (_nm, (char *)nm);
+   _w->setIconSize (QSize (32, 32));
+   _w->setMovable (false);
+   _nb = 0;
 }
 
-CtlTBar::CtlTBar (QDialog *d, const char *tip)
+
+void CtlTBar::Init (QDialog *d, const char *nm)
 // for dialogs, pass in main layout instead of mainwindow
-{ ubyte p;
-  char *t;
-  TStr  s, ts, tp, is, ks;
-  QToolBar *tb = new QToolBar ();      // yep, setMenuBar -IZ- how ya do it :/
-   _w = tb;
-   d->layout ()->setMenuBar (tb);   tb->setMovable (false);
-   for (p = 0, t = CC(tip);  *t;  p++, t = & t [StrLn (t)+1]) {
-      if (*t == '|')  tb->addSeparator ();
-      else {
-         StrCp (s, t);
-        ColSep cs (s, 2, '`');         // tip, icon/txtStr, keyStr
-         StrCp (tp, cs.Col [0]);   StrCp (is, cs.Col [1]);
-                                   StrCp (ks, cs.Col [2]);
-         if (*ks)  StrAp (tp, StrFmt (ts, "  [`s]", ks));
-         if (*is == '*') {
-            _ac [p] = new QAction (& is [1], tb);
-            _ac [p]->setToolTip (tp);
-         }
-         else {
-           QIcon ico = (*is == ':') ? QIcon (is)
-                                    : QIcon::fromTheme (is, QIcon (is));
-            _ac [p] = new QAction (ico, tp, tb);
-         }
-         if (*ks)  _ac [p]->setShortcut (QKeySequence (ks));
-         tb->addAction (_ac [p]);
-      }
-   }
-   _na = p;
+{ QToolBar *tb = new QToolBar (nm);
+   _w = tb;   StrCp (_nm, (char *)nm);
+   d->layout ()->setMenuBar (_w);
+   _w->setIconSize (QSize (32, 32));
+   _w->setMovable (false);
+   _nb = 0;
 }
+
+
+void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
+{ TStr ts, is;
+   if (b >= BITS (_b))  {DBG("tooo many buttons in Init !");   return;}
+
+   if (b >= _nb)  _nb = b+1;
+  CtlBtn *bt = & _b [b];
+   bt->ni = bt->ic = 0;   bt->i [0] = QIcon ();   bt->di [0] = QIcon ();
+
+   if (*key != '\0')  StrFmt (ts, "`s  [`s]", tip, key);
+   else               StrCp  (ts, tip);
+   if (*ico == '*')                    // text instead of icon
+      bt->ac = new QAction (& ico [1], _w);
+   else {
+      bt->i [0] = QIcon (StrFmt (is, ":/tbar/`s/`d", _nm, b));
+      bt->ac = new QAction (bt->i [0], "", _w);
+      bt->ni = 1;
+      if (*ico == 'd')  bt->di [0] = QIcon (StrAp (is, CC("_d")));
+      bt->ac->setIcon ((Gui.Dark () && (! bt->di [0].isNull ()))
+                       ? bt->di [0]: bt->i [0]);
+   }
+   bt->ac->setToolTip (ts);
+   if (*key != '\0')  bt->ac->setShortcut (QKeySequence (key));
+   _w->addAction (bt->ac);
+}
+
+
+void CtlTBar::Sep (ubyte b)
+{  if (b >= BITS (_b))  {DBG("tooo many buttons in InitSep !");   return;}
+
+   if (b >= _nb)  _nb = b+1;
+  CtlBtn *bt = & _b [b];
+   bt->ni = bt->ic = 0;
+
+   _w->addSeparator ();
+}
+
+
+void CtlTBar::Ico (ubyte b, ubyte i, const char *ico)
+{ TStr is;
+   if (b >= _nb)           {DBG("button past #buttons in XIco !");   return;}
+  CtlBtn *bt = & _b [b];
+   if (i >= BITS (_b->i))  {DBG("tooo many icons in XIco !");        return;}
+
+   if (i >= bt->ni)  bt->ni = i+1;
+   bt->i [i] = QIcon (StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i));
+   if (*ico == 'd')  bt->di [i] = QIcon (StrAp (is, CC("_d")));
+   else              bt->di [i] = QIcon ();
+}
+
+
+void CtlTBar::Set (ubyte b, ubyte i)
+{  if (b >= _nb)     {DBG("button past #buttons in Set !");   return;}
+  CtlBtn *bt = & _b [b];
+   if (i >= bt->ni)  {DBG("icon past #icons in Set !");       return;}
+
+   bt->ic = i;
+DBG("TBar::Set b=`d/`d i=`d/`d dk=`b di=`b",
+b, _nb, i, bt->ni, Gui.Dark (), ! bt->di [i].isNull ());
+   bt->ac->setIcon ((Gui.Dark () && (! bt->di [i].isNull ())) ? bt->di [i]
+                                                              : bt->i  [i]);
+}
+
+
+void CtlTBar::ReDo ()  {for (ubyte b = 0;  b < _nb;  b++)  Set (b, _b [b].ic);}
 
 
 //______________________________________________________________________________
@@ -408,6 +427,7 @@ void  CtlTabl::SetColWrapOK (ubyte c)
 
 void  CtlTabl::SetRowH (ubyt2 h)
 {  _t->verticalHeader ()->setDefaultSectionSize (h);
+//TODO this ok?
    _t->setIconSize (QSize (h, h));
    _ih = h;
 }
