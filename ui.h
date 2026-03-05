@@ -127,7 +127,7 @@ public:
    bool  AskDir (char *name, char const *titl);
                                        // fer main
    void  Init (QApplication *ia, QMainWindow *iw, const char *ttl,
-               char fixw = '\0');
+               bool d2 = false, char fixw = '\0');
    void  WinLoad (QSplitter *spl = nullptr);
    void  WinSave (QSplitter *spl = nullptr);
    void  DlgLoad (QDialog *d, QString nm, QSplitter *spl = nullptr);
@@ -148,6 +148,8 @@ private:
    char          _fixw;
    bool          _q;
    TStr          _ttl;
+   QIcon         _ico;
+   QIcon         _icoD;
 };
 extern QtEr Gui;
 
