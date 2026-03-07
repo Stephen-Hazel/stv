@@ -126,6 +126,7 @@ public:
    bool  AskW   (char *name, char const *titl);
    bool  AskDir (char *name, char const *titl);
                                        // fer main
+   void  ReIco ();
    void  Init (QApplication *ia, QMainWindow *iw, const char *ttl,
                bool d2 = false, char fixw = '\0');
    void  WinLoad (QSplitter *spl = nullptr);
@@ -148,8 +149,7 @@ private:
    char          _fixw;
    bool          _q;
    TStr          _ttl;
-   QIcon         _ico;
-   QIcon         _icoD;
+   QIcon         _ico, _icoD;
 };
 extern QtEr Gui;
 

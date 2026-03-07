@@ -11,6 +11,6 @@ CMakeList.txt s using me will have
  - ../../stv/ui.cpp
  - (etc)
 
-[do - to do list](../do.txt)
+[do - to do list](do.txt)
 
 [did - release notes](did.txt)

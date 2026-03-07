@@ -172,6 +172,9 @@ DBG("`s win font=`s `d", s, UnQS (f.family ()), f.pointSize ());
 }
 */
 
+void QtEr::ReIco ()
+{  _w->setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);  }
+
 void QtEr::WinLoad (QSplitter *spl)
 { QSettings s ("win", _ttl);
    if (_fixw) {
@@ -201,8 +204,8 @@ void QtEr::WinLoad (QSplitter *spl)
       for (ubyte i = 0;  i < p.count ();  i++)  p [i] = Str2Int (cs.Col [i]);
       spl->setSizes (p);
    }
-   _w->setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);
    SetTtl (_ttl);
+   ReIco ();
 }
 
 void QtEr::WinSave (QSplitter *spl)
