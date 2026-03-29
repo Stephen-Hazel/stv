@@ -111,14 +111,14 @@ void QtEr::ClipPut (char *s)
 //______________________________________________________________________________
 void QtEr::Hey (char const *msg)
 { QMessageBox m;
-   m.setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);
+   m.setWindowIcon ((Dark () && _d) ? _icoD : _ico);
 DBG("hey `s", msg);   m.setText (msg);   m.exec ();
 }
 
 bool QtEr::YNo (char const *msg)
 { QMessageBox m;
 DBG("YNo `s", msg);
-   m.setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);
+   m.setWindowIcon ((Dark () && _d) ? _icoD : _ico);
    m.setText (msg);
    m.setStandardButtons (QMessageBox::Yes | QMessageBox::No);
    m.setDefaultButton   (QMessageBox::Yes);
@@ -173,7 +173,7 @@ DBG("`s win font=`s `d", s, UnQS (f.family ()), f.pointSize ());
 */
 
 void QtEr::ReIco ()
-{  _w->setWindowIcon ((Dark () && (! _icoD.isNull ())) ? _icoD : _ico);  }
+{  _w->setWindowIcon ((Dark () && _d) ? _icoD : _ico);  }
 
 void QtEr::WinLoad (QSplitter *spl)
 { QSettings s ("win", _ttl);
@@ -227,14 +227,92 @@ void QtEr::WinSave (QSplitter *spl)
    s.setValue ("scr",  _w->windowHandle ()->screen ()->name ());
 }
 
+//void DBGC(const char *msg, QColor c)
+//{  DBG("`-7s `3d `3d `3d", msg, c.red(), c.green(), c.blue());  }
 
 void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, bool d2,
                  char fixw)
 {  _a = a;   _w = w;   StrCp (_ttl, CC(ttl));   _fixw = fixw;   _q = false;
-   _ico  =      QIcon (":/app");
-   _icoD = d2 ? QIcon (":/app_d") : QIcon ();
+   _ico  =             QIcon (":/app");
+   _icoD = (_d = d2) ? QIcon (":/app_d") : QIcon ();
+   _p = QApplication::palette ();
 }
 
+
+QColor Color (const char *c)
+{ QPalette p = Gui.Palette ();
+   if      (! StrCm (c, "fg"))      return p.color (QPalette::Text);
+//"else if (! StrCm (c, "fgWin"))   return p.color (QPalette::WindowText);
+//"else if (! StrCm (c, "fgTip"))   return p.color (QPalette::ToolTipText);
+//"else if (! StrCm (c, "fgBtn"))   return p.color (QPalette::ButtonText);
+   else if (! StrCm (c, "bg"))      return p.color (QPalette::Window);
+   else if (! StrCm (c, "fgSel"))   return p.color (QPalette::HighlightedText);
+   else if (! StrCm (c, "bgSel"))   return p.color (QPalette::Highlight);
+//"else if (! StrCm (c, "accent"))  return p.color (QPalette::Accent);
+//"else if (! StrCm (c, "fgBrite")) return p.color (QPalette::BrightText);
+//"else if (! StrCm (c, "base"))    return p.color (QPalette::Base);
+//"else if (! StrCm (c, "lite"))    return p.color (QPalette::Light);
+   else if (! StrCm (c, "fgPlace")) return p.color (QPalette::PlaceholderText);
+   else if (! StrCm (c, "bgTip"))   return p.color (QPalette::ToolTipBase);
+// else if (! StrCm (c, "base2"))   return p.color (QPalette::AlternateBase);
+   else if (! StrCm (c, "bgBtn"))   return p.color (QPalette::Button);
+   else if (! StrCm (c, "link"))    return p.color (QPalette::Link);
+   else if (! StrCm (c, "linkVis")) return p.color (QPalette::LinkVisited);
+   else if (! StrCm (c, "medLt"))   return p.color (QPalette::Midlight);
+   else if (! StrCm (c, "medDk"))   return p.color (QPalette::Mid);
+   else if (! StrCm (c, "dark"))    return p.color (QPalette::Dark);
+   else if (! StrCm (c, "shadow"))  return p.color (QPalette::Shadow);
+
+DBG("Color='`s' is a bug", c);
+   return p.color (QPalette::Text);
+}
+/*
+light mode:
+* fg       35  38  41  1 *fg = fgWin = fgTip = fgBtn
+x fgWin    35  38  41  1
+x fgTip    35  38  41  1
+x fgBtn    35  38  41  1
+> bg      239 240 241
+* fgSel   255 255 255  2 *fgSel = fgBrite = base = light
+x fgBrite 255 255 255  2
+x base    255 255 255  2
+x light   255 255 255  2
+* bgSel    61 174 233  3 *bgSel = accent
+x accent   61 174 233  3
+> fgPlace 112 125 138
+* bgTip   247 247 247  4
+x base2   247 247 247  4 base2 = *bgTip
+> bgBtn   252 252 252
+> link     41 128 185
+> linkVis 155  89 182
+> midLt   249 250 250
+> midDk   189 193 198
+> dark    113 117 122
+> shadow   59  61  63
+
+dark mode:
+fgWin   252 252 252
+bg       32  35  38
+fgSel   252 252 252
+bgSel    61 174 233
+accent   61 174 233
+fg      252 252 252
+fgBrite 255 255 255
+fgPlace 161 169 177
+base     20  22  24
+base2    29  31  34
+fgTip   252 252 252
+bgTip    41  44  48
+fgBtn   252 252 252
+bgBtn    41  44  48
+link     29 153 243
+linkVis 155  89 182
+light    64  70  76
+midLt    51  56  60
+midDk    28  30  33
+dark     16  17  18
+Shadow=  11  12  13
+*/
 
 void QtEr::DlgLoad (QDialog *d, QString nm, QSplitter *spl)
 { QSettings s ("win", nm);
@@ -313,23 +391,31 @@ void CtlTBar::Init (QDialog *d, const char *nm)
 
 void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
 { TStr ts, is;
+  bool big;
    if (b >= BITS (_b))  {DBG("tooo many buttons in Init !");   return;}
 
    if (b >= _nb)  _nb = b+1;
   CtlBtn *bt = & _b [b];
-   bt->ni = bt->ic = 0;   bt->i [0] = QIcon ();   bt->di [0] = QIcon ();
-
+   bt->ni = bt->ic = 0;   bt->i  [0] = QIcon ();
+                          bt->di [0] = QIcon ();   bt->d [0] = false;
    if (*key != '\0')  StrFmt (ts, "`s  [`s]", tip, key);
    else               StrCp  (ts, tip);
-   if (*ico == '*')                    // text instead of icon
-      bt->ac = new QAction (& ico [1], _w);
+   if (ico [0] == '*') {               // text instead of icon
+      big = (ico [1] == '^');
+      bt->ac = new QAction (& ico [big ? 2 : 1], _w);
+      if (big) {
+        QFont f = bt->ac->font ();
+         f.setPointSize (20);          // beeg !
+         bt->ac->setFont (f);
+      }
+   }
    else {
       bt->i [0] = QIcon (StrFmt (is, ":/tbar/`s/`d", _nm, b));
       bt->ac = new QAction (bt->i [0], "", _w);
       bt->ni = 1;
-      if (*ico == 'd')  bt->di [0] = QIcon (StrAp (is, CC("_d")));
-      bt->ac->setIcon ((Gui.Dark () && (! bt->di [0].isNull ()))
-                       ? bt->di [0]: bt->i [0]);
+      if (*ico == 'd')  {bt->d  [0] = true;
+                         bt->di [0] = QIcon (StrAp (is, CC("_d")));}
+      bt->ac->setIcon ((Gui.Dark () && bt->d [0]) ? bt->di [0] : bt->i [0]);
    }
    bt->ac->setToolTip (ts);
    if (*key != '\0')  bt->ac->setShortcut (QKeySequence (key));
@@ -338,7 +424,7 @@ void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
 
 
 void CtlTBar::Sep (ubyte b)
-{  if (b >= BITS (_b))  {DBG("tooo many buttons in InitSep !");   return;}
+{  if (b >= BITS (_b))  {DBG("tooo many buttons in Sep !");   return;}
 
    if (b >= _nb)  _nb = b+1;
   CtlBtn *bt = & _b [b];
@@ -350,27 +436,27 @@ void CtlTBar::Sep (ubyte b)
 
 void CtlTBar::Ico (ubyte b, ubyte i, const char *ico)
 { TStr is;
-   if (b >= _nb)           {DBG("button past #buttons in XIco !");   return;}
+   if (b >= _nb)           {DBG("button past #buttons in Ico !");   return;}
   CtlBtn *bt = & _b [b];
-   if (i >= BITS (_b->i))  {DBG("tooo many icons in XIco !");        return;}
+   if (i >= BITS (_b->i))  {DBG("tooo many icons in Ico !");        return;}
 
    if (i >= bt->ni)  bt->ni = i+1;
    bt->i [i] = QIcon (StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i));
-   if (*ico == 'd')  bt->di [i] = QIcon (StrAp (is, CC("_d")));
-   else              bt->di [i] = QIcon ();
+   if (*ico == 'd')  {bt->d  [i] = true;
+                      bt->di [i] = QIcon (StrAp (is, CC("_d")));}
+   else               bt->di [i] = QIcon ();
 }
 
 
 void CtlTBar::Set (ubyte b, ubyte i)
-{  if (b >= _nb)     {DBG("button past #buttons in Set !");   return;}
+{  if (b >= _nb)     {DBG("Set button `d past #buttons !", b);   return;}
   CtlBtn *bt = & _b [b];
-   if (i >= bt->ni)  {DBG("icon past #icons in Set !");       return;}
+   if (bt->ni == 0)  return;
 
+   if (i >= bt->ni)  {DBG("Set button `d icon `d past #icons !", b, i);
+                      return;}
    bt->ic = i;
-DBG("TBar::Set b=`d/`d i=`d/`d dk=`b di=`b",
-b, _nb, i, bt->ni, Gui.Dark (), ! bt->di [i].isNull ());
-   bt->ac->setIcon ((Gui.Dark () && (! bt->di [i].isNull ())) ? bt->di [i]
-                                                              : bt->i  [i]);
+   bt->ac->setIcon ((Gui.Dark () && bt->d [i]) ? bt->di [i] : bt->i [i]);
 }
 
 
@@ -391,10 +477,12 @@ protected:
    }
 };
 
-void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop, char wrap)
+void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop,
+                    const char *mode, const char *what, char wrap)
 // hdr is zz string of labels
 //  >| prefix means right or center just
-//  *  prefix means icon
+//  +  prefix means icon
+//  *  prefix means icon w dark
 //  _  prefix means edit (string or droplist edit)
 { ubyte c;
   char *h;
@@ -403,8 +491,9 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop, char wrap)
    _t = t;
    for (c = 0, h = CC(hdr);  *h;  c++, h = & h [StrLn (h)+1]) {
       _ju [c] = _ed [c] = '\0';
-      if ((*h == '*') || (*h == '>') || (*h== '|'))  _ju [c] = *h++;
-      if  (*h == '_') {_ed [c] = *h++;   ed = '_';}
+      if ((*h == '+') || (*h == '*') ||
+          (*h == '>') || (*h == '|'))  _ju [c] = *h++;
+      if  (*h == '_')  {_ed [c] = *h++;   ed = '_';}
       sl << QString::fromStdString (h);
    }
    _t->horizontalHeader ()->setSectionResizeMode (  //QHeaderView::Interactive);
@@ -415,9 +504,12 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop, char wrap)
    if (ed)  _t->setItemDelegate (new SIDlg (_t, _ed, pop));
    _t->setEditTriggers (ed ? QAbstractItemView::AllEditTriggers
                            : QAbstractItemView::NoEditTriggers);
-   _t->setSelectionBehavior (QAbstractItemView::SelectRows);
+   SetSelect (mode, what);
    _t->setWordWrap (_wr = wrap ? true : false);
    if (_wr)  _t->resizeRowsToContents ();
+   _t->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
+   _t->setVerticalScrollBarPolicy   (Qt::ScrollBarAsNeeded);
+   _t->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
 }
 
 /* _t->horizontalHeader ()->setSectionResizeMode (2, QHeaderView::Fixed)
@@ -456,14 +548,20 @@ void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
   TStr ico;
 //DBG("CtlTabl::Set r=`d c=`d s=`s it=`x", r, c, s, it);
    _t->blockSignals (true);
-   if (_ju [c] != '*')      it->setText (s);
+   if ((_ju [c] != '+') && (_ju [c] != '*'))  it->setText (s);
    else {
-      if      (*s == '*')   it->setText (++s);
-      else if (*s)         {it->setIcon (QIcon (StrFmt (ico, ":/tico/`s", s)));
-                            it->setSizeHint (QSize (_ih, _ih));}
-// it->setData (Qt::DecorationRole, QPixmap (StrFmt (ico, ":/tico/`s", s))
+      if      (*s == '*')
+         it->setText (++s);            // override icon :/
+      else if (*s) {
+         if ((_ju [c] == '*') && Gui.Dark ())
+            it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s_d", s)));
+         else
+            it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s",   s)));
+         it->setSizeHint (QSize (_ih, _ih));
+      }
+// it->setData (Qt::DecorationRole, QPixmap (StrFmt (ico, ":/tabl/`s", s))
 //   .scaled (_ih, _ih, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-      else                  it->setIcon (QIcon ());
+      else  it->setIcon (QIcon ());
    }
    if (tip != nullptr)  it->setToolTip (tip);
    _t->blockSignals (false);
@@ -472,12 +570,42 @@ void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
 void CtlTabl::HopTo (ubyt2 r, ubyte c)  {_t->scrollToItem   (_t->item (r, c));
                                          _t->setCurrentItem (_t->item (r, c));
                                          _t->selectRow (r);}
-void CtlTabl::SetColor (ubyt2 r, QColor c)
-{  for (ubyte i = NCol ();  i;  i--) {
-//    _t->item (r, i-1)->setForeground (QBrush (CBLACK));
-      _t->item (r, i-1)->setBackground (QBrush (c));
-   }
+
+void CtlTabl::SetColor (ubyt2 r, ubyte c, QColor co)
+{  _t->item (r, c)->setBackground (QBrush (co));
+// _t->item (r, c)->setForeground (QBrush (CBLACK));
 }
+
+void CtlTabl::SetRowCol (ubyt2 r, QColor c)
+{ ubyte i = NCol ();   while (i) SetColor (r, --i, c);  }
+
+void CtlTabl::SetSelect (const char *mode, const char *what)
+{ QAbstractItemView::SelectionMode     m;
+  QAbstractItemView::SelectionBehavior b;
+   if      (! StrCm (CC(mode), CC("none")))
+      m = QAbstractItemView::NoSelection;
+   else if (! StrCm (CC(mode), CC("single")))
+      m = QAbstractItemView::SingleSelection;
+   else if (! StrCm (CC(mode), CC("multi")))
+      m = QAbstractItemView::MultiSelection;
+   else if (! StrCm (CC(mode), CC("extended")))
+      m = QAbstractItemView::ExtendedSelection;
+   else if (! StrCm (CC(mode), CC("contig")))
+      m = QAbstractItemView::ContiguousSelection;
+   else
+{DBG("CtlTable::SetSelect bad arg1");   return;}
+   _t->setSelectionMode (m);
+   if      (! StrCm (CC(what), CC("item")))
+      b = QAbstractItemView::SelectItems;
+   else if (! StrCm (CC(what), CC("row")))
+      b = QAbstractItemView::SelectRows;
+   else if (! StrCm (CC(what), CC("col")))
+      b = QAbstractItemView::SelectColumns;
+   else
+{DBG("CtlTable::SetSelect bad arg2");   return;}
+   _t->setSelectionBehavior (b);
+}
+
 
 void CtlTabl::Open ()
 {
@@ -500,13 +628,16 @@ void CtlTabl::Put (char **rp, char *tip)
                _t->setItem (_nr, c, it = new QTableWidgetItem);
       if (_ed [c])  it->setFlags (it->flags () |  Qt::ItemIsEditable);
       else          it->setFlags (it->flags () & ~Qt::ItemIsEditable);
-      if (_ju [c] == '*') {
+      if ((_ju [c] == '+') || (_ju [c] == '*')) {
          if (**rp) {
-            if      (**rp == '*')  it->setText (++(*rp));
-            else if (**rp)         it->setIcon (QIcon (StrFmt (ico,
-                                                           ":/tico/`s", *rp)));
-            else                   it->setIcon (QIcon ());
+            if      (**rp == '*')
+               it->setText (++(*rp));
+            else if ((_ju [c] == '*') && Gui.Dark ())
+               it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s_d", *rp)));
+            else
+               it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s", *rp)));
          }
+         else  it->setIcon (QIcon ());
       }
       else {
          if      (_ju [c] == '>')  it->setTextAlignment (Qt::AlignRight);

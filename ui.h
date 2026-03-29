@@ -100,8 +100,9 @@ public:
 //______________________________________________________________________________
 struct QtEr {                          // my layer on toppa Qt
 public:
-   QApplication *A ()  {return _a;}
-   QMainWindow  *W ()  {return _w;}
+   QApplication *A ()        {return _a;}
+   QMainWindow  *W ()        {return _w;}
+   QPalette      Palette ()  {return _p;}
 
    ubyt2 FontH ()
    { QFontMetrics fm (_a->font ());
@@ -109,8 +110,8 @@ public:
    }
 
    bool Dark ()                        // so many words :/
-   { const auto s = QGuiApplication::styleHints ()->colorScheme ();
-      return s == Qt::ColorScheme::Dark;
+   {  return QGuiApplication::styleHints ()->colorScheme () ==
+                                         Qt::ColorScheme::Dark;
    }
 
    ubyte NArg ();                      // argv [0] AIN'T an arg !  [0]=1st arg
@@ -150,9 +151,12 @@ private:
    bool          _q;
    TStr          _ttl;
    QIcon         _ico, _icoD;
+   bool          _d;                   // is _icoD set?
+   QPalette      _p;
 };
 extern QtEr Gui;
 
+QColor Color (const char *c);
 
 //______________________________________________________________________________
 // in main:   app.installEventFilter (new EvDump);
@@ -204,6 +208,7 @@ void DumpSig ()
 struct CtlBtn {
    QAction *ac;                        // button action
    ubyte    ni, ic;                    // num icons, which one currently
+   bool            d  [8];             // actually gotta di?
    QIcon    i [8], di [8];             // actual icon ptrs w dark unless null
 };
 
@@ -234,6 +239,25 @@ public:
    CtlLabl (QLabel *w)  {_w = w;}
    char *Get ()  {return UnQS (_w->text ());}
    void  Set (char *s)     {_w->setText (s);}
+
+   void  SetFg (QColor c)
+   { QPalette p = _w->palette ();
+      p.setColor (QPalette::WindowText, c);
+      _w->setPalette (p);
+   }
+
+   void  SetBg (QColor c)
+   { QPalette p = _w->palette ();
+      p.setColor (QPalette::Window, c);
+      _w->setAutoFillBackground (true);
+      _w->setPalette (p);
+   }
+
+   void  SetBold (bool tf)
+   { QFont f = _w->font ();
+      f.setBold (tf);
+      _w->setFont (f);
+   }
 private:
    QLabel *_w;
 };
@@ -325,6 +349,7 @@ public:
    {  if (ls == nullptr)  return;
      char *s;
       ClrLs ();  for (s = ls;  *s;  s = & s [StrLn (s)+1])  InsLs (s);
+      _w->setMaxVisibleItems (_w->count ());
    }
 
    ubyt2 Get    ()         {return _w->currentIndex ();}
@@ -332,7 +357,6 @@ public:
    char *GetS   (char *s)  {return StrCp (s, UnQS (_w->currentText ()));}
    void  SetS   (char *s)                      {_w->setCurrentText (s);}
    void  Enable (bool s)   {_w->setEnabled (s);}
-   void  SetVis (ubyt2 n)  {_w->setMaxVisibleItems (n);}
 private:
    QComboBox *_w;
 };
@@ -421,6 +445,7 @@ public:
    // table cell w an editor got clicked
    { BStr bs;
      char ed, *s;
+     ulong n;
 //DBG("SIDlg::createEditor row=`d col=`d _ed=`c",
 //ind.row (), ind.column (), _ed [ind.column ()]);
       if (_pop == nullptr)  DBG("BUG! edit cell and no pop func!!");
@@ -439,6 +464,7 @@ public:
          cb->setSizeAdjustPolicy (QComboBox::AdjustToContents);
 //cb->view ()->window ()->setWidth ();
          for (s = bs;  *s;  s = & s [StrLn (s)+1])  cb->addItem (s);
+         cb->setMaxVisibleItems (cb->count ());
          cb->installEventFilter (_ef);
 //DBG("SIDlg::createEditor ^ end");
          return cb;
@@ -509,6 +535,7 @@ public:
 //  * prefix means icon
 //  _ prefix means edit (string or droplist edit)
    void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr,
+                  const char *mode = "single", const char *what = "row",
                   char wrap = '\0');
    void  SetColWrapOK (ubyte c);
    void  SetRowH (ubyt2 h);
@@ -521,8 +548,10 @@ public:
    char *Get     (ubyt2 r, ubyte c);
    void  Set     (ubyt2 r, ubyte c, char *s, char *tip = nullptr);
    void  HopTo   (ubyt2 r, ubyte c);
-   void  SetColor (ubyt2 r, QColor c);
-
+   void  SetColor  (ubyt2 r, ubyte c, QColor co);
+   void  SetRowCol (ubyt2 r, QColor c);
+   void  SetSelect (const char *mode, const char *what);
+                 // none single multi extended contig,  item row col
    void  Open    ();
    void  Put     (char **rp, char *tip = nullptr);
    void  Shut    (bool rehop = false);
