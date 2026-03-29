@@ -273,6 +273,8 @@ ubyte MKey (char *s, char **news)
    return (ubyte)((*s-'0'+1)*12 + n + a);
 }
 
+ubyte MKey (const char *s)  {return MKey (CC(s));}
+
 char *MKey2Str (char *s, ubyte b, char fl)
 {  if (b < MKey (CC("0C")))  b = MKey (CC("0C"));
    if (fl == 'b')  StrFmt (s, "`d`s", b/12-1, MKeyStrB [b%12]);

@@ -49,6 +49,12 @@ sbyt4 MemCm (char *s1, char *s2, ubyt4 len, char x)
    }
    return 0;
 }
+sbyt4 MemCm (const char *s1, const char *s2, ubyt4 len, char x)
+{  return MemCm (CC(s1), CC(s2), len, x);  }
+sbyt4 MemCm (const char *s1,       char *s2, ubyt4 len, char x)
+{  return MemCm (CC(s1),    s2 , len, x);  }
+sbyt4 MemCm (      char *s1, const char *s2, ubyt4 len, char x)
+{  return MemCm (   s1,  CC(s2), len, x);  }
 
 
 //______________________________________________________________________________
@@ -102,6 +108,14 @@ sbyt4 StrCm (char *s1, char *s2, char x)
    }
    return 0;
 }
+sbyt4 StrCm (const char *s1, const char *s2, char x)       // come on c++ :/
+{  return StrCm (CC (s1), CC (s2), x);  }
+
+sbyt4 StrCm (char *s1, const char *s2, char x)
+{  return StrCm (s1, CC (s2), x);  }
+
+sbyt4 StrCm (const char *s1, char *s2, char x)
+{  return StrCm (CC (s1), s2, x);  }
 
 int StrCm2 (void *p1, void *p2)
 {  return StrCm (SC(char *,p1),SC(char *,p2));  }

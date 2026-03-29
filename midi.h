@@ -252,6 +252,7 @@ inline bool FnMid (char *fn)
 //______________________________________________________________________________
 extern ubyte MNt      (char *s);
 extern ubyte MKey     (char *s, char **news = nullptr);
+extern ubyte MKey     (const char *s);
 extern char *MKey2Str (char *s, ubyte b, char fl = '#');
 
 struct MDGrpDef {char sym [5];  ubyte nDr;};

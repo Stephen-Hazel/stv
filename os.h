@@ -67,7 +67,11 @@ void  MemSet  (void *dst, ubyte c,   ubyt4 len);
 void  MemCp   (void *dst, void *src, ubyt4 len);
 void *MemCh   (void *mem, ubyte c,   ubyt4 len);
 char *MemSt   (void *big, char *sm,  ubyt4 len, char x = '\0');
-sbyt4 MemCm   (char *s1,  char *s2,  ubyt4 len, char x = '\0');
+
+sbyt4 MemCm   (      char *s1,        char *s2,  ubyt4 len, char x = '\0');
+sbyt4 MemCm   (const char *s1,  const char *s2,  ubyt4 len, char x = '\0');
+sbyt4 MemCm   (const char *s1,        char *s2,  ubyt4 len, char x = '\0');
+sbyt4 MemCm   (      char *s1,  const char *s2,  ubyt4 len, char x = '\0');
 
 // str stuff
 ubyt4 StrLn   (char *str);
@@ -75,7 +79,12 @@ char *StrCp   (char *dst, char *src, char ul = '\0');     // up/lo case?
 char *StrAp   (char *dst, char *src, ubyt4 ofs = 0);
 char *StrCh   (char *str, char c);
 char *StrSt   (char *big, char *sm,    char x = '\0');    // exact? or caseless
-sbyt4 StrCm   (char *s1,  char *sbyt2, char x = '\0');
+
+sbyt4 StrCm   (      char *s1,       char *sbyt2, char x = '\0');
+sbyt4 StrCm   (const char *s1, const char *sbyt2, char x = '\0');
+sbyt4 StrCm   (const char *s1,       char *sbyt2, char x = '\0');
+sbyt4 StrCm   (      char *s1, const char *sbyt2, char x = '\0');
+
 int   StrCm2  (void *p1, void *p2);
 // zz list of strings has empty string at end of list (\0 within it per str)
 // so can't hold an empty string within it - ONLY at end
