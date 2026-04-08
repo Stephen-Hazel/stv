@@ -422,6 +422,8 @@ void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
    _w->addAction (bt->ac);
 }
 
+void CtlTBar::Btn (ubyte b, const char *tip, const char *ico, const char *key)
+{  Btn (b, CC(tip), ico, key);  }
 
 void CtlTBar::Sep (ubyte b)
 {  if (b >= BITS (_b))  {DBG("tooo many buttons in Sep !");   return;}

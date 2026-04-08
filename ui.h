@@ -221,6 +221,8 @@ public:
    void Init (QDialog     *d, const char *nm);
 
    void Btn  (ubyte b, char *tip, const char *ico = "", const char *key = "");
+   void Btn  (ubyte b, const char *tip,
+                                  const char *ico = "", const char *key = "");
    QAction *Act (ubyte b)  {return _b [b].ac;}
    void Sep  (ubyte b);                                 // seperator
    void Ico  (ubyte b, ubyte i, const char *ico = "");  // extra ico(s)
@@ -537,6 +539,7 @@ public:
    void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr,
                   const char *mode = "single", const char *what = "row",
                   char wrap = '\0');
+   ubyt2 W ()    {return _t->horizontalHeader ()->length ();}
    void  SetColWrapOK (ubyte c);
    void  SetRowH (ubyt2 h);
    ubyt2 ColW    (ubyte c);
