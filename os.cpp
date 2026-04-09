@@ -68,11 +68,17 @@ char *StrCp (char *dst, char *src, char ul)      // slow n safe...
    return dst;
 }
 
+char *StrCp (char *dst, const char *src, char ul)
+{  return StrCp (dst, CC(src), ul);  }
+
 char *StrAp (char *dst, char *src, ubyt4 ofs)
 { ubyt4 ln = StrLn (dst);
    if (ofs > ln)  ofs = ln;
-   StrCp (& dst [ln-ofs], src);  return dst;
+   return StrCp (& dst [ln-ofs], src);  return dst;
 }
+
+char *StrAp (char *dst, const char *src, ubyt4 ofs)
+{  return StrAp (dst, CC(src), ofs);  }
 
 char *StrCh (char *str, char c)
 {  return SC(char *,MemCh (str, SC(ubyte,c), StrLn (str)));  }

@@ -75,8 +75,10 @@ sbyt4 MemCm   (      char *s1,  const char *s2,  ubyt4 len, char x = '\0');
 
 // str stuff
 ubyt4 StrLn   (char *str);
-char *StrCp   (char *dst, char *src, char ul = '\0');     // up/lo case?
-char *StrAp   (char *dst, char *src, ubyt4 ofs = 0);
+char *StrCp   (char *dst,       char *src, char ul = '\0');     // up/lo case?
+char *StrCp   (char *dst, const char *src, char ul = '\0');
+char *StrAp   (char *dst,       char *src, ubyt4 ofs = 0);
+char *StrAp   (char *dst, const char *src, ubyt4 ofs = 0);
 char *StrCh   (char *str, char c);
 char *StrSt   (char *big, char *sm,    char x = '\0');    // exact? or caseless
 
