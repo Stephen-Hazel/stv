@@ -1,7 +1,6 @@
-// snd.h - sound - out only - deal with alsa pcm
+// snda.h - sound - out only - deal with alsa pcm
 
-#ifndef SND_H
-#define SND_H
+#pragma once
 
 #include "os.h"
 #define  ALSA_PCM_NEW_HW_PARAMS_API
@@ -33,5 +32,3 @@ private:
    TStr       _dev;
    snd_pcm_t *_hnd;
 };
-
-#endif  // SND_H

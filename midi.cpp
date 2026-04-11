@@ -785,7 +785,7 @@ MidiI::~MidiI (void)
 { int err;
 //TRC("~MidiI `s", *_name ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
-   if (_run)  {_run = false;   wait ();}
+   if (_run)  {_run = false;   wait ();}    // kinda slowww
    if ((err = ::snd_rawmidi_close (_hnd)))
       DBG("snd_rawmidi_close i `s failed: `s", _name, ::snd_strerror (err));
    _hnd = nullptr;

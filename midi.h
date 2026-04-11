@@ -1,8 +1,6 @@
 // midi.h - deal with the midi i/o stuph...
 
-#ifndef MIDI_H
-#define MIDI_H
-
+#pragma once
 #include "timer.h"                     // os.h incl by parent
 #include "alsa/asoundlib.h"
 #include <QThread>
@@ -288,5 +286,3 @@ extern MChdDef MChd [];
 extern ubyte  NMChd;
 extern ubyte    ChdPos (char *chd, ubyte *root = nullptr, ubyte *bass = nullptr,
                                                            char *sty = nullptr);
-
-#endif  // MIDI

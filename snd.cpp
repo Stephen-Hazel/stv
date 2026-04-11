@@ -1,4 +1,4 @@
-// snd.h - sound - out only - deal with alsa pcm
+// snda.cpp - sound - out only - deal with alsa pcm
 
 #include "snd.h"
 

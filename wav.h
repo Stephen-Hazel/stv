@@ -1,8 +1,6 @@
 // wav.h - load/save a .wav file.  pretty painful sigh.
 
-#ifndef WAV_H
-#define WAV_H
-
+#pragma once
 #include "os.h"
 
 #define EVEN(n)     ((n)&0xFFFFFFFE)
@@ -125,5 +123,3 @@ private:
    ubyt4                _fmtSz;
    WAVESMPL             _smp;
 };
-
-#endif

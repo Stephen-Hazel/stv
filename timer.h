@@ -1,8 +1,6 @@
 // timer.h - a millisec timer (1/1000 sec)
 
-#ifndef TIMER_H
-#define TIMER_H
-
+#pragma once
 #include "os.h"
 #include <QThread>                        // need QThread,etc
 #include "poll.h"
@@ -118,6 +116,3 @@ signals:
    void TimerEv ();                    // hit a time
    void TimerMsEv ();                  // ms delay expired
 };
-
-
-#endif  // TIMER_H
