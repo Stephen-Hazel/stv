@@ -1,8 +1,6 @@
 //      os.h - os stuph like machine specific types, os base, filesys, etc
 //             straight linux - no Qt
-#ifndef OS_H
-#define OS_H
-
+#pragma once
 #include <stdio.h>                     // just gimme em all shoish
 #include <string.h>
 #include <stdlib.h>
@@ -38,6 +36,7 @@ typedef u_int32_t      ubyt4;
 typedef   int64_t      sbyt8;
 typedef u_int64_t      ubyt8;
 typedef double          real;          // float is worthless
+typedef float           real4;         // but people use it sigh
 ubyt4 const FIX1  = 10000;             // fixed int holding 99999.9999
 ubyt4 const MAXUL = 0xFFFFFFFF;
 
@@ -948,6 +947,3 @@ DBG("`s died rc=`d", cmd, rc);
    if ((rc = system (cmd)))
 DBG("`s died rc=`d", cmd, rc);
 }
-
-
-#endif

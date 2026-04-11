@@ -1,9 +1,7 @@
 //      ui.h - ui stuph like window controls, etc - all da Qt
-#ifndef UI_H
-#define UI_H
 
+#pragma once
 #include "os.h"
-
 #include <QApplication>
 #include <QMainWindow>
 #include <QDebug>
@@ -917,6 +915,3 @@ private:
 ** RGB(0x8A,0x70,0x47),  // brn
 ** RGB(0xE4,0xA1,0x45),  // org
 */
-
-
-#endif

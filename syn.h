@@ -1,9 +1,7 @@
 // syn.h - easy(ish) software synthesizer
 //         .WAV files for instrument sounds
 
-#ifndef SYN_H
-#define SYN_H
-
+#pragma once
 #include "os.h"
 #include "midi.h"
 #include "snd.h"
@@ -216,5 +214,3 @@ public:
    void  Dump (char x = '\0');
 };
 extern Syn Sy;                         // that's me
-
-#endif
