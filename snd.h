@@ -1,34 +1,24 @@
-// snda.h - sound - out only - deal with alsa pcm
+// snd.h - sound via pipewire - out only
+// does pipewire require all these c++ standard libraries things?  hmmm...
 
 #pragma once
+#include <atomic>
+#include <functional>
+#include <thread>
 
-#include "os.h"
-#define  ALSA_PCM_NEW_HW_PARAMS_API
-#include <alsa/asoundlib.h>
-
-
-class SndLst {                         // query the hardwarez we gots
-public:
-   struct {TStr dev, desc;} lst [64];
-   ubyte                    len;
-   void Load (), Dump ();
-   char *Get (char *desc);
-};
-extern SndLst Snd;
-
+struct pw_main_loop;
+struct pw_stream;
 
 class SndO {
 public:
-   SndO (char *dev, ubyt4 nfr = 64, ubyt4 frq = 44100);
-  ~SndO ();
-
-   ubyt4 _nFr, _frq;                   // device may change these 2
-   bool  Dead ()  {return (_hnd == nullptr) ? true : false;}
-   char *Dev  ()  {return _dev;}
-   void  Dump (snd_pcm_hw_params_t *hw);
-   void  Put  (sbyt2 *buf);
+   bool open (const char *name, pfunc mix, ubyt4 frq = 48000, ubyte4 nFr = 64);
+   bool shut ();
 
 private:
-   TStr       _dev;
-   snd_pcm_t *_hnd;
+   pw_main_loop     *_pwLoop;          // pipewire handles
+   pw_stream        *_pwStream;
+   std::thread       _thread;          // thread and run state
+   std::atomic<bool> _run {false};
+   pfunc _mix;                         // mix func (syn)
+   ubyt4 _frq, _nFr;                   // samples/sec from open
 };
