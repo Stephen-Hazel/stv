@@ -1155,7 +1155,7 @@ void Syn::Init (char wav)
   TStr fn, s;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = false;                       // just here no cfg file
+   _trx = false;                       // TRX() here,  not TRC(),trc.cfg
 TRX("Syn::Init bgn");
   StrArr t (CC("cfg"), 2, 2*sizeof(TStr));
    App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/cfg.txt"));   t.Load (fn);
