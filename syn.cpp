@@ -4,21 +4,21 @@
 
 Syn Sy;                                // welp, that's everything...
 
-static char *R2Str (real f, char *s)   // fer dbg - no exp, 6 decimals
+static char *R2Str (smp f, char *s)  // fer dbg - no exp, 6 decimals
 { bool  neg;
   ubyt4 i, ln;
   TStr  t;
    neg = (f < 0.) ? true : false;   if (neg) f = -f;
-   i = (ubyt4)f;   f -= (real)i;
+   i = (ubyt4)f;   f -= (smp)i;
    StrFmt (t, "`06d", (ubyt4)(f*1000000.));
    while ((ln = StrLn (t)))  {if (t [--ln] == '0') t [ln] = '\0';   else break;}
    return StrFmt (s, "`s`d`s`s", neg?"-":"", i, *t?".":"", t);
 }
 
-static real Str2R (char *s)
+static smp Str2R (char *s)
 { QString st = s;
   bool ok;
-  real r = st.toDouble (& ok);
+  smp r = st.toDouble (& ok);
    return ok ? r : 0.0;
 }
 
@@ -26,58 +26,58 @@ static real Str2R (char *s)
 //                                                    -1..1, -1..1 from bend
 static bool  Mb  (ubyte c)                      {return c >= 64;}
 static ubyte Mst (ubyte c, ubyte max)           {return (ubyte)(max*c/127);}
-static real  Mu  (ubyte c)                      {return  (real)c/  127.;}
-static real  Mu2 (ubyt2 c)                      {return  (real)c/16383.;}
-static real  Ms  (ubyte c)  {if (c == 0) c = 1;  return ((real)c-   64.)/  63.;}
-static real  Ms2 (ubyt2 c)  {if (c == 0) c = 1;  return ((real)c- 8192.)/8191.;}
+static smp   Mu  (ubyte c)                      {return        (smp)c/127.;}
+static smp   Mu2 (ubyt2 c)                      {return        (smp)c/16383.;}
+static smp   Ms  (ubyte c)  {if (c == 0) ++c;   return ((smp)c-  64.)/  63.;}
+static smp   Ms2 (ubyt2 c)  {if (c == 0) ++c;   return ((smp)c-8192.)/8191.;}
 
 
 // lookup stufffff _____________________________________________________________
 const ubyt4 MAX_DITHER = 48000;
 
-static real     Interp [256][2];       // interpolation coefficients
+static smp      Interp [256][2];       // interpolation coefficients
 static void InitInterp ()              // 256 cuz hi byte of phase frac=> index
 {  for (ubyt2 i = 0;  i < BITS (Interp);  i++) {
-     real x = (real)i / (real)BITS (Interp);
+     smp x = (smp)i / (smp)BITS (Interp);
       Interp [i][0] = 1.0 - x;   Interp [i][1] = x;
    }
 }
 
-static real     Dither [2][MAX_DITHER];     // per l/r channel
-static void InitDither (void)               // rand real btw -.999 and +.999
+static smp      Dither [2][MAX_DITHER];     // per l/r channel
+static void InitDither (void)               // rand smp btw -.999 and +.999
 // add a smidge of randomness to limit truncation distortion goin real=>sbyt4
-{ real  d, dp;                         // tricky - read up on ole google
+{ smp d, dp;                         // tricky - read up on ole google
   sbyt4 c, i;
    for (c = 0;  c < 2;  c++) {
       for (dp = 0., i = 0;  i < MAX_DITHER-1;  i++) {
-         d = rand () / (real)RAND_MAX - 0.5;
+         d = rand () / (smp)RAND_MAX - 0.5;
          Dither [c][i] = d - dp;   dp = d;
       }
       Dither [c][MAX_DITHER-1] = 0 - dp;
    }
 }
                                        // conversion tables...
-static real Cnv_ct2hz [1200];          // cents to hz
-static real     Ct2Hz (real ct)
-{  if (ct <     0.) return (real)    1.;
-   if (ct <   900.) return (real)    6.875 * Cnv_ct2hz [(sbyt4)(ct + 300)];
-   if (ct <  2100.) return (real)   13.75 * Cnv_ct2hz [(sbyt4)(ct -  900)];
-   if (ct <  3300.) return (real)   27.5 * Cnv_ct2hz [(sbyt4)(ct -  2100)];
-   if (ct <  4500.) return (real)   55.  * Cnv_ct2hz [(sbyt4)(ct -  3300)];
-   if (ct <  5700.) return (real)  110.  * Cnv_ct2hz [(sbyt4)(ct -  4500)];
-   if (ct <  6900.) return (real)  220.  * Cnv_ct2hz [(sbyt4)(ct -  5700)];
-   if (ct <  8100.) return (real)  440.  * Cnv_ct2hz [(sbyt4)(ct -  6900)];
-   if (ct <  9300.) return (real)  880.  * Cnv_ct2hz [(sbyt4)(ct -  8100)];
-   if (ct < 10500.) return (real) 1760.  * Cnv_ct2hz [(sbyt4)(ct -  9300)];
-   if (ct < 11700.) return (real) 3520.  * Cnv_ct2hz [(sbyt4)(ct - 10500)];
-   if (ct < 12900.) return (real) 7040.  * Cnv_ct2hz [(sbyt4)(ct - 11700)];
-   if (ct < 14100.) return (real)14080.  * Cnv_ct2hz [(sbyt4)(ct - 12900)];
-   return                  (real)    1.;
+static smp Cnv_ct2hz [1200];          // cents to hz
+static smp     Ct2Hz (smp ct)
+{  if (ct <     0.) return (smp)    1.;
+   if (ct <   900.) return (smp)    6.875 * Cnv_ct2hz [(sbyt4)(ct + 300)];
+   if (ct <  2100.) return (smp)   13.75 * Cnv_ct2hz [(sbyt4)(ct -  900)];
+   if (ct <  3300.) return (smp)   27.5 * Cnv_ct2hz [(sbyt4)(ct -  2100)];
+   if (ct <  4500.) return (smp)   55.  * Cnv_ct2hz [(sbyt4)(ct -  3300)];
+   if (ct <  5700.) return (smp)  110.  * Cnv_ct2hz [(sbyt4)(ct -  4500)];
+   if (ct <  6900.) return (smp)  220.  * Cnv_ct2hz [(sbyt4)(ct -  5700)];
+   if (ct <  8100.) return (smp)  440.  * Cnv_ct2hz [(sbyt4)(ct -  6900)];
+   if (ct <  9300.) return (smp)  880.  * Cnv_ct2hz [(sbyt4)(ct -  8100)];
+   if (ct < 10500.) return (smp) 1760.  * Cnv_ct2hz [(sbyt4)(ct -  9300)];
+   if (ct < 11700.) return (smp) 3520.  * Cnv_ct2hz [(sbyt4)(ct - 10500)];
+   if (ct < 12900.) return (smp) 7040.  * Cnv_ct2hz [(sbyt4)(ct - 11700)];
+   if (ct < 14100.) return (smp)14080.  * Cnv_ct2hz [(sbyt4)(ct - 12900)];
+   return                  (smp)    1.;
 }
 
-static real Cnv_pan [513];             // 0..512 to pan (sin(0..PI/2)
-static real     Pan (real p, ubyte lr)      // 0..255(256),256,257..512(256)
-{ ubyt2 i;                                  //        left,cnt,right
+static smp Cnv_pan [513];              // 0..512 to pan (sin(0..PI/2)
+static smp     Pan (smp p, ubyte lr)   // 0..255(256),256,257..512(256)
+{ ubyt2 i;                             //        left,cnt,right
    if      (p < -1.) i = 0;
    else if (p >  1.) i = 512;
    else              i = (ubyt2) round (256+p*256);
@@ -85,26 +85,26 @@ static real     Pan (real p, ubyte lr)      // 0..255(256),256,257..512(256)
    return Cnv_pan [i];
 }
 
-static real Cnv_sin [4096];            // 1/4 sin table lookup (other 3/4 calcd)
-static real     Sin (real in, ubyte q = 0)  // q is quad of the full sin curve
+static smp Cnv_sin [4096];             // 1/4 sin table lookup (other 3/4 calcd)
+static smp     Sin (smp in, ubyte q = 0)    // q is quad of the full sin curve
 { ubyt2 i;
    if      (in < 0.) i = 0;
    else if (in > 1.) i = 4095;
    else              i = (ubyt2) round (in*4095.);
-  real o = Cnv_sin [(q & 0x01) ? (4095-i) : i];  // sin or cos (q1,2 default)
+  smp o = Cnv_sin [(q & 0x01) ? (4095-i) : i];  // sin or cos (q1,2 default)
    if (q >= 2)  return -o;             // neg swing of sin/cos (q3,4)
    return o;
 }
 
 static void InitLookup ()
 { sbyt4 i;
-  real  x;
+  smp   x;
    for (i = 0;  i < BITS (Cnv_ct2hz);  i++)
-                              Cnv_ct2hz [i] = (real) pow (2., (real) i / 1200.);
+                                Cnv_ct2hz [i] = (smp) pow (2., (smp) i / 1200.);
    x = M_PI/2. /   (BITS (Cnv_pan) - 1.);
-   for (i = 0;  i < BITS (Cnv_pan);  i++)  Cnv_pan [i] = (real) sin (i * x);
+   for (i = 0;  i < BITS (Cnv_pan);  i++)  Cnv_pan [i] = (smp) sin (i * x);
    x = M_PI/2. /   (BITS (Cnv_sin) - 1.);
-   for (i = 0;  i < BITS (Cnv_sin);  i++)  Cnv_sin [i] = (real) sin (i * x);
+   for (i = 0;  i < BITS (Cnv_sin);  i++)  Cnv_sin [i] = (smp) sin (i * x);
    InitInterp ();   InitDither ();
 //TStr ts; for (i = 0; i < BITS (Cnv_sin); i++) DBG("sin `d=`s",
 //                                                  i, R2Str (Cnv_sin[i],ts));
@@ -131,7 +131,7 @@ TRX("   snd=`d hold=`d pBnd=`d pBnr=`d fCut=`d fRes=`d vCut=`d vol=`d pan=`d\n"
 // sounds and their samples
 #define MAX_SAMP (88*20*2)             // max #stereo WAVs per sound
                                        // all piano keys - 20 velo grps
-const  real   MAXS4 = 2147483648.;
+const  smp    MAXS4 = 2147483648.;
 static TStr   WavFn [MAX_SAMP*2];      // hold sounds' wavs while loading
 static Sample TSmp  [MAX_SAMP];        // sample is mostly just a data struct
                                        // (little code to it)
@@ -157,7 +157,7 @@ static int TSmCmp (void *p1, void *p2)
 
 void Sound::Dump ()
 {  TRX("   `s nSmp=`d siz=`d xFrq=`b xRls=`b",
-           _nm,  _nSmp,  _siz,  _xFrq,  _xRls);  // " pa=`s", _pa);
+       _nm,  _nSmp,  _siz,  _xFrq,  _xRls);
 }
 
 
@@ -168,7 +168,7 @@ ubyt4 Sound::LoadDat (ubyt4 pos)
   sbyt4 si, lenD, s, p1 = pos;
   ubyt2 i;
   ubyte nby, flo, *p, a, b;
-  real  sr, max = 0.;
+  smp   sr, max = 0.;
 TRX("Sound::LoadDat pos=`d", pos);
    for (i = 0;  i < _nSmp;  i++) {
       StrFmt (fn, "`s/device/syn/`s/`s",  App.Path (s1, 'd'), _pa, _smp [i].fn);
@@ -194,7 +194,7 @@ TRX("   got smp `d/`d pos=`d", i, _nSmp, pos);
                         si |= ((ubyt4)(b = *p++) << 24);     break;
                case 4:  si  = *((sbyt4 *)p);   p += 4;       break;
             }
-            sr = (real)si / MAXS4;
+            sr = (smp)si / MAXS4;
 //DBG("p=`d a=`u b=`u int=`d r=`s", pos, a, b, si, R2Str(sr,s1));
          }
          if (fabs (sr) > max)  max = fabs (sr);
@@ -232,8 +232,8 @@ bool Sound::LoadFmt (char *wfn, ubyte ky, ubyte vl)
    s->len   = (w._loop && (! _xRls)) ? w._lEnd+1 : w._len;
    _nSmp++;   _siz += s->len;
    if (w._mono)
-      s->lr = StrSt (wfn, CC("_L.WAV")) ? 0 :
-             (StrSt (wfn, CC("_R.WAV")) ? 1 : 2);
+      s->lr = StrSt (wfn, "_L.WAV") ? 0 :
+             (StrSt (wfn, "_R.WAV") ? 1 : 2);
    else {
       s->lr = 0;   MemCp (s+1, s, sizeof (TSmp[0]));   s++;
       s->lr = 1;   _nSmp++;   _siz += s->len;
@@ -267,10 +267,10 @@ Sy._nSnd, snd, (dKey==128)?"(melo)":MDrm2Str(s2,dKey));
    if (i > 5) {
    // snd w ~hold suffix=> no release ramp on ntUp, ~drum suffix=> un-pitched
    // ~clip suffix for both ^                    (or in a drum dir ^ )
-      if ((! MemCm (_nm, CC("Drum/"), 5)) ||
-          (! MemCm (& _pa [i-5], CC("~drum"), 5))) _xFrq = true;
-      if  (! MemCm (& _pa [i-5], CC("~hold"), 5))  _xRls = true;
-      if  (! MemCm (& _pa [i-5], CC("~clip"), 5))  _xFrq = _xRls = true;
+      if ((! MemCm (_nm, "Drum/", 5)) ||
+          (! MemCm (& _pa [i-5], "~drum", 5))) _xFrq = true;
+      if  (! MemCm (& _pa [i-5], "~hold", 5))  _xRls = true;
+      if  (! MemCm (& _pa [i-5], "~clip", 5))  _xFrq = _xRls = true;
    }
 TRX("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
 
@@ -283,12 +283,12 @@ TRX("   _pa=`s xFrq=`b xRls=`b", _pa, _xFrq, _xRls);
       ky = vl = 0xFF;
       StrCp (s, WavFn [i]);
       for (p = s;  *p;  p++)
-         if ( (StrLn (p) >= 5) && (! MemCm (p, CC("_k"), 2)) &&
+         if ( (StrLn (p) >= 5) && (! MemCm (p, "_k", 2)) &&
                                   (p [2] >= '0') && (p [2] <= '9') )
             {if ((k1 =           MKey (& p [2])) > 0)  ky = k1;   break;}
       if (dKey < 128)  ky = dKey;
       for (p = s;  *p;  p++)
-         if ( (StrLn (p) >= 6) && (! MemCm (p, CC("_v"), 2)) &&
+         if ( (StrLn (p) >= 6) && (! MemCm (p, "_v", 2)) &&
                                   (p [2] >= '0') && (p [2] <= '9') )
             {if ((k1 = (ubyte)Str2Int (& p [2])) > 0)  vl = k1;   break;}
 
@@ -338,7 +338,7 @@ TRX("   nSmp=`d", _nSmp);
 Sound::~Sound ()  {delete [] _smp;}
 //______________________________________________________________________________
 // low pass filter for each voice
-void LPF::Cut (real c)                 // cutoff frequency in absolute cents
+void LPF::Cut (smp c)                 // cutoff frequency in absolute cents
 // limit cut range n convert from cents to hz  (called once per buffer)
 // rebuild coefficients if necessary           (1500-13500 ct => 20-20K hz)
 {  cut = Ct2Hz (c);                    // (8000-13500 usable range tho)
@@ -346,15 +346,15 @@ void LPF::Cut (real c)                 // cutoff frequency in absolute cents
    else if (cut < 5.)              cut = 5.;
    if ((fabs (cut - pCut) <= 0.01))  return;     // can we skip the grindin'...?
 
-  real omega = 2.*M_PI * (cut / Sy._frq);
-  real sinO  = sin (omega);
-  real cosO  = cos (omega);
-  real alpha = sinO / (2. * res);
-  real a0Inv = 1. / (1. + alpha);
-  real a1New = -2. * cosO   * a0Inv;
-  real a2New = (1. - alpha) * a0Inv;
-  real b1New = (1. - cosO)  * a0Inv * gain;
-  real b2New = b1New * 0.5;
+  smp omega = 2.*M_PI * (cut / Sy._frq);
+  smp sinO  = sin (omega);
+  smp cosO  = cos (omega);
+  smp alpha = sinO / (2. * res);
+  smp a0Inv = 1. / (1. + alpha);
+  smp a1New = -2. * cosO   * a0Inv;
+  smp a2New = (1. - alpha) * a0Inv;
+  smp b1New = (1. - cosO)  * a0Inv * gain;
+  smp b2New = b1New * 0.5;
 //TStr t1,t2,t3,t4,t5,t6,t7,t8,t9,ts;
 //DBG("cut=`s omega=`s sinO=`s cosO=`s alpha=`s "
 //"a0Inv=`s a1=`s a2=`s b1=`s b2=`s",
@@ -371,10 +371,10 @@ void LPF::Cut (real c)                 // cutoff frequency in absolute cents
    pCut = cut;
 }
 
-void LPF::Res (real r)                 // resonance (0-960 cB => 0-96 dB)
+void LPF::Res (smp r)                  // resonance (0-960 cB => 0-96 dB)
 {  if ((fabs (res - pRes) <= 0.01))  return;
 
-  real x = r / 10.;                    // x is q_dB
+  smp x = r / 10.;                     // x is q_dB
    if      (x <  0.)  x =  0.;
    else if (x > 96.)  x = 96.;
    x -= 3.01;
@@ -387,17 +387,17 @@ void LPF::Res (real r)                 // resonance (0-960 cB => 0-96 dB)
 void LPF::Init ()
 {  init = true;   pCut = pRes = -1.;   hist1 = hist2 = 0.;   Res (0.);  }
 
-real LPF::Mix (real smp)               // actually DO the filterin'
+smp LPF::Mix (smp s)                   // actually DO the filterin'
 {  if (fabs (hist1) < 1e-20)  hist1 = 0.;     // (called once per sample)
-  real centerNode = smp - a1*hist1 - a2*hist2;
-  real x =                b1*hist1 + b2*(centerNode + hist2);
+  smp centerNode = s - a1*hist1 - a2*hist2;
+  smp x =              b1*hist1 + b2*(centerNode + hist2);
    hist2 = hist1;   hist1 = centerNode;
    if (inc)  {inc--;   a1 += a1Inc;   a2 += a2Inc;
                        b1 += b1Inc;   b2 += b2Inc;}
 //TStr t1,t2,t3,t4,t5,t6,t7,t8,t9;
 //DBG("smp=`s x=`s centerNode=`s hist1=`s hist2=`s "
 //"a1=`s a2=`s b1=`s b2=`s",
-//R2Str(smp,t1),R2Str(x,t2),R2Str(centerNode,t3),
+//R2Str(s,t1),R2Str(x,t2),R2Str(centerNode,t3),
 //R2Str(hist1,t4),R2Str(hist2,t5),R2Str(a1,t6),R2Str(a2,t7),
 //R2Str(b1,t8),R2Str(b2,t9));
    return x;
@@ -417,11 +417,11 @@ void Glide::Init (ubyte ch, ubyte key)
 //TStr s1,s2;
 //DBG("ch=`d glide `s => `s rate=`d",
 //ch, MKey2Str(s1,pn), MKey2Str(s2,key), c->glRate);
-   ofs = ((real)pn - key) * 100.0;
+   ofs = ((smp)pn - key) * 100.0;
 //DBG("   ofs=`s inc=`s", R2Str(ofs,s1),R2Str(inc,s2));
 
 // OLD/calc:  samp/sec / samp/buf => buf/sec so s4 buffers use 4 secs
-//real s4 = 4.0 * (real)Sy._frq / Sy._nFr;
+//smp s4 = 4.0 * (smp)Sy._frq / Sy._nFr;
 // inc = -ofs / (s4 * (c->glRate+1) / 128.0);    // not enough quick vals tho
 
 // SHOISH - 4 periods per rate step startin at 20 - max of about 0.75 secs
@@ -446,12 +446,12 @@ void Env::ReDur ()
 //    frq sample/sec / nfr sample/buf
 //    frq sample/sec * buf/nfr sample     buf/sec => bufs
 //    frq/nfr buf/sec
-{ real np, c;
+{ smp np, c;
    for (ubyte i = 0;  stg [i].dur;  i++) {
    // songtime dur => # period buffers
       stg [i].nper = np =
-         (real)stg [i].dur / (M_WHOLE/4.) / (Sy._in.tmpo / 60.) * dx *
-         (real)Sy._frq/(real)Sy._nFr;
+         (smp)stg [i].dur / (M_WHOLE/4.) / (Sy._in.tmpo / 60.) * dx *
+         (smp)Sy._frq/(smp)Sy._nFr;
       if ((c = stg [i].crv) < 0.)  continue;     // curve ratio: sin has no init
 
       if (c < 0.000000001)  c = 0.000000001;     // -180 dB
@@ -482,15 +482,15 @@ DBG("hey durX=`d => 12", durX);   durX = 12;}
    ReDur ();                                // period
 }
 
-real Env::Mix ()
+smp Env::Mix ()
 { Channel *ch = & Sy._chn [cid];
-  real  lx = lvlX ?               Mu (ch->x [lvlX-1])              : 1.;
-  real ndx = durX ? (((int)(31. * Mu (ch->x [durX-1])) + 1) / 32.) : 1.;
+  smp  lx = lvlX ?               Mu (ch->x [lvlX-1])              : 1.;
+  smp ndx = durX ? (((int)(31. * Mu (ch->x [durX-1])) + 1) / 32.) : 1.;
    if (ndx != dx)  {dx = ndx;   ReDur ();}
 
    if (End () && (stg [s].add == 0.))  return lvl*lx;
   sbyte d  = stg [s  ].dir;            // git ma next dude
-  real  l2 = stg [s+1].lvl, mag;
+  smp  l2 = stg [s+1].lvl, mag;
    p++;
    if (stg [s].crv >= 0.)
       lvl = lvl * stg [s].mul + stg [s].add;     // exp crv
@@ -533,8 +533,8 @@ void EnvO::Init (ubyte cid, char *es)
             o [e [i].dst] = e [i].lvl;
          }
    }
-   if ((i == 0) || MemCm (ss.Col [i-1], CC("rel"), 3)) {   // only skip rel if
-      if (i >= 16) i--;   else e.Ins ();                   // last env is rel*
+   if ((i == 0) || MemCm (ss.Col [i-1], "rel", 3)) {  // only skip rel if
+      if (i >= 16) i--;   else e.Ins ();              // last env is rel*
       e [i].Init (0, cid);             // env bank 0 is default release
    }
 }
@@ -553,10 +553,10 @@ char *EnvO::Mix (char rel)
       else       {o [d]  = e [i].Mix ();   x [d] = 1;}
    }
    *re = '\0';
-   if (x [0] || x [1])  StrAp (re, CC("n"));
-   if (x [2] || x [3])  StrAp (re, CC("f"));
-   if (x [4])           StrAp (re, CC("a"));
-   if (x [5])           StrAp (re, CC("p"));
+   if (x [0] || x [1])  StrAp (re, "n");
+   if (x [2] || x [3])  StrAp (re, "f");
+   if (x [4])           StrAp (re, "a");
+   if (x [5])           StrAp (re, "p");
 //if (*re) TRX("      envo re=`s`s`s`s`s`s",
 //x[0]?"oStp ":"", x[1]?"oCnt ":"", x[2]?"fCut ":"", x[3]?"fRes ":"",
 //x[4]?"amp ":"",  x[5]?"pan":"");
@@ -577,15 +577,15 @@ void Voice::Init ()  {_on = '\0';   _ch = 0xFF;}
 // index - hi ubyt4 - array pos within sample
 // fract - lo ubyt4's hi ubyte - array pos in Interp[]
 #define MAXU4           (4294967296.)  // max ubyt4 as real
-#define LONG2PHASE(a)   (((Phase)(a))<<32)
-#define REAL2PHASE(a)  ((((Phase)(a))<<32) | (Phase)(((a)-((ubyt4)(a)))*MAXU4))
+#define LONG2PHASE(a)   (((phase)(a))<<32)
+#define REAL2PHASE(a)  ((((phase)(a))<<32) | (phase)(((a)-((ubyt4)(a)))*MAXU4))
 #define PHASE_INDEX(x)  ((ubyt4)((x) >> 32))
 #define PHASE_FRACT(x)  ((((ubyt4)(x)) >> 24) & 0x00FF)
 
 void Voice::ReFrq ()
 // set frq - inc based on card vs. smp root vs. note frq  (drum notes unpitched)
-{ real n, t;
-   t = (real)_smp->frq / (real)Sy._frq;
+{ smp n, t;
+   t = (smp)_smp->frq / (smp)Sy._frq;
    if (! _snd->_xFrq) {                // is the sample pitched?
       n = _key        * 100. + _gl.ofs +
           _eo.oStp () * 100. + round (_eo.oCnt ()) +
@@ -609,8 +609,8 @@ _c->pBnd, R2Str(_c->pBnR*100.*Ms2 (_c->pBnd),s4) );
 
 
 void Voice::ReFlt ()                   // set filter cutoff,resonance: cc n envs
-{ real cut = Mu (_c->fCut) * _eo.fCut (),
-       res = Mu (_c->fRes) * _eo.fRes ();
+{ smp cut = Mu (_c->fCut) * _eo.fCut (),
+      res = Mu (_c->fRes) * _eo.fRes ();
    if ((_ch != 9) && Mb (_c->vCut))  cut *= Mu (_vel);
 //TStr s1, s2;
 //TRX("ReFlt cut=`s (env=`s vCut=`b vel=`d)",
@@ -621,13 +621,11 @@ void Voice::ReFlt ()                   // set filter cutoff,resonance: cc n envs
 
 
 void Voice::ReAmp ()                   // set amp - based on vol cc, velo, envs
-{ real a = Mu (_c->vol) * Mu (_vel) * _eo.amp ();
-   _amp = Sy._vol * a;
-}
+{  _amp = Mu (_c->vol) * Mu (_vel) * _eo.amp ();  }
 
 
 void Voice::RePan ()                   // set pan - pan cc
-{ real p = Ms (_c->pan) + _eo.pan ();
+{ smp p = Ms (_c->pan) + _eo.pan ();
    _panL = (_smp->lr == 1) ? 0. : Pan (p, 0);
    _panR = (_smp->lr == 0) ? 0. : Pan (p, 1);
 }
@@ -645,10 +643,10 @@ void Voice::Re (char re)               // recalc voice params
 
 void Voice::Bgn (ubyte c, ubyte k, ubyte v, Sound *s, Sample *sm, char *es,
                  ubyt4 no, ubyt2 pos)
-// called by synth's NtOn per matching sample of chan's sound (usually 2x: L,R)
+// called by synth's ntOn per matching sample of chan's sound (usually 2x: L,R)
 {  _c = & Sy._chn [_ch = c];   _key = k;   _vel = v;   _snd = s;   _smp = sm;
    _no = no;   _pos = pos;
-   _nPer = 0;   _phase = (Phase)0;   _looped = false;
+   _nPer = 0;   _phase = (phase)0;   _looped = false;
    _flt.Init ();   _gl.Init (c, k);
    _eo.Init (c, es);   Re ('*');
    _on = 'd';
@@ -674,8 +672,8 @@ ubyt4 Voice::Osc ()
 // stretch sample (per note frq vs. root frq) into _intp dsp buffer (o here)
 // hi byte of phase fraction tells how to balance our 2 samples at a time
 { ubyt4 s,  sEnd,   d,   nfr = Sy._nFr;
-  real *in, se,    *o, *co;
-  Phase ph;
+  smp *in, se,    *o, *co;
+  phase ph;
   bool  loopin = (_smp->lpBgn < _smp->len) ? true : false;
 
    in = & Sy._smp [_smp->pos];   o = Sy._intp;
@@ -720,7 +718,7 @@ ubyt4 Voice::Osc ()
 
 void Voice::Mix ()                     // da GUTS :)
 { ubyt4 i, len;
-  real  s, *mL = Sy._mixL, *mR = Sy._mixR;
+  smp   s, *mL = Sy._mixL, *mR = Sy._mixR;
   char *re;
    if (! _on)                         return;
    if (_snd == nullptr)    {End ();   return;}
@@ -765,7 +763,7 @@ R2Str(_amp,s3), R2Str(_panL,s1), R2Str(_panR,s2));
 // syn sound bank management
 void Syn::WipeSnd ()
 { ubyte t;
-   if (_run)  _lok.Grab ();
+   _lok.Grab ();
 TRX("   Syn::WipeSnd");
    AllVc (9, 'e');   for (t = 0;  t <= _maxChn;  t++)  AllVc (t, 'e');
 //TODO off all the drums too
@@ -775,7 +773,7 @@ TRX("   Syn::WipeSnd");
                                      {delete _drm [t];   _drm [t] = nullptr;}
    delete [] _smp;   _smp = nullptr;   _nSmp = 0;
    _maxLvl = 1.0;   _maxVc = 0;   _maxChn = 0;
-   if (_run)  _lok.Toss ();
+   _lok.Toss ();
 }
 
 void Syn::LoadSnd (TStr *snd, ubyte maxch)
@@ -784,7 +782,7 @@ void Syn::LoadSnd (TStr *snd, ubyte maxch)
   ubyt4 sz;
 TRX("Syn::LoadSnd maxch=`d", maxch);
    WipeSnd ();
-   if (_run)  _lok.Grab ();
+   _lok.Grab ();
    _maxChn = maxch;
    for (s = 0;  s < 128;  s++)  if (snd [s][0]) {
 TRX("snd=`d `s", _nSnd,             snd [s]);
@@ -800,7 +798,7 @@ TRX("drm=`s `s", MDrm2Str (st, s),  snd [s+128]);
    for (s = 0;  s < _nSnd;  s++)                 sz += _snd [s]->_siz;
    for (s = 0;  s <   128;  s++)  if (_drm [s])  sz += _drm [s]->_siz;
 TRX("alloc _smp[`d]", sz);
-   _smp = new real [sz];   _nSmp = sz;   sz = 0;
+   _smp = new smp [sz];   _nSmp = sz;   sz = 0;
    if (_smp == nullptr) {
 TRX("Syn::LoadSnd  Outa memory - `d samples => `d bytes :(", _nSmp, _nSmp*8);
       for (s = 0; s < _nSnd; s++)
@@ -808,14 +806,14 @@ TRX("   Snd `s siz=`d", _snd [s]->_nm, _snd [s]->_siz);
       for (s = 0; s < 128; s++) if (_drm [s])
 TRX("   Drm `s siz=`d", _drm [s]->_nm, _drm [s]->_siz);
       WipeSnd ();
-      if (_run)  _lok.Toss ();
+      _lok.Toss ();
       return;
    }
 // load n convert -all- sounds' .WAV files' samples to real
 TRX("loadin snd n drm");
    for (s = 0;  s < _nSnd;  s++)                 sz = _snd [s]->LoadDat (sz);
    for (s = 0;  s <   128;  s++)  if (_drm [s])  sz = _drm [s]->LoadDat (sz);
-   if (_run)  _lok.Toss ();
+   _lok.Toss ();
 TRX("Syn::LoadSnd end");
 //Dump('s');
 }
@@ -928,7 +926,7 @@ TRX(" AllVc ch=`d `s", ch+1,
    for (ubyt2 i = 0;  i < _nVc;  i++)  if (_vc [i]._on && (_vc [i]._ch == ch))
       switch (todo) {
          case 'e':  _vc [i].End  ();     break;  // allsoundoff NOW
-         case 'r':  _vc [i].Rels ();     break;  // allnotesoff(rels)
+         case 'r':  _vc [i].Rels ();     break;  // allnotesoff(Rels)
          default:   _vc [i].Re (todo);   break;  // recalc vc live
       }                                // todo: n f a p = frq flt amp pan
 }
@@ -942,7 +940,7 @@ void Syn::Put (ubyte ch, ubyt2 c, ubyte v, ubyte v2, char *es)
 { char re = '\0';
   TStr s;
   Channel *chn = & _chn [ch];
-   if (_run)  _lok.Grab ();
+   _lok.Grab ();
 
 // do note on/off
    if (! (c & 0xFF80)) {
@@ -964,7 +962,7 @@ ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
       }
       else
          NOff (ch, c, v);
-      if (_run)  _lok.Toss ();
+      _lok.Toss ();
       return;
    }
 
@@ -972,7 +970,7 @@ ch+1, (ch == 9) ? MDrm2Str(s,c) : MKey2Str(s,c),
 TRX("Syn::Put ch=`d `s v=`d v2=`d", ch+1, MCtl2Str (s,c,'r'), v, v2);
    if ((v >= 128) && (c != MC_PROG)) {
 DBG("Syn::Put bad valu  ch=`d cc=`d valu=`d", ch+1, c, v);
-      if (_run)  _lok.Toss ();
+      _lok.Toss ();
       return;
    }
    switch (c) {
@@ -1002,7 +1000,7 @@ DBG("Syn::Put PROGCH past bank or on drums");
                           chn->x [c - (MC_CC|28)] = v;
    }
    if (re)  AllVc (ch, re);
-   if (_run)  _lok.Toss ();
+   _lok.Toss ();
 }
 
 
@@ -1028,7 +1026,7 @@ void Syn::Dump (char x)                // sounds, samples, channels, voices
    for (ubyt2 v = 0;  v < _nVc;  v++)  {TRX("vc=`d",v);   _vc [v].Dump ();}
 }
 //______________________________________________________________________________
-sbyt2 Syn::r2i (real r, real dth)
+sbyt2 Syn::r2i (smp r, smp dth)
 {  if (fabs (r) > _maxLvl) {
       _maxLvl = fabs (r);
 TStr s; DBG("Syn maxLevel=`s", R2Str (_maxLvl,s));
@@ -1040,8 +1038,8 @@ TStr s; DBG("Syn maxLevel=`s", R2Str (_maxLvl,s));
 
 
 void Syn::PutWav (sbyt2 *out, ubyt4 len)
-// rendering direct to .wav 16bit 44.1KHz
-{ ubyt4 ofs, sz = _nFr * sizeof (real);
+// rendering direct to 16 bit .wav
+{ ubyt4 ofs, sz = _nFr * sizeof (smp);
   ubyt2 i;
   static ubyt4 _cur = 0;
    for (ofs = 0;  len--;  _cur++) {
@@ -1062,27 +1060,24 @@ TRX("   `d `d `d", ofs-2, out [ofs-2], out [ofs-1]);
 }
 
 
-void Syn::run ()
-// live rendering: send interleaved stereo sbyt2 samples to soundcard
-{ ubyt4 sz  = _nFr * sizeof (real);
-  ubyte per = 0;
-  ubyt2   i;
-  sbyt2 (*o)[2];
-DBGTH("Syn");   DBG("run bgn");
-   while (_run) {
-      o = & _out [per*_nFr];   per = per ? 0 : 1;     // double bufferin
-      MemSet (_mixL, 0, sz);   MemSet (_mixR, 0, sz);
-      _lok.Grab ();
-      for (i = 0;  i < _nVc;  i++)  _vc [i].Mix ();
-      for (i = 0;  i < _nFr;  i++) {   // sound card wants interleaved ints
-         o [i][0] = r2i (_mixL [i], Dither [0][_dth]);
-         o [i][1] = r2i (_mixR [i], Dither [1][_dth]);
-         if (++_dth >= MAX_DITHER)  _dth = 0;
-      }
-      _lok.Toss ();
-      _sn->Put ((sbyt2 *)o);           // this'll block us on 2nd call and on
+ubyt4 Syn::Mix (smp *buf, ubyt4 reqFr, ubyt4 maxFr)
+// live rendering: give interleaved stereo smp to pipewire
+// we're static but we got this in Sy :/
+{ ubyt4 nFr = Sy._nFr,
+        sz  = nFr * sizeof (smp);
+  smp  *mL  = Sy._mixL,
+       *mR  = Sy._mixR;
+  ubyt2 i;
+  smp (*o)[2] = (smp (*)[2])buf;
+   MemSet (mL, 0, sz);   MemSet (mR, 0, sz);
+   Sy._lok.Grab ();
+   for (i = 0;  i < Sy._nVc;  i++)  Sy._vc [i].Mix ();
+   for (i = 0;  i < nFr;  i++) {       // pipewire wants interleaved smps
+      o [i][0] = mL [i];
+      o [i][1] = mR [i];
    }
-DBG("run end");
+   Sy._lok.Toss ();
+   return nFr;
 }
 
 
@@ -1092,7 +1087,7 @@ void Syn::LoadEnv ()
   ubyt4 en, st, d, i;
   char *ch, *p, *ds = CC("WHQEST612");   // whole, half, ... 64th, 128th, 256th
   StrArr t (CC("env"), 128, 128*sizeof(TStr));
-   App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/env.txt"));   t.Load (fn);
+   App.Path (fn, 'd');   StrAp (fn, "/device/syn/env.txt");   t.Load (fn);
    en = st = 0;   _env.Ln = _stg.Ln = 0;
    for (i = 0;  i < t.num;  i++) {
       StrCp (s, t.str [i]);   if ((*s == '#') || (*s == '-'))  continue;
@@ -1106,12 +1101,12 @@ void Syn::LoadEnv ()
 DBG("LoadEnv empty env name on # `d", en+1);
          StrCp (_env [en].nm,  ss.Col [0]);
          ch = & ss.Col [1][0];
-         if      (! StrCm (ch, CC("oscNote")))  d = 0;
-         else if (! StrCm (ch, CC("oscCent")))  d = 1;
-         else if (! StrCm (ch, CC("fltCut")))   d = 2;
-         else if (! StrCm (ch, CC("fltRes")))   d = 3;
-         else if (! StrCm (ch, CC("amp" )))     d = 4;
-         else if (! StrCm (ch, CC("pan" )))     d = 5;
+         if      (! StrCm (ch, "oscNote"))  d = 0;
+         else if (! StrCm (ch, "oscCent"))  d = 1;
+         else if (! StrCm (ch, "fltCut"))   d = 2;
+         else if (! StrCm (ch, "fltRes"))   d = 3;
+         else if (! StrCm (ch, "amp"))      d = 4;
+         else if (! StrCm (ch, "pan"))      d = 5;
          else
 DBG("LoadEnv env=`s has bad dest=`s", ss.Col [0], ss.Col [1]);
          _env [en].dst = (ubyte)d;
@@ -1124,7 +1119,7 @@ TRX("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
 {DBG("Syn::Load env.txt - stg is full");   continue;}
          _stg.Ins ();
          d = 0;   _stg [st].add = 0.;  // default to end stage
-         if (! StrCm (ss.Col [1], CC("loop")))
+         if (! StrCm (ss.Col [1], "loop"))
                   _stg [st].add = 1.;
          else
             for (ch = ss.Col [1];  *ch;  ch++) {
@@ -1135,7 +1130,7 @@ TRX("envcfg `d `s dst=`d stg=`d", en, ss.Col[0], d, st);
             }
          _stg [st].lvl = Str2R (ss.Col [0]);
          _stg [st].dur = d;
-         if (! StrCm (ss.Col [2], CC("sin")))
+         if (! StrCm (ss.Col [2], "sin"))
                _stg [st].crv = -1.;
          else  _stg [st].crv = ss.Col [2][0] ? Str2R (ss.Col [2]) : 0.001;
 TRX("   envstg `d lvl=`s dur=`d", st, R2Str (_stg [st].lvl,s1), d);
@@ -1151,38 +1146,16 @@ TRX("LoadEnv ne=`d ns=`d", _env.Ln, _stg.Ln);
 void Syn::Init (char wav)
 // open sound output device
 // init samples, sounds, voices, buffers, and kick our soundcard writin thread
-{  _run = false;                       // default to "no workie"
-  TStr fn, s;
+{ TStr fn, s;
   File f;                              // MidiCfg picked sound descrip
   ulong ln;
-   _trx = false;                       // TRX() here,  not TRC(),trc.cfg
 TRX("Syn::Init bgn");
-  StrArr t (CC("cfg"), 2, 2*sizeof(TStr));
-   App.Path (fn, 'd');   StrAp (fn, CC("/device/syn/cfg.txt"));   t.Load (fn);
-   StrCp (_snDsc, t.str [0]);
-   _nFr = (t.num > 1) ? Str2Int (t.str [1]) : 64;
-   _frq = 44100;
-   if (_wav = wav) {                   // goin to .wav file - pretty easy
-      *_snDsc = *_snDev = '\0';   _sn = nullptr;
-      _vol = 1.0;
-   }
-   else {                              // goin live to sound card
-      Snd.Load ();   StrCp (_snDev, Snd.Get (_snDsc));   // resolve to device
-DBG("Syn::Init - sound output='`s' device='`s'", _snDsc, _snDev);
-      if (*_snDev == '\0')
-{DBG("   no sound device :(");       return;}
-      if (*_snDev == '?')
-{DBG("   sound device is off :(");   return;}
-      _sn = new SndO (_snDev, _nFr);
-      if (_sn->Dead ())  return;       // with _run false :(
-
-      _nFr = _sn->_nFr;                // everbody needz theedz
-      _frq = _sn->_frq;
-DBG("   nFr=`d frq=`d", _nFr, _frq);
-      _vol = 0.1;                      // alsa always does volume=100% :)
-   }
-   InitLookup ();   LoadEnv ();
+   _wav = wav;
    _smp = nullptr;
+   _trx = false;                       // TRX() here,  not TRC(),trc.cfg
+   _nFr = 64;   _frq = 48000;
+TRX("   nFr=`d frq=`d", _nFr, _frq);
+   InitLookup ();   LoadEnv ();    // goin live to sound card
    MemSet (_snd, 0, sizeof (_snd));   _nSnd = 0;
    MemSet (_drm, 0, sizeof (_drm));
    for (ubyte c = 0;  c < 128;  c++)  _chn [c].Init ();
@@ -1190,11 +1163,10 @@ DBG("   nFr=`d frq=`d", _nFr, _frq);
    _maxChn = 0;
    _maxVc  = _nVc = _vcNo = _dth = 0;
    _maxLvl = 1.0;
-   _intp = new real [_nFr];   _mixL = new real [_nFr];
-                              _mixR = new real [_nFr];
-   _out = new sbyt2 [2*_nFr][2];       // 2 periods of nFr frames of interleaved
-
-   if (! _wav)  {_run = true;   start ();}
+   _intp = new smp [_nFr];   _mixL = new smp [_nFr];
+                             _mixR = new smp [_nFr];
+   if (! (_wav = wav))                 // to .wav file or live to pipewire
+      _sn.Open ("syn", Mix, _frq, _nFr);
 TRX("Syn::Init end");
 }                                      // stereo sbyt2 (to double buffer)
 
@@ -1202,11 +1174,9 @@ TRX("Syn::Init end");
 void Syn::Quit ()
 {
 TRX("Syn::Quit bgn");
-   if (_run)  {_run = false;   wait ();}
+   if (! _wav)  _sn.Shut ();
    WipeSnd ();
-   if (_out)   delete [] _out;
    if (_intp)  delete [] _intp;   if (_mixL)  delete [] _mixL;
                                   if (_mixR)  delete [] _mixR;
-   if (_sn)    delete _sn;
 TRX("Syn::Quit end");
 }

@@ -79,7 +79,8 @@ char *StrCp   (char *dst, const char *src, char ul = '\0');
 char *StrAp   (char *dst,       char *src, ubyt4 ofs = 0);
 char *StrAp   (char *dst, const char *src, ubyt4 ofs = 0);
 char *StrCh   (char *str, char c);
-char *StrSt   (char *big, char *sm,    char x = '\0');    // exact? or caseless
+char *StrSt   (char *big, char *sm,       char x = '\0');  // exact? or caseless
+char *StrSt   (char *big, const char *sm, char x = '\0');
 
 sbyt4 StrCm   (      char *s1,       char *sbyt2, char x = '\0');
 sbyt4 StrCm   (const char *s1, const char *sbyt2, char x = '\0');
