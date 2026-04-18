@@ -8,9 +8,10 @@
 #include "wav.h"
 #include "math.h"                      // no gettin around reals with synths
 
-#define TRX(...)  if(Sy._trx)DBG(__VA_ARGS__)    // syn local TRC
+#define TRX(...)  if(Sy._trx)DBG(__VA_ARGS__)    // TRC local to syn
 
-typedef ubyt8 Phase;                   // hi ubyt4 is int pos, lo ubyt4 is fract
+typedef ubyt8 phase;                   // hi ubyt4 is int pos, lo ubyt4 is fract
+
 const ubyt2 MID14 = 64 << 7;           // mid point of a midi 14 bit int (pBnd)
 
 struct Channel {
@@ -54,20 +55,20 @@ public:
 class LPF {                            // low pass filter (per voice)
    bool  init;
    ubyt4 inc;
-   real  cut,  res,                    // cutoff frequency, resonance params
+   smp   cut,  res,                    // cutoff frequency, resonance params
         pCut, pRes, gain,              // prev cut;  gain derived from res
          a1,    a2,    b1,    b2,
          a1Inc, a2Inc, b1Inc, b2Inc,
          hist1, hist2;                 // buffer past calcs
 public:
    void Init ();
-   void Cut (real c);
-   void Res (real r);
-   real Mix (real smp);
+   void Cut (smp c);
+   void Res (smp r);
+   smp  Mix (smp smp);
 };
 //______________________________________________________________________________
 struct Glide {                         // cool modulation on freq
-   real ofs, inc;
+   smp  ofs, inc;
    void Init (ubyte cid, ubyte key);
    char Mix ();
 };
@@ -81,7 +82,7 @@ struct EnvCfg {
 };
 struct EnvStg {
    ubyt4 dur;                          // songtime dur;  0 for last stage
-   real  lvl,                          // starting level, ending at next stg lvl
+   smp   lvl,                          // starting level, ending at next stg lvl
          crv,                          // .0001 mostly exponential -
 // ...calc'd:                                16 mostly linear  (neg means sin)
          nper,                         // # periods (buffers) dur in given tempo
@@ -96,13 +97,13 @@ public:
    ubyte   id, cid, dst;               // pos in Sy._env[], voice parm we hit
    EnvStg *stg;
    ubyte   lvlX, durX;                 // x* ctrls that mod me
-   real          dx;                   // last durX val to see if it changes
+   smp           dx;                   // last durX val to see if it changes
    ubyte   s;                          // which stg # we're on
    ubyt4   p;                          // period buffer we're on - just incs
-   real    lvl;                        // output level
+   smp     lvl;                        // output level
    void ReDur ();
    void Init (ubyte id, ubyte cid, char *mod = nullptr);
-   real Mix ();
+   smp  Mix ();
    bool End ()  {return stg [s].dur == 0;}
    void SetStg (sbyte st)   {s = st;}
 };
@@ -111,18 +112,18 @@ public:
 class EnvO {  // a full set of envelopes operating on the voice
 public:
    Arr<Env,16> e;  // envelope array
-   real o [6];     // output for oStp=0 oCnt=1 fCut=2 fRes=3 amp=4 pan=5
+   smp  o [6];     // output for oStp=0 oCnt=1 fCut=2 fRes=3 amp=4 pan=5
    bool x [6];     // was voice dest set?
    void  Init (ubyte cid, char *es);   // init array of envs - es
    char *Mix  (char r = '\0');         // run em all to o[]
    void  Dump ();
    bool  RelEnd ()  {return e [e.Ln-1].End ();}  // done w release envelope?
-   real  oStp ()    {return x [0] ? o [0] : 0.;} // if set return o else default
-   real  oCnt ()    {return x [1] ? o [1] : 0.;}
-   real  fCut ()    {return x [2] ? o [2] : 1.;}
-   real  fRes ()    {return x [3] ? o [3] : 0.;}
-   real  amp  ()    {return x [4] ? o [4] : 1.;}
-   real  pan  ()    {return x [5] ? o [5] : 0.;}
+   smp   oStp ()    {return x [0] ? o [0] : 0.;} // if set return o else default
+   smp   oCnt ()    {return x [1] ? o [1] : 0.;}
+   smp   fCut ()    {return x [2] ? o [2] : 1.;}
+   smp   fRes ()    {return x [3] ? o [3] : 0.;}
+   smp   amp  ()    {return x [4] ? o [4] : 1.;}
+   smp   pan  ()    {return x [5] ? o [5] : 0.;}
 };
 //______________________________________________________________________________
 class Voice {
@@ -137,12 +138,12 @@ public:                                // Core stuph:
    Sound   *_snd;                      // Oscillator:
    Sample  *_smp;                      // which wav of instrument wav set
    bool     _looped;                   // hit end of rep'ing loop for 1st time?
-   Phase    _phase,                    // pos w/in our sample
+   phase    _phase,                    // pos w/in our sample
             _phInc;                    // amt we scoot pos per output sample
 
    LPF      _flt;                      // Filter: lowpass one for eeevery voice
 
-   real     _amp, _panL, _panR;        // Amp n Pan
+   smp      _amp, _panL, _panR;        // Amp n Pan
 
    EnvO     _eo;                       // envs out: oStp oCnt fCut fRes amp pan
    Glide    _gl;                       // doin glide? (portamento) pitch offset
@@ -162,18 +163,14 @@ public:                                // Core stuph:
 struct SInfo  {ubyt4 time;   ubyt2 tmpo;   ubyte bt, sb;}; // song info fer syn
 
 
-class Syn: public QThread {
+class Syn: public QObject {
    Q_OBJECT
-
-   void run ()  override;
 
 public:
    char    _wav;                       // to .wav?  else live to sound card
-   SndO   *_sn;                        // sound device we're writin ta
-   TStr    _snDsc, _snDev;
+   SndO    _sn;                        // sound device that asks us fo samples
    ubyt4   _frq, _nFr;                 // sound params everybody needz
-   real    _vol;                       // global volume (not midi controlled)
-   real   *_smp;         ubyt4 _nSmp;  // buf o samples for all sounds' wavs
+   smp    *_smp;         ubyt4 _nSmp;  // buf o samples for all sounds' wavs
    Sound  *_snd [128];   ubyte _nSnd;  // melodic sounds (pitched)
    Sound  *_drm [128];                 // percussive   (UNpitched)
    Channel _chn [128];                 // midi chans: "canvases" for voices
@@ -182,18 +179,15 @@ public:
    Voice   _vc  [256];   ubyt2 _nVc;   // voice per (mono) sample in use
    ubyte   _maxChn;                    // max channel sequencer uses
    ubyt2   _maxVc;                     // #used, max we ever used
-   real    _maxLvl;                    // max level we ever did
+   smp     _maxLvl;                    // max level we ever did
    ubyt4   _dth, _vcNo;                // dither pos, count of voices so far
-   real   *_intp, *_mixL, *_mixR;      // bufs: interpolation, mix left n right
-   sbyt2 (*_out)[2];                   // sound device's sample double buffer
+   smp    *_intp, *_mixL, *_mixR;      // bufs: interpolation, mix left n right
 
-   bool    _run;                       // spinnin our sample writin thread?
-   ThLock  _lok;                       // lock - so i don't step on my thread
-   bool    _trx;                       // syn specific TRX like TRC
+   ThLock  _lok;                       // lock - so i don't step on _sn
+   bool    _trx;                       // syn specific TRX  like TRC
    SInfo   _in;
 
    void  Init (char wav = '\0'),  Quit ();
-   bool  Dead ()  {return ! _run;}
    void  PutWav (sbyt2 *out, ubyt4 len);
 
    void  LoadEnv ();
@@ -206,10 +200,12 @@ public:
    void  UnHold (ubyte ch);
    void  AllVc  (ubyte ch, char todo);
 
-   sbyt2 r2i (real r, real dth);
-   void  Put (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0,
-              char *es = nullptr);
+   sbyt2 r2i  (smp r, smp dth);
+   void  Put  (ubyte ch = 0, ubyt2 c = 0, ubyte v = 0, ubyte v2 = 0,
+               char *es = nullptr);
    void  Tell (SInfo *in)  {MemCp (& _in, in, sizeof (_in));}
+
+   static ubyt4 Mix (smp *buf, ubyt4 nFr, ubyt4 maxFr);
 
    void  Dump (char x = '\0');
 };

@@ -102,6 +102,9 @@ char *StrSt (char *big, char *sm, char x)
    return nullptr;
 }
 
+char *StrSt (char *big, const char *sm, char x)
+{  return StrSt (big, CC(sm), x);  }
+
 sbyt4 StrCm (char *s1, char *s2, char x)
 { char  c1, c2;
   sbyt4 rc;
