@@ -100,17 +100,6 @@ struct QtEr {                          // my layer on toppa Qt
 public:
    QApplication *A ()        {return _a;}
    QMainWindow  *W ()        {return _w;}
-   QPalette      Palette ()  {return _p;}
-
-   ubyt2 FontH ()
-   { QFontMetrics fm (_a->font ());
-      return fm.capHeight () + 1 + fm.descent ();
-   }
-
-   bool Dark ()                        // so many words :/
-   {  return QGuiApplication::styleHints ()->colorScheme () ==
-                                         Qt::ColorScheme::Dark;
-   }
 
    ubyte NArg ();                      // argv [0] AIN'T an arg !  [0]=1st arg
    char  *Arg (ubyte pos);             // returns "" if beyond argc
@@ -125,9 +114,11 @@ public:
    bool  AskW   (char *name, char const *titl);
    bool  AskDir (char *name, char const *titl);
                                        // fer main
+   ubyt2 FontH ();
+   bool  Dark  ();
    void  ReIco ();
-   void  Init (QApplication *ia, QMainWindow *iw, const char *ttl,
-               bool d2 = false, char fixw = '\0');
+   void  Init  (QApplication *ia, QMainWindow *iw, const char *ttl,
+                char d2 = '\0', char fixw = '\0');
    void  WinLoad (QSplitter *spl = nullptr);
    void  WinSave (QSplitter *spl = nullptr);
    void  DlgLoad (QDialog *d, QString nm, QSplitter *spl = nullptr);
@@ -145,16 +136,16 @@ public:
 private:
    QApplication *_a;
    QMainWindow  *_w;
-   char          _fixw;
-   bool          _q;
-   TStr          _ttl;
-   QIcon         _ico, _icoD;
-   bool          _d;                   // is _icoD set?
-   QPalette      _p;
+   TStr          _ttl;                 // title
+   char          _fixw;                // global fixed width font?  f / \0
+   char          _d;                   // dark app icon?            d / \0
+   bool          _q;                   // quittin time?
+   QIcon         _ico, _icoD;          // app icon (and dark mode)
 };
 extern QtEr Gui;
 
-QColor Color (const char *c);
+char  *ColRGB (char *s, QColor c, char x = 'x');      // default to hex #rrggbb
+QColor Color  (const char *c);
 
 //______________________________________________________________________________
 // in main:   app.installEventFilter (new EvDump);

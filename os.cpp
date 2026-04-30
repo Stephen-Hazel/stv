@@ -74,7 +74,8 @@ char *StrCp (char *dst, const char *src, char ul)
 char *StrAp (char *dst, char *src, ubyt4 ofs)
 { ubyt4 ln = StrLn (dst);
    if (ofs > ln)  ofs = ln;
-   return StrCp (& dst [ln-ofs], src);  return dst;
+   StrCp (& dst [ln-ofs], src);
+   return dst;
 }
 
 char *StrAp (char *dst, const char *src, ubyt4 ofs)
