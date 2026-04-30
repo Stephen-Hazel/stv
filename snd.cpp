@@ -32,10 +32,13 @@ bool SndO::Open (const char *name, mixfunc pmix, ubyt4 frq, ubyt4 nFr)
    if (! _pwLoop)
 {DBG("pw_main_loop_new DIED !!");   return false;}
 
+  TStr l;
+   StrFmt (l, "`d/`d", _nFr, _frq);
   struct pw_properties *props = pw_properties_new (
       PW_KEY_MEDIA_TYPE,     "Audio",
       PW_KEY_MEDIA_CATEGORY, "Playback",
-      PW_KEY_MEDIA_ROLE,     "Music",
+      PW_KEY_MEDIA_ROLE,     "Production",
+      PW_KEY_NODE_LATENCY,   l,
       nullptr
    );
    _pwStream = pw_stream_new_simple (

@@ -227,20 +227,33 @@ void QtEr::WinSave (QSplitter *spl)
    s.setValue ("scr",  _w->windowHandle ()->screen ()->name ());
 }
 
-//void DBGC(const char *msg, QColor c)
-//{  DBG("`-7s `3d `3d `3d", msg, c.red(), c.green(), c.blue());  }
-
-void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, bool d2,
+void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, char d2,
                  char fixw)
-{  _a = a;   _w = w;   StrCp (_ttl, CC(ttl));   _fixw = fixw;   _q = false;
-   _ico  =             QIcon (":/app");
-   _icoD = (_d = d2) ? QIcon (":/app_d") : QIcon ();
-   _p = QApplication::palette ();
+{  _a = a;   _w = w;   StrCp (_ttl, ttl);   _fixw = fixw;  _d = d2;
+   _q = false;
+   _ico  =      QIcon (":/app");
+   _icoD = _d ? QIcon (":/app_d") : QIcon ();
+}
+
+ubyt2 QtEr::FontH ()
+{ QFontMetrics fm (_a->font ());
+   return fm.capHeight () + 1 + fm.descent ();
+}
+
+
+bool QtEr::Dark ()
+{  return _w->palette ().color (QPalette::Window).lightness () < 128;  }
+
+
+char *ColRGB (char *s, QColor c, char x)
+{  if (x != 'd')
+      return StrFmt (s, "#`02x`02x`02x", c.red (), c.green (), c.blue ());
+   return    StrFmt (s, "`d,`d,`d",      c.red (), c.green (), c.blue ());
 }
 
 
 QColor Color (const char *c)
-{ QPalette p = Gui.Palette ();
+{ QPalette p = QApplication::palette ();
    if      (! StrCm (c, "fg"))      return p.color (QPalette::Text);
 //"else if (! StrCm (c, "fgWin"))   return p.color (QPalette::WindowText);
 //"else if (! StrCm (c, "fgTip"))   return p.color (QPalette::ToolTipText);
@@ -389,6 +402,22 @@ void CtlTBar::Init (QDialog *d, const char *nm)
 }
 
 
+void CtlTBar::Sep (ubyte b)
+{  if (b >= BITS (_b))  {DBG("tooo many buttons in Sep !");   return;}
+
+   if (b >= _nb)  _nb = b+1;
+  CtlBtn *bt = & _b [b];
+   bt->ni = bt->ic = 0;
+
+   _w->addSeparator ();
+}
+
+//bool icok (QIcon i)
+//{  if (i.isNull ())                     {DBG("null");  return false;}
+//   if (i.availableSizes ().isEmpty ())  {DBG("empty"); return false;}
+//   return true;
+//}
+
 void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
 { TStr ts, is;
   bool big;
@@ -414,7 +443,11 @@ void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
       bt->ac = new QAction (bt->i [0], "", _w);
       bt->ni = 1;
       if (*ico == 'd')  {bt->d  [0] = true;
-                         bt->di [0] = QIcon (StrAp (is, CC("_d")));}
+                         bt->di [0] = QIcon (StrAp (is, "_d"));
+//DBG("doin _d is=`s dk=`b d=`b icok=`b",
+//is, Gui.Dark (), bt->d [0],
+//(Gui.Dark () && bt->d [0]) ? icok (bt->di [0]) : icok (bt->i [0]));
+                         }
       bt->ac->setIcon ((Gui.Dark () && bt->d [0]) ? bt->di [0] : bt->i [0]);
    }
    bt->ac->setToolTip (ts);
@@ -422,18 +455,9 @@ void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
    _w->addAction (bt->ac);
 }
 
+
 void CtlTBar::Btn (ubyte b, const char *tip, const char *ico, const char *key)
 {  Btn (b, CC(tip), ico, key);  }
-
-void CtlTBar::Sep (ubyte b)
-{  if (b >= BITS (_b))  {DBG("tooo many buttons in Sep !");   return;}
-
-   if (b >= _nb)  _nb = b+1;
-  CtlBtn *bt = & _b [b];
-   bt->ni = bt->ic = 0;
-
-   _w->addSeparator ();
-}
 
 
 void CtlTBar::Ico (ubyte b, ubyte i, const char *ico)
@@ -446,23 +470,33 @@ void CtlTBar::Ico (ubyte b, ubyte i, const char *ico)
    bt->i [i] = QIcon (StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i));
    if (*ico == 'd')  {bt->d  [i] = true;
                       bt->di [i] = QIcon (StrAp (is, CC("_d")));}
-   else               bt->di [i] = QIcon ();
+   else              {bt->d  [i] = false;
+                      bt->di [i] = QIcon ();}
 }
 
 
 void CtlTBar::Set (ubyte b, ubyte i)
 {  if (b >= _nb)     {DBG("Set button `d past #buttons !", b);   return;}
   CtlBtn *bt = & _b [b];
-   if (bt->ni == 0)  return;
+   if (bt->ni == 0)  return;           // skip seperator
 
    if (i >= bt->ni)  {DBG("Set button `d icon `d past #icons !", b, i);
                       return;}
    bt->ic = i;
+//DBG("tbar Set nm=`s b=`d i=`d dk=`b bt->d=`b x=`08x",
+//_nm, b, i, Gui.Dark (), bt->d [i],
+                    (Gui.Dark () && bt->d [i]) ? bt->di [i] : bt->i [i]);
    bt->ac->setIcon ((Gui.Dark () && bt->d [i]) ? bt->di [i] : bt->i [i]);
 }
 
 
-void CtlTBar::ReDo ()  {for (ubyte b = 0;  b < _nb;  b++)  Set (b, _b [b].ic);}
+void CtlTBar::ReDo ()
+{ TStr s, t;
+   for (ubyte b = 0;  b < _nb;  b++)  Set (b, _b [b].ic);
+//DBG("tbar bg=`s", ColRGB (t, Color ("bg"), 'd'));
+   _w->setStyleSheet (StrFmt (s, "QToolBar{background-color:`s;}",
+                                 ColRGB (t, Color ("bg"))));
+}
 
 
 //______________________________________________________________________________
