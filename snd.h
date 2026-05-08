@@ -3,27 +3,26 @@
 
 #pragma once
 #include "os.h"
-#include <atomic>
-#include <functional>
-#include <thread>
-
-struct pw_main_loop;
-struct pw_stream;
+#include <QThread>
+#include <pipewire/pipewire.h>
 
 typedef real4 smp;
 typedef ubyt4 (*mixfunc)(smp *buf, ubyt4 nFr, ubyt4 maxFr);
 
-class SndO {
+class SndO: public QThread {
+   Q_OBJECT
 public:
-   bool Open (const char *name, mixfunc mix, ubyt4 frq = 48000, ubyt4 nFr = 64);
-   void Shut ();
+   void Init (const char *name, mixfunc mix, ubyt4 frq = 48000, ubyt4 nFr = 64);
+   void Quit ();
    static void Mix (void *data);       // pipewire main callback
 
+protected:
+   void run ()  override;
+
 private:
-   pw_main_loop     *_pwLoop;          // pipewire handles
-   pw_stream        *_pwStream;
-   std::thread       _thread;          // thread and run state
-   std::atomic<bool> _run {false};
-   mixfunc           _mix;             // what mix calls to get audio buf
-   ubyt4             _frq, _nFr;       // samples/sec, #frames from open
+   pw_main_loop *_pwLoop;              // pipewire handles
+   pw_stream    *_pwStream;
+   const char   *_name;
+   mixfunc       _mix;                 // what mix calls to get audio buf
+   ubyt4         _frq, _nFr;           // samples/sec, #frames from open
 };

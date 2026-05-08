@@ -1144,7 +1144,7 @@ TRX("LoadEnv ne=`d ns=`d", _env.Ln, _stg.Ln);
 
 
 void Syn::Init (char wav)
-// open sound output device
+// init sound output device
 // init samples, sounds, voices, buffers, and kick our soundcard writin thread
 { TStr fn, s;
   File f;                              // MidiCfg picked sound descrip
@@ -1166,7 +1166,7 @@ TRX("   nFr=`d frq=`d", _nFr, _frq);
    _intp = new smp [_nFr];   _mixL = new smp [_nFr];
                              _mixR = new smp [_nFr];
    if (! (_wav = wav))                 // to .wav file or live to pipewire
-      _sn.Open ("syn", Mix, _frq, _nFr);
+      _sn.Init ("syn", Mix, _frq, _nFr);
 TRX("Syn::Init end");
 }                                      // stereo sbyt2 (to double buffer)
 
@@ -1174,7 +1174,7 @@ TRX("Syn::Init end");
 void Syn::Quit ()
 {
 TRX("Syn::Quit bgn");
-   if (! _wav)  _sn.Shut ();
+   if (! _wav)  _sn.Quit ();
    WipeSnd ();
    if (_intp)  delete [] _intp;   if (_mixL)  delete [] _mixL;
                                   if (_mixR)  delete [] _mixR;

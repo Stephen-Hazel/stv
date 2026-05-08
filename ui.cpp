@@ -412,15 +412,16 @@ void CtlTBar::Sep (ubyte b)
    _w->addSeparator ();
 }
 
-//bool icok (QIcon i)
-//{  if (i.isNull ())                     {DBG("null");  return false;}
-//   if (i.availableSizes ().isEmpty ())  {DBG("empty"); return false;}
-//   return true;
-//}
+static bool icok (QIcon i)
+{  if (i.isNull ())                     {DBG("null");  return false;}
+   if (i.availableSizes ().isEmpty ())  {DBG("empty"); return false;}
+   return true;
+}
 
 void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
 { TStr ts, is;
   bool big;
+  QIcon i;
    if (b >= BITS (_b))  {DBG("tooo many buttons in Init !");   return;}
 
    if (b >= _nb)  _nb = b+1;
@@ -439,15 +440,19 @@ void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
       }
    }
    else {
-      bt->i [0] = QIcon (StrFmt (is, ":/tbar/`s/`d", _nm, b));
-      bt->ac = new QAction (bt->i [0], "", _w);
+      i = QIcon (StrFmt (is, ":/tbar/`s/`d", _nm, b));
+      if (! icok (i))
+DBG("icon `s didn't load!", is);
+      bt->i [0] = i;
+      bt->ac = new QAction (i, "", _w);
       bt->ni = 1;
-      if (*ico == 'd')  {bt->d  [0] = true;
-                         bt->di [0] = QIcon (StrAp (is, "_d"));
-//DBG("doin _d is=`s dk=`b d=`b icok=`b",
-//is, Gui.Dark (), bt->d [0],
-//(Gui.Dark () && bt->d [0]) ? icok (bt->di [0]) : icok (bt->i [0]));
-                         }
+      if (*ico == 'd') {
+         i = QIcon (StrAp (is, "_d"));
+         if (! icok (i))
+DBG("icon `s didn't load!", is);
+         bt->d  [0] = true;
+         bt->di [0] = i;
+      }
       bt->ac->setIcon ((Gui.Dark () && bt->d [0]) ? bt->di [0] : bt->i [0]);
    }
    bt->ac->setToolTip (ts);
@@ -461,17 +466,28 @@ void CtlTBar::Btn (ubyte b, const char *tip, const char *ico, const char *key)
 
 
 void CtlTBar::Ico (ubyte b, ubyte i, const char *ico)
-{ TStr is;
+{ TStr  is;
+  QIcon ic;
    if (b >= _nb)           {DBG("button past #buttons in Ico !");   return;}
   CtlBtn *bt = & _b [b];
    if (i >= BITS (_b->i))  {DBG("tooo many icons in Ico !");        return;}
 
-   if (i >= bt->ni)  bt->ni = i+1;
-   bt->i [i] = QIcon (StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i));
-   if (*ico == 'd')  {bt->d  [i] = true;
-                      bt->di [i] = QIcon (StrAp (is, CC("_d")));}
-   else              {bt->d  [i] = false;
-                      bt->di [i] = QIcon ();}
+   if (i >= bt->ni)  bt->ni = i + 1;
+   ic = QIcon (StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i));
+   if (! icok (ic))
+DBG("icon `s didn't load!", is);
+   bt->i [i] = ic;
+   if (*ico == 'd') {
+      ic = QIcon (StrAp (is, CC("_d")));
+      if (! icok (ic))
+DBG("icon `s didn't load!", is);
+      bt->d  [i] = true;
+      bt->di [i] = ic;
+   }
+   else {
+      bt->d  [i] = false;
+      bt->di [i] = QIcon ();
+   }
 }
 
 
@@ -485,7 +501,7 @@ void CtlTBar::Set (ubyte b, ubyte i)
    bt->ic = i;
 //DBG("tbar Set nm=`s b=`d i=`d dk=`b bt->d=`b x=`08x",
 //_nm, b, i, Gui.Dark (), bt->d [i],
-                    (Gui.Dark () && bt->d [i]) ? bt->di [i] : bt->i [i]);
+//                  (Gui.Dark () && bt->d [i]) ? bt->di [i] : bt->i [i]);
    bt->ac->setIcon ((Gui.Dark () && bt->d [i]) ? bt->di [i] : bt->i [i]);
 }
 
