@@ -91,11 +91,11 @@ void MidiDevLst::Load ()
 // frickin' ALSA...:/  so hard to query...
 { TStr  fn, name, sdev;
   File  f;
-  int   card, dev, sub, nsub, isub, osub, err;
+  int   err,  card, dev, io, nsub, sub;
   snd_ctl_t          *ctl;
   snd_rawmidi_info_t *info;
-  const char         *desc, *desc2;
-TRC("MidiDevLst::Load");
+  const char         *desc;
+DBG("MidiDevLst::Load");
    _len = 0;
    App.Path (fn, 'd');   StrAp (fn, CC("/device/device.txt"));
    f.DoText (fn, this, DoRec);
@@ -107,7 +107,7 @@ TRC("MidiDevLst::Load");
          DBG ("snd_card_next gave: `s", ::snd_strerror (err));
          break;
       }
-//TRC("card#=`d", card);
+DBG("card#=`d", card);
       if (card < 0)  break;
 
       StrFmt (name, "hw:`d", card);
@@ -122,46 +122,41 @@ TRC("MidiDevLst::Load");
          }
          if (dev < 0)  break;
 
-//TRC(" dev=`d", dev);
-         isub = osub = 0;
-         ::snd_rawmidi_info_set_device (info, dev);
-         ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_INPUT);
-         if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
-            isub = ::snd_rawmidi_info_get_subdevices_count (info);
-         ::snd_rawmidi_info_set_stream (info, SND_RAWMIDI_STREAM_OUTPUT);
-         if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
-            osub = ::snd_rawmidi_info_get_subdevices_count (info);
-         nsub = isub > osub ? isub : osub;
-//TRC("  nsub=`d isub=`d osub=`d", nsub, isub, osub);
-         for (sub = 0;  sub <= nsub;  sub++) {
-//TRC("   sub=`d", sub);
-            ::snd_rawmidi_info_set_stream (
-               info, sub <= isub ? SND_RAWMIDI_STREAM_INPUT
-                                 : SND_RAWMIDI_STREAM_OUTPUT);
-            ::snd_rawmidi_info_set_subdevice (info, sub);
-            if ((err = ::snd_ctl_rawmidi_info (ctl, info))) {
-//             DBG ("snd_rm_info_set_subdevice gave: `s\n",
-//                  ::snd_strerror (err));  // blows on last one a lot :/
-               continue;
-            }
-            desc  = ::snd_rawmidi_info_get_name           (info);
-            desc2 = ::snd_rawmidi_info_get_subdevice_name (info);
-//TRC("   desc=`s desc2=`s", desc, desc2);
-            if (nsub == 1) {           // use hw:9,9   and desc
-               StrFmt (sdev, "hw:`d,`d", card, sub);
-               if (sub <= isub)  InsDev ('i', CC(desc), sdev);
-               if (sub <= osub)  InsDev ('o', CC(desc), sdev);
-            }
-            else {                     // use hw:9,9,9 and desc2
-               StrFmt (sdev, "hw:`d,`d,`d", card, dev, sub);
-               if (sub <= isub)  InsDev ('i', CC(desc2), sdev);
-               if (sub <= osub)  InsDev ('o', CC(desc2), sdev);
+DBG(" dev=`d", dev);
+         for (io = 0;  io < 2;  io++) {
+            MemSet (info, 0, sizeof (info));
+            ::snd_rawmidi_info_set_device (info, dev);
+            ::snd_rawmidi_info_set_stream (info, io?SND_RAWMIDI_STREAM_OUTPUT
+                                                   :SND_RAWMIDI_STREAM_INPUT);
+            if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
+               nsub = ::snd_rawmidi_info_get_subdevices_count (info);
+DBG("  io=`d nsub=`d", io, nsub);
+            for (sub = 0;  sub < nsub;  sub++) {
+DBG("   sub=`d", sub);
+               ::snd_rawmidi_info_set_subdevice (info, sub);
+               if ((err = ::snd_ctl_rawmidi_info (ctl, info))) {
+                  DBG ("snd_rm_info_set_subdevice gave: `s\n",
+                       ::snd_strerror (err));
+                  continue;
+               }
+               if (nsub <= 1) {        // use hw:9,9   and desc
+                  desc = ::snd_rawmidi_info_get_name           (info);
+                  StrFmt (sdev, "hw:`d,`d",    card, sub);
+DBG("    sdev=`s desc=`s", sdev, desc);
+                  InsDev (io?'o':'i', CC(desc), sdev);
+               }
+               else {                  // use hw:9,9,9 and desc2
+                  desc = ::snd_rawmidi_info_get_subdevice_name (info);
+                  StrFmt (sdev, "hw:`d,`d,`d", card, dev, sub);
+DBG("    sdev=`s desc=`s", sdev, desc);
+                  InsDev (io?'o':'i', CC(desc), sdev);
+               }
             }
          }
       }
       ::snd_ctl_close (ctl);
    }
-//Dump ();
+Dump ();
 }
 
 
