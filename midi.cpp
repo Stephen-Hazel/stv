@@ -95,7 +95,7 @@ void MidiDevLst::Load ()
   snd_ctl_t          *ctl;
   snd_rawmidi_info_t *info;
   const char         *desc;
-DBG("MidiDevLst::Load");
+//DBG("MidiDevLst::Load");
    _len = 0;
    App.Path (fn, 'd');   StrAp (fn, CC("/device/device.txt"));
    f.DoText (fn, this, DoRec);
@@ -107,7 +107,7 @@ DBG("MidiDevLst::Load");
          DBG ("snd_card_next gave: `s", ::snd_strerror (err));
          break;
       }
-DBG("card#=`d", card);
+//DBG("card#=`d", card);
       if (card < 0)  break;
 
       StrFmt (name, "hw:`d", card);
@@ -122,7 +122,7 @@ DBG("card#=`d", card);
          }
          if (dev < 0)  break;
 
-DBG(" dev=`d", dev);
+//DBG(" dev=`d", dev);
          for (io = 0;  io < 2;  io++) {
             MemSet (info, 0, sizeof (info));
             ::snd_rawmidi_info_set_device (info, dev);
@@ -130,9 +130,9 @@ DBG(" dev=`d", dev);
                                                    :SND_RAWMIDI_STREAM_INPUT);
             if (::snd_ctl_rawmidi_info (ctl, info) >= 0)
                nsub = ::snd_rawmidi_info_get_subdevices_count (info);
-DBG("  io=`d nsub=`d", io, nsub);
+//DBG("  io=`d nsub=`d", io, nsub);
             for (sub = 0;  sub < nsub;  sub++) {
-DBG("   sub=`d", sub);
+//DBG("   sub=`d", sub);
                ::snd_rawmidi_info_set_subdevice (info, sub);
                if ((err = ::snd_ctl_rawmidi_info (ctl, info))) {
                   DBG ("snd_rm_info_set_subdevice gave: `s\n",
@@ -142,13 +142,13 @@ DBG("   sub=`d", sub);
                if (nsub <= 1) {        // use hw:9,9   and desc
                   desc = ::snd_rawmidi_info_get_name           (info);
                   StrFmt (sdev, "hw:`d,`d",    card, sub);
-DBG("    sdev=`s desc=`s", sdev, desc);
+//DBG("    sdev=`s desc=`s", sdev, desc);
                   InsDev (io?'o':'i', CC(desc), sdev);
                }
                else {                  // use hw:9,9,9 and desc2
                   desc = ::snd_rawmidi_info_get_subdevice_name (info);
                   StrFmt (sdev, "hw:`d,`d,`d", card, dev, sub);
-DBG("    sdev=`s desc=`s", sdev, desc);
+//DBG("    sdev=`s desc=`s", sdev, desc);
                   InsDev (io?'o':'i', CC(desc), sdev);
                }
             }
@@ -156,7 +156,7 @@ DBG("    sdev=`s desc=`s", sdev, desc);
       }
       ::snd_ctl_close (ctl);
    }
-Dump ();
+//Dump ();
 }
 
 
