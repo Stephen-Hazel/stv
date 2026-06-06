@@ -255,19 +255,11 @@ char *ColRGB (char *s, QColor c, char x)
 QColor Color (const char *c)
 { QPalette p = QApplication::palette ();
    if      (! StrCm (c, "fg"))      return p.color (QPalette::Text);
-//"else if (! StrCm (c, "fgWin"))   return p.color (QPalette::WindowText);
-//"else if (! StrCm (c, "fgTip"))   return p.color (QPalette::ToolTipText);
-//"else if (! StrCm (c, "fgBtn"))   return p.color (QPalette::ButtonText);
    else if (! StrCm (c, "bg"))      return p.color (QPalette::Window);
    else if (! StrCm (c, "fgSel"))   return p.color (QPalette::HighlightedText);
    else if (! StrCm (c, "bgSel"))   return p.color (QPalette::Highlight);
-//"else if (! StrCm (c, "accent"))  return p.color (QPalette::Accent);
-//"else if (! StrCm (c, "fgBrite")) return p.color (QPalette::BrightText);
-//"else if (! StrCm (c, "base"))    return p.color (QPalette::Base);
-//"else if (! StrCm (c, "lite"))    return p.color (QPalette::Light);
    else if (! StrCm (c, "fgPlace")) return p.color (QPalette::PlaceholderText);
    else if (! StrCm (c, "bgTip"))   return p.color (QPalette::ToolTipBase);
-// else if (! StrCm (c, "base2"))   return p.color (QPalette::AlternateBase);
    else if (! StrCm (c, "bgBtn"))   return p.color (QPalette::Button);
    else if (! StrCm (c, "link"))    return p.color (QPalette::Link);
    else if (! StrCm (c, "linkVis")) return p.color (QPalette::LinkVisited);
@@ -275,8 +267,7 @@ QColor Color (const char *c)
    else if (! StrCm (c, "medDk"))   return p.color (QPalette::Mid);
    else if (! StrCm (c, "dark"))    return p.color (QPalette::Dark);
    else if (! StrCm (c, "shadow"))  return p.color (QPalette::Shadow);
-
-DBG("Color='`s' is a bug", c);
+DBG("Color='`s' = BUG", c);
    return p.color (QPalette::Text);
 }
 /*

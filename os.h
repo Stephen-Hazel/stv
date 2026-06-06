@@ -62,8 +62,8 @@ inline char  CHDN (char  c)  {if ((c >= 'A') && (c <= 'Z'))  return c-'A'+'a';
                               return c;}
 
 // mem stuff
-void  MemSet  (void *dst, ubyte c,   ubyt4 len);
-void  MemCp   (void *dst, void *src, ubyt4 len);
+void  MemSet  (void *dst, ubyte c,         ubyt4 len);
+void  MemCp   (void *dst, void       *src, ubyt4 len);
 void *MemCh   (void *mem, ubyte c,   ubyt4 len);
 char *MemSt   (void *big, char *sm,  ubyt4 len, char x = '\0');
 
