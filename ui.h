@@ -322,8 +322,7 @@ public:
    void   Clr ()             {_w->clear ();}
    void   SetBold (bool tf)
    { QFont f = _w->font ();
-      f.setBold (tf);   f.setPointSize (tf ? 15:14);
-      _w->setFont (f);
+      f.setBold (tf);   f.setPointSize (tf ? 18:14);   _w->setFont (f);
    }
    void   Add (char *txt)    {_w->insertPlainText (txt);}
    char  *Get ()             {return UnQS (_w->toPlainText ());}
