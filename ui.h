@@ -528,10 +528,12 @@ public:
 // hdr is zz string of labels
 //  ^ in 1st hdr is tooltip for row
 // >| prefix means right or center just
-//  * prefix means icon
+//  + prefix means icon
+//  * prefix means icon w dark
 //  _ prefix means edit (string or droplist edit)
-   void  Init    (QTableWidget *t, const char *hdr, ppop pop = nullptr,
-                  const char *mode = "single", const char *what = "row",
+   void  Init    (QTableWidget *t, const char *hdr, const char *rc = "",
+                  ppop pop = nullptr, const char *mode = "single",
+                                      const char *what = "row",
                   char wrap = '\0');
    ubyt2 W ()    {return _t->horizontalHeader ()->length ();}
    void  SetColWrapOK (ubyte c);
@@ -555,6 +557,7 @@ public:
 
 private:
    QTableWidget *_t;
+   TStr  _rc;
    char  _ju [40];
    char  _ed [40];
    ubyt2 _nr, _tr, _ih;
