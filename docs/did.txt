@@ -1,2 +1,25 @@
+2026Jun
+   not gonna do os.cpp case insensitive filename,dirname open cuz
+      linux kernel finally did it:
+   make dadata case INSENSITIVE !
+-- where's my drive
+   sudo lsblk
+   nvme2n1     259:3    0   3.6T  0 disk
+   └─nvme2n1p1 259:4    0   3.6T  0 part /media/sh/dadata
+      ...so /dev/nvme2n1
+
+-- unmount, set it's casefold setting ON, remount
+   sudo umount /dev/nvme2n1
+   sudo tune2fs -O casefold /dev/nvme2n1
+   sudo mount -a
+
+-- set the top (EMPTY!) dirs to casefold like this
+ # backup all ma data
+   cd /media/sh/dadata
+   sudo chattr +F _
+   sudo chattr +F ^
+ # restore all ma data
+
+
 2026Jan
    startin to doc more properly
