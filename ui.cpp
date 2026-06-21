@@ -520,8 +520,37 @@ protected:
    }
 };
 
-void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop,
-                    const char *mode, const char *what, char wrap)
+
+void CtlTabl::SetSelect (const char *mode, const char *what)
+{ QAbstractItemView::SelectionMode     m;
+  QAbstractItemView::SelectionBehavior b;
+   if      (! StrCm (CC(mode), CC("none")))
+      m = QAbstractItemView::NoSelection;
+   else if (! StrCm (CC(mode), CC("single")))
+      m = QAbstractItemView::SingleSelection;
+   else if (! StrCm (CC(mode), CC("multi")))
+      m = QAbstractItemView::MultiSelection;
+   else if (! StrCm (CC(mode), CC("extended")))
+      m = QAbstractItemView::ExtendedSelection;
+   else if (! StrCm (CC(mode), CC("contig")))
+      m = QAbstractItemView::ContiguousSelection;
+   else
+{DBG("CtlTable::SetSelect bad arg1");   return;}
+   _t->setSelectionMode (m);
+   if      (! StrCm (CC(what), CC("item")))
+      b = QAbstractItemView::SelectItems;
+   else if (! StrCm (CC(what), CC("row")))
+      b = QAbstractItemView::SelectRows;
+   else if (! StrCm (CC(what), CC("col")))
+      b = QAbstractItemView::SelectColumns;
+   else
+{DBG("CtlTable::SetSelect bad arg2");   return;}
+   _t->setSelectionBehavior (b);
+}
+
+
+void CtlTabl::Init (QTableWidget *t, const char *hdr, const char *rc,
+                    ppop pop, const char *mode, const char *what, char wrap)
 // hdr is zz string of labels
 //  >| prefix means right or center just
 //  +  prefix means icon
@@ -531,7 +560,7 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop,
   char *h;
   char  ed = '\0';      // _ means editing, ^ means QComboBox so delegate too
   QStringList sl;
-   _t = t;
+   _t = t;   StrCp (_rc, rc);
    for (c = 0, h = CC(hdr);  *h;  c++, h = & h [StrLn (h)+1]) {
       _ju [c] = _ed [c] = '\0';
       if ((*h == '+') || (*h == '*') ||
@@ -559,8 +588,6 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, ppop pop,
 ** _t->horizontalHeader ()->setStretchLastSection (true);
 ** _t->horizontalHeader ()->setHighlightSections (false);
 ** _t->horizontalHeader ()->savestate ();   n restorestate ()
-** _t->setSelectionBehavior (QAbstractItemView::SelectItems/Rows);
-** _t->setSelectionMode     (QAbstractItemView::ExtendedSelection);
 ** _t->setGridShow (false);
 */
 
@@ -597,12 +624,12 @@ void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
          it->setText (++s);            // override icon :/
       else if (*s) {
          if ((_ju [c] == '*') && Gui.Dark ())
-            it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s_d", s)));
+            it->setIcon (QIcon (StrFmt (ico, ":/`s/`s_d", _rc, s)));
          else
-            it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s",   s)));
+            it->setIcon (QIcon (StrFmt (ico, ":/`s/`s",   _rc, s)));
          it->setSizeHint (QSize (_ih, _ih));
       }
-// it->setData (Qt::DecorationRole, QPixmap (StrFmt (ico, ":/tabl/`s", s))
+// it->setData (Qt::DecorationRole, QPixmap (StrFmt (ico, ":/`s/`s", _rc, s))
 //   .scaled (_ih, _ih, Qt::KeepAspectRatio, Qt::SmoothTransformation));
       else  it->setIcon (QIcon ());
    }
@@ -621,33 +648,6 @@ void CtlTabl::SetColor (ubyt2 r, ubyte c, QColor co)
 
 void CtlTabl::SetRowCol (ubyt2 r, QColor c)
 { ubyte i = NCol ();   while (i) SetColor (r, --i, c);  }
-
-void CtlTabl::SetSelect (const char *mode, const char *what)
-{ QAbstractItemView::SelectionMode     m;
-  QAbstractItemView::SelectionBehavior b;
-   if      (! StrCm (CC(mode), CC("none")))
-      m = QAbstractItemView::NoSelection;
-   else if (! StrCm (CC(mode), CC("single")))
-      m = QAbstractItemView::SingleSelection;
-   else if (! StrCm (CC(mode), CC("multi")))
-      m = QAbstractItemView::MultiSelection;
-   else if (! StrCm (CC(mode), CC("extended")))
-      m = QAbstractItemView::ExtendedSelection;
-   else if (! StrCm (CC(mode), CC("contig")))
-      m = QAbstractItemView::ContiguousSelection;
-   else
-{DBG("CtlTable::SetSelect bad arg1");   return;}
-   _t->setSelectionMode (m);
-   if      (! StrCm (CC(what), CC("item")))
-      b = QAbstractItemView::SelectItems;
-   else if (! StrCm (CC(what), CC("row")))
-      b = QAbstractItemView::SelectRows;
-   else if (! StrCm (CC(what), CC("col")))
-      b = QAbstractItemView::SelectColumns;
-   else
-{DBG("CtlTable::SetSelect bad arg2");   return;}
-   _t->setSelectionBehavior (b);
-}
 
 
 void CtlTabl::Open ()
@@ -676,9 +676,9 @@ void CtlTabl::Put (char **rp, char *tip)
             if      (**rp == '*')
                it->setText (++(*rp));
             else if ((_ju [c] == '*') && Gui.Dark ())
-               it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s_d", *rp)));
+               it->setIcon (QIcon (StrFmt (ico, ":/`s/`s_d", _rc, *rp)));
             else
-               it->setIcon (QIcon (StrFmt (ico, ":/tabl/`s", *rp)));
+               it->setIcon (QIcon (StrFmt (ico, ":/`s/`s",   _rc, *rp)));
          }
          else  it->setIcon (QIcon ());
       }
