@@ -571,6 +571,7 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, const char *rc,
    _t->horizontalHeader ()->setSectionResizeMode (  //QHeaderView::Interactive);
       QHeaderView::ResizeMode::ResizeToContents);
    _t->setColumnCount (c);   _t->setHorizontalHeaderLabels (sl);
+   _t->horizontalHeader ()->setStretchLastSection (true);
    _t->verticalHeader ()->hide ();
    _t->setAlternatingRowColors (false);
    if (ed)  _t->setItemDelegate (new SIDlg (_t, _ed, pop));
@@ -699,6 +700,7 @@ void CtlTabl::Shut (bool rehop)
 {
 //DBG("CtlTabl::Shut show");
    _t->show ();
+   _t->updateGeometry ();
    _t->resizeColumnsToContents ();
    if (_wr)  _t->resizeRowsToContents ();
 //DBG("CtlTabl::Shut HopTo");
