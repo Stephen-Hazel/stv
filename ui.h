@@ -536,7 +536,7 @@ public:
                                       const char *what = "row",
                   char wrap = '\0');
    ubyt2 W ()    {return _t->horizontalHeader ()->length ();}
-   void  SetColWrapOK (ubyte c);
+   void  SetColElide (ubyte c, char lrc = 'r');
    void  SetRowH (ubyt2 h);
    ubyt2 ColW    (ubyte c);
    void  SetColW (ubyte c, ubyt2 w);

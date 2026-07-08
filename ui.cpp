@@ -508,18 +508,22 @@ void CtlTBar::ReDo ()
 
 //______________________________________________________________________________
 // this ain't workin :(
-class WrapOK: public QStyledItemDelegate {
+class Elide: public QStyledItemDelegate {
 public:
    using QStyledItemDelegate::QStyledItemDelegate;
+   Elide (char lrc)  {_lrc = lrc;}
 protected:
    void initStyleOption (QStyleOptionViewItem *option,
                          const QModelIndex & index) const override
    {  QStyledItemDelegate::initStyleOption (option, index);
-      option->textElideMode = Qt::ElideNone;
-//      TextWrapAnywhere is what i waaant
+      if (_lrc == 'n')  option->textElideMode = Qt::ElideNone;
+      if (_lrc == 'l')  option->textElideMode = Qt::ElideLeft;
+      if (_lrc == 'c')  option->textElideMode = Qt::ElideMiddle;
+      if (_lrc == 'r')  option->textElideMode = Qt::ElideRight;
    }
+private:
+   char _lrc;
 };
-
 
 void CtlTabl::SetSelect (const char *mode, const char *what)
 { QAbstractItemView::SelectionMode     m;
@@ -592,8 +596,8 @@ void CtlTabl::Init (QTableWidget *t, const char *hdr, const char *rc,
 ** _t->setGridShow (false);
 */
 
-void  CtlTabl::SetColWrapOK (ubyte c)
-{  _t->setItemDelegateForColumn (c, new WrapOK);  }
+void  CtlTabl::SetColElide (ubyte c, char lrc)
+{  _t->setItemDelegateForColumn (c, new Elide (lrc));  }
 
 void  CtlTabl::SetRowH (ubyt2 h)
 {  _t->verticalHeader ()->setDefaultSectionSize (h);
