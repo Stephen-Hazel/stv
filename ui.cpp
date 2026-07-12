@@ -267,6 +267,10 @@ QColor Color (const char *c)
    else if (! StrCm (c, "medDk"))   return p.color (QPalette::Mid);
    else if (! StrCm (c, "dark"))    return p.color (QPalette::Dark);
    else if (! StrCm (c, "shadow"))  return p.color (QPalette::Shadow);
+   else if (*c == '#') {
+     ubyt4 i = StX2Int (CC(c));
+      return QColor ((i>>16) & 0xFF, (i>>8) & 0xFF, i & 0xFF);
+   }
 DBG("Color='`s' = BUG", c);
    return p.color (QPalette::Text);
 }

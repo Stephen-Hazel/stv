@@ -98,6 +98,7 @@ void  ZZApS   (char *dzz, char *sz);        // append one normal str
 // str formattin stuff
 char *Int2Str (sbyt4 Int, char *buf12, char base = 'd');   // 'x' for hex
 sbyt4 Str2Int (char *Str, char **p = nullptr);
+ubyt4 StX2Int (char *s);
 char *StrFmt  (char *s, char const *fmt, ...);   // my sprintf replacement
 
 void  DBGTH   (char const *s);
