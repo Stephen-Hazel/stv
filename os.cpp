@@ -196,6 +196,21 @@ sbyt4 Str2Int (char *s, char **p)
    return ng ? -i : i;
 }
 
+static ubyte HxDig (char c)
+{  if      (      (c  >= '0') && (      c  <= '9'))
+      return c - '0';
+   else if ((CHDN (c) >= 'a') && (CHDN (c) <= 'f'))
+      return CHDN (c) - 'a' + 10;
+   return 16;
+}
+
+ubyt4 StX2Int (char *s)
+{ ubyt4 d, i = 0;
+   while (     HxDig (*s) == 16)   s++;
+   while ((d = HxDig (*s)) < 16)  {s++;   i = i * 16 + d;}
+   return i;
+}
+
 char *StrFmtX (char *out, char const *fmti, va_list va)  // sprintf replacement
 // `   substitute
 // <>0 justification/prefix 0s
