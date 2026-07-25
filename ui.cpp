@@ -276,11 +276,11 @@ DBG("Color='`s' = BUG", c);
 }
 /*
 light mode:
-* fg       35  38  41  1 *fg = fgWin = fgTip = fgBtn
+* fg       35  38  41  1  #232629  *fg = fgWin = fgTip = fgBtn
 x fgWin    35  38  41  1
 x fgTip    35  38  41  1
 x fgBtn    35  38  41  1
-> bg      239 240 241
+> bg      239 240 241     #eff0f1
 * fgSel   255 255 255  2 *fgSel = fgBrite = base = light
 x fgBrite 255 255 255  2
 x base    255 255 255  2
@@ -299,8 +299,8 @@ x base2   247 247 247  4 base2 = *bgTip
 > shadow   59  61  63
 
 dark mode:
-fgWin   252 252 252
-bg       32  35  38
+fgWin   252 252 252      #fcfcfc
+bg       32  35  38      #202326
 fgSel   252 252 252
 bgSel    61 174 233
 accent   61 174 233
