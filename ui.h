@@ -324,9 +324,11 @@ public:
    { QFont f = _w->font ();
       f.setBold (tf);   f.setPointSize (tf ? 18:14);   _w->setFont (f);
    }
-   void   Add (char *txt)    {_w->insertPlainText (txt);}
-   char  *Get ()             {return UnQS (_w->toPlainText ());}
-   void   Set (char *txt)    {Clr ();   Add (txt);}
+   void   Add (const char *txt)  {Add (CC(txt));}
+   void   Set (const char *txt)  {Set (CC(txt));}
+   void   Add (      char *txt)  {_w->insertPlainText (txt);}
+   void   Set (char *txt)        {Clr ();   Add (txt);}
+   char  *Get ()        {return UnQS (_w->toPlainText ());}
 
    QTextEdit *_w;
 };
