@@ -262,10 +262,11 @@ extern ubyte   NMDGrp;
 extern MDrumDef MDrum [];
 extern ubyte   NMDrum;
 
-extern ubyte MDrm     (char *s);            // str to key
-extern char *MDrm2Str (char *s, ubyte b);   // key to str
-extern char *MDrm2StG (char *s, ubyte b);   // key to Drum/grp_str
-extern ubyte MDrm2Grp (ubyte b);            // key to grp #
+extern ubyte MDrm (const char *s);
+extern ubyte MDrm       (char *s);            // str to key
+extern char *MDrm2Str   (char *s, ubyte b);   // key to str
+extern char *MDrm2StG   (char *s, ubyte b);   // key to Drum/grp_str
+extern ubyte MDrm2Grp   (ubyte b);            // key to grp #
 
 extern ubyt2 MCtl     (char *s);
 extern char *MCtl2Str (char *s, ubyt2 c, char raw = '\0');

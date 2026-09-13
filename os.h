@@ -496,7 +496,8 @@ DBG("File::Open('`s','`s') failed\n`s", _fn, mode, strerror (errno));
    ubyt4 Put (void *buf, ubyt4 len)
    { sbyt4 ln = write (_f, buf, len);   return (ln<0)?0:ln;}
 
-   ubyt4 Put (char *buf)  {return Put (buf, StrLn (buf));}
+   ubyt4 Put (const char *buf)  {return Put (CC(buf));}
+   ubyt4 Put (      char *buf)  {return Put (buf, StrLn (buf));}
 
    sbyt4 Seek (sbyt4 amt, char dir = '>')
    { int mode = (dir == '.') ? SEEK_CUR :
@@ -584,7 +585,7 @@ public:
       nm [0] = '\0';   num = maxs = siz = maxb = 0;
    }
 
-   void Init (char *inm, ubyt4 imaxs, ubyt4 imaxb)
+   void Init (const char *inm, ubyt4 imaxs, ubyt4 imaxb)
    {  Wipe ();
       StrCp (nm, inm);
       maxs = imaxs;   maxb = imaxb;   num = siz = 0;
@@ -593,7 +594,7 @@ public:
 
    void Clr ()  {num = siz = 0;}
 
-   void Init (char *inm, ubyt4 imaxs = 1024)
+   void Init (const char *inm, ubyt4 imaxs = 1024)
    {  Init (inm, imaxs, imaxs*MAX_PATH);  }
 
    StrArr ()    {str = nullptr;   buf = nullptr;   Wipe ();}
@@ -713,7 +714,7 @@ public:
 
    STable ()  {Wipe ();}
 
-   void Init (char *nm, ubyte nc = 1, ubyt4 maxRow = STABLE_MAXROW)
+   void Init (const char *nm, ubyte nc = 1, ubyt4 maxRow = STABLE_MAXROW)
    {  Wipe ();
       _nCol = nc;   _maxRow = maxRow;   _sa.Init (nm, _nCol*_maxRow);
    }
