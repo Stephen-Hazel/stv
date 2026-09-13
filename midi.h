@@ -122,7 +122,7 @@ public:                                // only MidiCfg app should reach in herez
    bool GetPos (char io, ubyte pos,
                          char *name, char *type, char *desc, char *dev);
 private:
-   void InsDev (char io, char *dev, char *desc);
+   void InsDev (const char io, const char *dev, char *desc);
    static char *DoRec (char *buf, ubyt2 len, ubyt4 pos, void *ptr);
 };
 extern MidiDevLst Midi;
@@ -240,10 +240,10 @@ struct TrkEv {ubyt4 time;  ubyte ctrl, valu, val2, x;};
 inline bool FnMid (char *fn)
 // or .mod - files i know how ta convert into .song
 { ubyt2 ln = StrLn (fn);
-   return ( (ln > 4) && ((! StrCm (& fn [ln-4], CC(".mid"))) ||
-                         (! StrCm (& fn [ln-4], CC(".mod"))) ||
-                         (! StrCm (& fn [ln-4], CC(".kar"))) ||
-                         (! StrCm (& fn [ln-4], CC(".rmi")))) ) ? true : false;
+  char *x  = & fn [ln-4];
+   return (ln > 4) && ((! StrCm (x, ".mid")) || (! StrCm (x, ".mod")) ||
+                       (! StrCm (x, ".kar")) || (! StrCm (x, ".rmi")))
+          ? true : false;
 }
 
 

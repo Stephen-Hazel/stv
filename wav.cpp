@@ -33,15 +33,15 @@ char *Wav::Load (char *fn)
    *out = '\0';
    StrCp (_name, fn);   MemSet (got, 0, sizeof (got));
    if ((pb = (ubyte *) _mf.Open (fn)) == NULL)
-                                return StrCp (out, CC("ERROR can't read"));
+                                return StrCp (out, "ERROR can't read");
    p = pb;
-   if ((l = _mf.Len ()) < 12)   return StrCp (out, CC("ERROR not a WAV file"));
+   if ((l = _mf.Len ()) < 12)   return StrCp (out, "ERROR not a WAV file");
    MemCp (& chnk, p,   8);
    MemCp (id,     p+8, 4);   p += 12;  l -= 12;
-   if (MemCm (chnk.tag, CC("RIFF"), 4, 'x'))
-                                return StrCp (out, CC("ERROR no RIFF chunk"));
-   if (MemCm (id,        CC("WAVE"), 4, 'x'))
-                                return StrCp (out, CC("ERROR no WAVE id"));
+   if (MemCm (chnk.tag, "RIFF", 4, 'x'))
+                                return StrCp (out, "ERROR no RIFF chunk");
+   if (MemCm (id,       "WAVE", 4, 'x'))
+                                return StrCp (out, "ERROR no WAVE id");
    for (pe = p + l;  p < pe;) {
 //DBG(" pofs=`08x=`d/`08x=`d", (int)(p-pb), (int)(p-pb), l, l);
       if ((p + 8) > pe)  break;        // hit end?  bail
@@ -51,25 +51,25 @@ char *Wav::Load (char *fn)
       if (chnk.siz & 0x80000000)  break;    // rogue neg ckSize?  bail
       if (p + chnk.siz > pe)      break;
 
-      if      (MemCm (chnk.tag, CC("fmt "), 4, 'x') == 0) {
+      if      (MemCm (chnk.tag, "fmt ", 4, 'x') == 0) {
 //DBG("  got fmt");
          got [0] = true;
          MemCp (& _fmt, p, _fmtSz = chnk.siz);
       }
-      else if (MemCm (chnk.tag, CC("data"), 4, 'x') == 0) {
+      else if (MemCm (chnk.tag, "data", 4, 'x') == 0) {
 //DBG("  got data   bytes=`d", chnk.siz);
          got [1] = true;
          _mem = p;   _len = chnk.siz;  // initially #bytes but #samples later
       }
-      else if (MemCm (chnk.tag, CC("smpl"), 4, 'x') == 0) {
+      else if (MemCm (chnk.tag, "smpl", 4, 'x') == 0) {
 //DBG("  got smpl");
          got [2] = true;               // optional
          MemCp (& _smp, p, sizeof (WAVESMPL));
       }
       p += EVEN_UP (chnk.siz);
    }
-   if (! got [0])  return StrCp (out, CC("ERROR no fmt chunk"));
-   if (! got [1])  return StrCp (out, CC("ERROR no data chunk"));
+   if (! got [0])  return StrCp (out, "ERROR no fmt chunk");
+   if (! got [1])  return StrCp (out, "ERROR no data chunk");
    _real = false;
    if      (_fmt.Format.wFormatTag == WAVE_FORMAT_PCM)         _real = false;
    else if (_fmt.Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT)  _real = true;
@@ -80,11 +80,11 @@ char *Wav::Load (char *fn)
       else if (! MemCm (RC(char *,& _fmt.SubFormat),
                         RC(char *,& KSDATAFORMAT_SUBTYPE_IEEE_FLOAT),
                         sizeof (GUID), 'x'))                   _real = true;
-      else         return StrCp (out, CC("ERROR format unknown"));
+      else         return StrCp (out, "ERROR format unknown");
    }
-   else            return StrCp (out, CC("ERROR format unknown"));
+   else            return StrCp (out, "ERROR format unknown");
    if (_fmt.Format.nChannels > 2)
-                   return StrCp (out, CC("ERROR beyond 2 channels"));
+                   return StrCp (out, "ERROR beyond 2 channels");
 // whew, the damn thing is ok
    _frq  =  _fmt.Format.nSamplesPerSec;
    _mono = (_fmt.Format.nChannels == 1) ? true : false;
@@ -97,7 +97,7 @@ char *Wav::Load (char *fn)
    if (! got [2]) {                    // no 'smpl' chunk so init one
                    TRC(" no smpl so clear _smp cept key=4c,lBgn=lEnd=len");
       MemSet (& _smp, 0, sizeof (_smp));
-      _smp.per = 1000000000 / _frq;   _smp.key = MKey (CC("4c"));
+      _smp.per = 1000000000 / _frq;   _smp.key = MKey ("4c");
                                       _smp.bgn = _smp.end = _len;
       _loop = false;   _lBgn = _lEnd = _len;
       _key = (ubyte)_smp.key;   _cnt = 0;
@@ -159,7 +159,7 @@ void Wav::Save (char *fni)
 
 // rebuild _smp
    _smp.per = 1000000000 / _frq;
-   _smp.key = _key ? _key : MKey (CC("4c"));
+   _smp.key = _key ? _key : MKey ("4c");
    _smp.cnt = (sbyt4)(_cnt * ((ubyt4)0x80000000/50));
    if (! _loop)  {_smp.num = 0;   _lBgn = _lEnd = _end-_bgn+1;}
    else           _smp.num = 1;
@@ -185,11 +185,11 @@ void Wav::Save (char *fni)
 //DBG("can't write '`s'", fn);
       return;
    }
-   f.Put (CC("RIFF"));  f.Put (& ln1, 4);  f.Put (CC("WAVE"));
-   f.Put (CC("fmt "));  f.Put (& ln2, 4);  f.Put (& _fmt, ln2);
-   f.Put (CC("data"));  f.Put (& ln3, 4);
+   f.Put ("RIFF");  f.Put (& ln1, 4);  f.Put ("WAVE");
+   f.Put ("fmt ");  f.Put (& ln2, 4);  f.Put (& _fmt, ln2);
+   f.Put ("data");  f.Put (& ln3, 4);
    f.Put (& ((ubyte *)_mem) [_bgn*(_mono?1:2)*_byts], ln3);
-   f.Put (CC("smpl"));  f.Put (& ln4, 4);  f.Put (& _smp, ln4);
+   f.Put ("smpl");  f.Put (& ln4, 4);  f.Put (& _smp, ln4);
    f.Shut ();
 }
 
