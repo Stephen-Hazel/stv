@@ -99,7 +99,8 @@ MDrumDef MDrum [] = {
 ubyte NMDrum = BITS (MDrum);
 
 
-ubyte MDrm     (char *s)               // str to key int
+ubyte MDrm (const char *s)  {return MDrm (CC(s));}
+ubyte MDrm       (char *s)             // str to key int
 {  if (CHDN (*s) == 'x')  return (ubyte)Str2Int (& s [1]);
    for (ubyte i = 0;  i < NMDrum;  i++)  if (! MemCm    (MDrum [i].sym, s, 4))
                                             return MKey (MDrum [i].key);
