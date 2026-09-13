@@ -590,7 +590,7 @@ void Voice::ReFrq ()
       n = _key        * 100. + _gl.ofs +
           _eo.oStp () * 100. + round (_eo.oCnt ()) +
           _c->pBnR    * 100. * Ms2 (_c->pBnd);   // pBnR cents iz dumbb
-     ubyte mn = MKey (CC("0a")),  mx = MKey (CC("8c"));
+     ubyte mn = MKey ("0a"),  mx = MKey ("8c");
       if (n < mn*100.)  n = mn*100.;   // limit 0a-8c = 21-108 (0-87)
       if (n > mx*100.)  n = mx*100.;
       if (_c->pStp == 1)  n = round (n / 100.) * 100.;     // round cents
@@ -1085,8 +1085,8 @@ void Syn::LoadEnv ()
 // load _stg,_env from .../device/syn/env.txt  (our envelope bank)
 { TStr  fn, s, s1;
   ubyt4 en, st, d, i;
-  char *ch, *p, *ds = CC("WHQEST612");   // whole, half, ... 64th, 128th, 256th
-  StrArr t (CC("env"), 128, 128*sizeof(TStr));
+  char *ch, *p, *ds = CC("WHQEST612"); // whole, half, ... 64th, 128th, 256th
+  StrArr t ("env", 128, 128*sizeof(TStr));
    App.Path (fn, 'd');   StrAp (fn, "/device/syn/env.txt");   t.Load (fn);
    en = st = 0;   _env.Ln = _stg.Ln = 0;
    for (i = 0;  i < t.num;  i++) {

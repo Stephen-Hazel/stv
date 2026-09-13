@@ -75,7 +75,7 @@ ubyte ChdPos (char *ch, ubyte *root, ubyte *bass, char *sty)
    if (bass)  {*bass = 12;   if (*ch3)  *bass = MNt (ch3);}
    if (sty)   StrCp (sty, ch4);
 
-   for (p = 0;  p < NMChd;  p++)  if (! StrCm (CC(MChd [p].lbl), ch2, 'x'))
+   for (p = 0;  p < NMChd;  p++)  if (! StrCm (MChd [p].lbl, ch2, 'x'))
                                      return p;
    return MAJ_CHD;
 }

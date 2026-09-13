@@ -71,10 +71,10 @@ QKeySequence KeyMap::UnStr (char *k)
    o = (Qt::Key)0;
    StrCp (i, k);
    while ( (StrLn (i) > 4) && (i [3] == '|') ) {
-      if (MemCm (i, CC("SHF|"), 4) == 0)  o = o | Qt::SHIFT;
-      if (MemCm (i, CC("CTL|"), 4) == 0)  o = o | Qt::CTRL;
-      if (MemCm (i, CC("ALT|"), 4) == 0)  o = Qt::ALT;
-      if (MemCm (i, CC("MET|"), 4) == 0)  o = Qt::META;
+      if (MemCm (i, "SHF|", 4) == 0)  o = o | Qt::SHIFT;
+      if (MemCm (i, "CTL|", 4) == 0)  o = o | Qt::CTRL;
+      if (MemCm (i, "ALT|", 4) == 0)  o = Qt::ALT;
+      if (MemCm (i, "MET|", 4) == 0)  o = Qt::META;
       else {
 DBG("KeyMap::UnStr error with shift str='`s'", k);
          return o;
@@ -532,25 +532,19 @@ private:
 void CtlTabl::SetSelect (const char *mode, const char *what)
 { QAbstractItemView::SelectionMode     m;
   QAbstractItemView::SelectionBehavior b;
-   if      (! StrCm (CC(mode), CC("none")))
-      m = QAbstractItemView::NoSelection;
-   else if (! StrCm (CC(mode), CC("single")))
-      m = QAbstractItemView::SingleSelection;
-   else if (! StrCm (CC(mode), CC("multi")))
-      m = QAbstractItemView::MultiSelection;
-   else if (! StrCm (CC(mode), CC("extended")))
-      m = QAbstractItemView::ExtendedSelection;
-   else if (! StrCm (CC(mode), CC("contig")))
-      m = QAbstractItemView::ContiguousSelection;
+   if      (! StrCm (mode, "none"))   m = QAbstractItemView::NoSelection;
+   else if (! StrCm (mode, "single")) m = QAbstractItemView::SingleSelection;
+   else if (! StrCm (mode, "multi"))  m = QAbstractItemView::MultiSelection;
+   else if (! StrCm (mode, "extended"))
+                                      m = QAbstractItemView::ExtendedSelection;
+   else if (! StrCm (mode, "contig"))
+                                     m = QAbstractItemView::ContiguousSelection;
    else
 {DBG("CtlTable::SetSelect bad arg1");   return;}
    _t->setSelectionMode (m);
-   if      (! StrCm (CC(what), CC("item")))
-      b = QAbstractItemView::SelectItems;
-   else if (! StrCm (CC(what), CC("row")))
-      b = QAbstractItemView::SelectRows;
-   else if (! StrCm (CC(what), CC("col")))
-      b = QAbstractItemView::SelectColumns;
+   if      (! StrCm (what, "item")) b = QAbstractItemView::SelectItems;
+   else if (! StrCm (what, "row"))  b = QAbstractItemView::SelectRows;
+   else if (! StrCm (what, "col"))  b = QAbstractItemView::SelectColumns;
    else
 {DBG("CtlTable::SetSelect bad arg2");   return;}
    _t->setSelectionBehavior (b);

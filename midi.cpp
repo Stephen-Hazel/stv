@@ -22,31 +22,31 @@ char *MidiDevLst::DoRec (char *buf, ubyt2 len, ubyt4 pos, void *ptr)
    (void)len;
 // find initial, MidiIn: n MidiOut: spots
    if (pos == 0)                          spot = ' ';
-   if (MemCm (buf, CC("MidiIn:"),  7) == 0)  {spot = 'i';   return NULL;}
-   if (MemCm (buf, CC("MidiOut:"), 8) == 0)  {spot = 'o';   return NULL;}
+   if (MemCm (buf, "MidiIn:",  7) == 0)  {spot = 'i';   return NULL;}
+   if (MemCm (buf, "MidiOut:", 8) == 0)  {spot = 'o';   return NULL;}
 // skip comments n blank lines
    if ((spot == ' ') || (*buf == '\0') || (*buf == '#'))    return NULL;
   ColSep ss (buf, 2);
    *err = '\0';
-   if (StrLn (ss.Col [0]) > MAXTSTR)  StrCp (err, CC("name too long"));
-   if (StrLn (ss.Col [1]) > MAXTSTR)  StrCp (err, CC("type too long"));
-   if (StrLn (ss.Col [2]) > MAXTSTR)  StrCp (err, CC("description too long"));
-   if (m->_len >= MAX_DEV)            StrCp (err, CC("too many devices"));
+   if (StrLn (ss.Col [0]) > MAXTSTR)  StrCp (err, "name too long");
+   if (StrLn (ss.Col [1]) > MAXTSTR)  StrCp (err, "type too long");
+   if (StrLn (ss.Col [2]) > MAXTSTR)  StrCp (err, "description too long");
+   if (m->_len >= MAX_DEV)            StrCp (err, "too many devices");
    if (*err) {
       StrFmt (& err [StrLn (err)], " in device.txt line `d", pos+1);
       DBG (err);   return err;
    }
           m->_lst [m->_len].io =   spot;    // fill in stuff
-   StrCp (m->_lst [m->_len].name,  ss.Col [0]);
-   StrCp (m->_lst [m->_len].type,  ss.Col [1]);
-   StrCp (m->_lst [m->_len].desc,  ss.Col [2]);
-   StrCp (m->_lst [m->_len].dev, CC(StrCm (ss.Col [1], CC("syn")) ? "?" : "!"));
+   StrCp (m->_lst [m->_len].name, ss.Col [0]);
+   StrCp (m->_lst [m->_len].type, ss.Col [1]);
+   StrCp (m->_lst [m->_len].desc, ss.Col [2]);
+   StrCp (m->_lst [m->_len].dev,  StrCm (ss.Col [1], "syn") ? "?" : "!");
    m->_len++;                          // syn needs no IS IT ON check
    return NULL;
 }
 
 
-void MidiDevLst::InsDev (char io, char *desc, char *dev)
+void MidiDevLst::InsDev (const char io, const char *desc, char *dev)
 // update/insert dev into _lst matching on desc
 { ubyte p, q, no;
   TStr  nm;
@@ -73,7 +73,7 @@ void MidiDevLst::InsDev (char io, char *desc, char *dev)
       }
              _lst [p].io =  io;
       StrCp (_lst [p].name, nm);
-      StrCp (_lst [p].type, CC("DEFAULT"));
+      StrCp (_lst [p].type, "DEFAULT");
       StrCp (_lst [p].desc, desc);
       StrCp (_lst [p].dev,  dev);
       _len++;
@@ -97,7 +97,7 @@ void MidiDevLst::Load ()
   const char         *desc;
 //DBG("MidiDevLst::Load");
    _len = 0;
-   App.Path (fn, 'd');   StrAp (fn, CC("/device/device.txt"));
+   App.Path (fn, 'd');   StrAp (fn, "/device/device.txt");
    f.DoText (fn, this, DoRec);
 
 // map desc to alsa's "rawmidi" hw:9,9[,9] names (a bitt painful) - into .dev
@@ -143,13 +143,13 @@ void MidiDevLst::Load ()
                   desc = ::snd_rawmidi_info_get_name           (info);
                   StrFmt (sdev, "hw:`d,`d",    card, sub);
 //DBG("    sdev=`s desc=`s", sdev, desc);
-                  InsDev (io?'o':'i', CC(desc), sdev);
+                  InsDev (io?'o':'i', desc, sdev);
                }
                else {                  // use hw:9,9,9 and desc2
                   desc = ::snd_rawmidi_info_get_subdevice_name (info);
                   StrFmt (sdev, "hw:`d,`d,`d", card, dev, sub);
 //DBG("    sdev=`s desc=`s", sdev, desc);
-                  InsDev (io?'o':'i', CC(desc), sdev);
+                  InsDev (io?'o':'i', desc, sdev);
                }
             }
          }
@@ -164,7 +164,7 @@ bool MidiDevLst::Get    (char io, char *name, char *type, char *desc, char *dev)
 // find io n name w type!=OFF,  fill in other stuff
 {  for (ubyte        i = 0;  i < _len;  i++)
       if ( (io == _lst [i].io) && (! StrCm (name, _lst [i].name)) &&
-                                     StrCm (_lst [i].type, CC("OFF")) ) {
+                                     StrCm (_lst [i].type, "OFF") ) {
             StrCp (type, _lst [i].type);
             StrCp (desc, _lst [i].desc);
             StrCp (dev,  _lst [i].dev);
@@ -247,11 +247,11 @@ ubyte MNt (char *s)
 { TStr  t;
   ubyte n;
    StrCp (t, s);
-   if (StrLn (t) && (t [StrLn (t)-1] == 'm'))  StrAp (t, CC(""), 1);
+   if (StrLn (t) && (t [StrLn (t)-1] == 'm'))  StrAp (t, "", 1);
    for (n = 0;     n < 12;  n++)  if (! StrCm (t, MKeyStr  [n]))  break;
    if (n >= 12)
       for (n = 0;  n < 12;  n++)  if (! StrCm (t, MKeyStrB [n]))  break;
-   if (! StrCm (s, CC("Cb")))  return 11;   // handlin dumb ksigs sigh
+   if (! StrCm (s, "Cb"))  return 11;  // handlin dumb ksigs sigh
    return n;
 }
 
@@ -271,7 +271,7 @@ ubyte MKey (char *s, char **news)
 ubyte MKey (const char *s)  {return MKey (CC(s));}
 
 char *MKey2Str (char *s, ubyte b, char fl)
-{  if (b < MKey (CC("0C")))  b = MKey (CC("0C"));
+{  if (b < MKey ("0C"))  b = MKey ("0C");
    if (fl == 'b')  StrFmt (s, "`d`s", b/12-1, MKeyStrB [b%12]);
    else            StrFmt (s, "`d`s", b/12-1, MKeyStr  [b%12]);
    return s;
@@ -280,17 +280,17 @@ char *MKey2Str (char *s, ubyte b, char fl)
 ubyt2 MCtl (char *s)                             // cc raw str to ubyt2
 { ubyt2 rc;
   char *s2;
-   if      (! StrCm (s, CC("prog")))   return MC_PROG;
-   else if (! StrCm (s, CC("prss")))   return MC_PRSS;
-   else if (! StrCm (s, CC("pBnd")))   return MC_PBND;
-   else if (! StrCm (s, CC("tmpo")))   return MC_TMPO;
-   else if (! StrCm (s, CC("tSig")))   return MC_TSIG;
-   else if (! StrCm (s, CC("kSig")))   return MC_KSIG;
-   else if (! MemCm (s, CC("cc"), 2))  return MC_CC + (ubyt2)Str2Int (s+2);
-   else if (! MemCm (s, CC("us"), 2))  return MC_US + (ubyt2)Str2Int (s+2);
-   else if (! MemCm (s, CC("rp"), 2))  rc = MC_RP;
-   else if (! MemCm (s, CC("np"), 2))  rc = MC_NP;
-   else                                return 0;
+   if      (! StrCm (s, "prog"))   return MC_PROG;
+   else if (! StrCm (s, "prss"))   return MC_PRSS;
+   else if (! StrCm (s, "pBnd"))   return MC_PBND;
+   else if (! StrCm (s, "tmpo"))   return MC_TMPO;
+   else if (! StrCm (s, "tSig"))   return MC_TSIG;
+   else if (! StrCm (s, "kSig"))   return MC_KSIG;
+   else if (! MemCm (s, "cc", 2))  return MC_CC + (ubyt2)Str2Int (s+2);
+   else if (! MemCm (s, "us", 2))  return MC_US + (ubyt2)Str2Int (s+2);
+   else if (! MemCm (s, "rp", 2))  rc = MC_RP;
+   else if (! MemCm (s, "np", 2))  rc = MC_NP;
+   else                            return 0;
    rc += (ubyt2)(Str2Int (s+2, & s2) * 2);
    return rc + (ubyt2)((CHUP (*s2) == 'L') ? 1 : 0);
 }
@@ -299,12 +299,12 @@ char *MCtl2Str (char *s, ubyt2 c, char raw)      // cc ubyt2 to raw str
 {  *s = '\0';
    if (c < 128)  return MKey2Str (s, (ubyte)c);
    if (c < MC_CC) {
-      if      (c == MC_PROG)  StrCp (s, CC("prog"));
-      else if (c == MC_PRSS)  StrCp (s, CC("prss"));
-      else if (c == MC_PBND)  StrCp (s, CC("pBnd"));
-      else if (c == MC_TMPO)  StrCp (s, CC("tmpo"));
-      else if (c == MC_TSIG)  StrCp (s, CC("tSig"));
-      else if (c == MC_KSIG)  StrCp (s, CC("kSig"));
+      if      (c == MC_PROG)  StrCp (s, "prog");
+      else if (c == MC_PRSS)  StrCp (s, "prss");
+      else if (c == MC_PBND)  StrCp (s, "pBnd");
+      else if (c == MC_TMPO)  StrCp (s, "tmpo");
+      else if (c == MC_TSIG)  StrCp (s, "tSig");
+      else if (c == MC_KSIG)  StrCp (s, "kSig");
    }
    else if (c < MC_US) {
       StrFmt (s, "cc`d", c - MC_CC);
@@ -360,22 +360,22 @@ char *CtlX2Str (char *s, char *cs, TrkEv *in)
                        e.val2 = MCC [r].dflt >> 7;}
    }
    *s = '\0';
-   if      (! StrCm (cs, CC("tmpo")))
+   if      (! StrCm (cs, "tmpo"))
       StrFmt (s, "`d",  e.valu + (e.val2 << 8));
-   else if (! StrCm (cs, CC("tSig")))
+   else if (! StrCm (cs, "tSig"))
       if (e.val2 >> 4)
             StrFmt (s, "`d/`d/`d", e.valu, 1 << (e.val2 & 0x0F),
                                            1 +  (e.val2 >> 4)  );
       else  StrFmt (s, "`d/`d",    e.valu, 1 << (e.val2 & 0x0F));
-   else if (! StrCm (cs, CC("kSig"))) {
+   else if (! StrCm (cs, "kSig")) {
       if   (! (e.val2 & 0x80))  StrCp (s, MKeyStr  [e.valu]);
       else if (e.valu != 11)    StrCp (s, MKeyStrB [e.valu]);
-      else                      StrCp (s, CC("Cb"));
-      if (e.val2 & 0x01)  StrAp (s, CC("m"));
+      else                      StrCp (s, "Cb");
+      if (e.val2 & 0x01)  StrAp (s, "m");
       *s = CHUP (*s);
    }
-   else if (! StrCm (cs, CC("prog")))
-      StrCp (s, CC("*"));
+   else if (! StrCm (cs, "prog"))
+      StrCp (s, "*");
    return s;
 }
 
@@ -391,17 +391,17 @@ void CtlX2Val (TrkEv *e, char *cs, char *s)
       else           {e->valu = MCC [r].dflt & 0x7F;
                       e->val2 = MCC [r].dflt >> 7;}
    }
-   else if (! StrCm (cs, CC("tmpo"))) {
+   else if (! StrCm (cs, "tmpo")) {
       w = (ubyt2)Str2Int (s);   e->valu = (ubyte)(w & 0xFF);
                                 e->val2 = (ubyte)(w >> 8);
    }
-   else if (! StrCm (cs, CC("tSig"))) {
+   else if (! StrCm (cs, "tSig")) {
       e->valu = (ubyte)Str2Int (s, & s);   if (*s == '/')  s++;
       w       = (ubyt2)Str2Int (s, & s);
       for (r = 0;  r < 16;  r++)  if ((1 << r) == w)  {e->val2 = r;   break;}
       if (*s == '/')  {w = (ubyt2)Str2Int (++s);   e->val2 |= ((w-1) << 4);}
    }
-   else if (! StrCm (cs, CC("kSig"))) {
+   else if (! StrCm (cs, "kSig")) {
       e->val2 = (s [StrLn (s)-1] == 'm') ? 1 : 0;
       e->valu = MNt (s);
       if (s [1] == 'b')  e->val2 |= 0x80;
@@ -419,7 +419,7 @@ MidiO::MidiO (char *name, char noinit)
    if (*_dev == '?')
       {DBG("MidiO device `s isn't on", _name);    return;}
 //TRC("MidiO::MidiO `s.`s.`s  dev=`s", _name, _type, _desc, _dev);
-   if (! StrCm (_type, CC("syn"))) {   // fake handle just so not Dead()
+   if (! StrCm (_type, "syn")) {       // fake handle just so not Dead()
       _syn = true;   _hnd = (snd_rawmidi_t *)1;
       return;
    }
@@ -436,7 +436,7 @@ MidiO::~MidiO (void)
 //TRC("MidiO::~MidiO `s", (*_name) ? _name : "?");
    if (Dead ())  {TRC("...was dead");   return;}
    for (ubyte c = 0;  c < 16;  c++)  Put (c, MC_CC|M_ASOFF);
-   if (! StrCm (_type, CC("syn")))
+   if (! StrCm (_type, "syn"))
       {_hnd = nullptr;   return;}
    if ((err = ::snd_rawmidi_drain (_hnd)))
       DBG("snd_rawmidi_drain o `s failed: `s", _name, ::snd_strerror (err));
@@ -476,34 +476,34 @@ void MidiO::PutMEv (ubyte *mev, ubyte ln)
          break;
       case M_CTRL:
          switch (mev [1]) {
-            case M_NRPNL:  StrCp (s, CC("NRPL."));   break;
-            case M_NRPNH:  StrCp (s, CC("NRPH."));   break;
-            case M_RPNL:   StrCp (s, CC("RPL."));    break;
-            case M_RPNH:   StrCp (s, CC("RPH."));    break;
-            case M_DATH:   StrCp (s, CC("DatH."));   break;
-            case M_DATL:   StrCp (s, CC("DatL."));   break;
-            case M_BANK:   StrCp (s, CC("Bank."));   break;
-            case M_BNKL:   StrCp (s, CC("BnkL."));   break;
-            case M_MOD:    StrCp (s, CC("Mod."));    break;
-            case M_BRTH:   StrCp (s, CC("Brth."));   break;
-            case M_PEDL:   StrCp (s, CC("Pedl."));   break;
-            case M_VOL:    StrCp (s, CC("Vol."));    break;
-            case M_EXPR:   StrCp (s, CC("Expr."));   break;
-            case M_PAN:    StrCp (s, CC("Pan."));    break;
-            case M_BAL:    StrCp (s, CC("Bal."));    break;
-            case M_HOLD:   StrCp (s, CC("Hold."));   break;
-            case M_HLD2:   StrCp (s, CC("Hld2."));   break;
-            case M_SOFT:   StrCp (s, CC("Soft."));   break;
-            case M_SUST:   StrCp (s, CC("Sust."));   break;
-            case M_LEGA:   StrCp (s, CC("Lega."));   break;
-            case M_RVRB:   StrCp (s, CC("Rvrb."));   break;
-            case M_CHOR:   StrCp (s, CC("Chor."));   break;
-            case M_ASOFF:  StrCp (s, CC("ASOff."));  break;
-            case M_ACOFF:  StrCp (s, CC("ACOff."));  break;
-            case M_LOCAL:  StrCp (s, CC("Local."));  break;
-            case M_ANOFF:  StrCp (s, CC("ANOff."));  break;
+            case M_NRPNL:  StrCp (s, "NRPL.");   break;
+            case M_NRPNH:  StrCp (s, "NRPH.");   break;
+            case M_RPNL:   StrCp (s, "RPL.");    break;
+            case M_RPNH:   StrCp (s, "RPH.");    break;
+            case M_DATH:   StrCp (s, "DatH.");   break;
+            case M_DATL:   StrCp (s, "DatL.");   break;
+            case M_BANK:   StrCp (s, "Bank.");   break;
+            case M_BNKL:   StrCp (s, "BnkL.");   break;
+            case M_MOD:    StrCp (s, "Mod.");    break;
+            case M_BRTH:   StrCp (s, "Brth.");   break;
+            case M_PEDL:   StrCp (s, "Pedl.");   break;
+            case M_VOL:    StrCp (s, "Vol.");    break;
+            case M_EXPR:   StrCp (s, "Expr.");   break;
+            case M_PAN:    StrCp (s, "Pan.");    break;
+            case M_BAL:    StrCp (s, "Bal.");    break;
+            case M_HOLD:   StrCp (s, "Hold.");   break;
+            case M_HLD2:   StrCp (s, "Hld2.");   break;
+            case M_SOFT:   StrCp (s, "Soft.");   break;
+            case M_SUST:   StrCp (s, "Sust.");   break;
+            case M_LEGA:   StrCp (s, "Lega.");   break;
+            case M_RVRB:   StrCp (s, "Rvrb.");   break;
+            case M_CHOR:   StrCp (s, "Chor.");   break;
+            case M_ASOFF:  StrCp (s, "ASOff.");  break;
+            case M_ACOFF:  StrCp (s, "ACOff.");  break;
+            case M_LOCAL:  StrCp (s, "Local.");  break;
+            case M_ANOFF:  StrCp (s, "ANOff.");  break;
 
-            default:       StrCp (s, CC("?."));      break;
+            default:       StrCp (s, "?.");      break;
          }
          DBG("`s`s`d=`d",    dc, s, mev[1], mev[2]);
          break;
@@ -694,8 +694,8 @@ void MidiI::EvIns (ubyte s, ubyte ci, ubyte v, ubyte v2)
    switch (s & 0xF0) {
       case M_NPRS: v2 = 0x80;
       case M_NOTE: if (v)  v |= 0x80;
-      case M_NOFF: if ((c >= MKey (CC("0C"))) &&
-                       (c <= MKey (CC("8B"))))    ok = true;
+      case M_NOFF: if ((c >= MKey ("0C")) &&
+                       (c <= MKey ("8B")))    ok = true;
                                                                break;
       case M_PROG: v = (ubyte)c;   c = MC_PROG;   ok = true;   break;
       case M_PRSS: v = (ubyte)c;   c = MC_PRSS;   ok = true;   break;

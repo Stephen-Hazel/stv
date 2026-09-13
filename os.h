@@ -466,7 +466,7 @@ public:
         File tf;
          if ((mode [1] == 'b') && tf.Size (_fn)) {    // back it up?
            TStr dir, ext, fn, s;       // get dir n ext
-            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, CC("/.old"));
+            StrCp (dir, _fn);   Fn2Path (dir);   StrAp (dir, "/.old");
             FnExt (ext, _fn);
             StrFmt  (fn, "`s/`s.`s", dir, Now (s), ext);
             tf.Copy (name, fn);        // copy to back up
@@ -598,10 +598,10 @@ public:
    {  Init (inm, imaxs, imaxs*MAX_PATH);  }
 
    StrArr ()    {str = nullptr;   buf = nullptr;   Wipe ();}
-   StrArr (char *inm, ubyt4 imaxs)              {str = nullptr;   buf = nullptr;
-                                                 Init (inm, imaxs);}
-   StrArr (char *inm, ubyt4 imaxs, ubyt4 imaxb) {str = nullptr;   buf = nullptr;
-                                                 Init (inm, imaxs, imaxb);}
+   StrArr (const char *inm, ubyt4 imaxs)
+   {  str = nullptr;   buf = nullptr;   Init (inm, imaxs);}
+   StrArr (const char *inm, ubyt4 imaxs, ubyt4 imaxb)
+   {  str = nullptr;   buf = nullptr;   Init (inm, imaxs, imaxb);}
   ~StrArr ()  {Wipe ();}
 
    char *Name ()    {return nm;}
@@ -791,9 +791,9 @@ public:
    { char rc [8000];
       for (ubyt4 r = 0;  r < NRow ();  r++) {
          *rc = '\0';
-         for (ubyte c = 0;  c < NCol ();  c++)  {if (c)  StrAp (rc, CC(" "));
+         for (ubyte c = 0;  c < NCol ();  c++)  {if (c)  StrAp (rc, " ");
                                                  StrAp (rc, Get (r, c));}
-         StrAp (rc, CC("\n"));
+         StrAp (rc, "\n");
          f->Put (rc);
       }
    }
@@ -828,11 +828,11 @@ private:
 struct AppBase {
 public:
    void Init ()
-   { TStr s;   CfgGet (CC("trc"), s);
+   { TStr s;   CfgGet ("trc", s);
       if (*s)  trc = (*s == 'y') ? true : false;
       else {                           // uh oh !  kick initme !
-         CfgPut (CC("trc"), CC("n"));  // skip this?  initme infinite loop :)
-         Run (CC("initme"));
+         CfgPut ("trc", CC("n"));      // skip this?  initme infinite loop :)
+         Run ("initme");
          trc = true;
       }
    }
@@ -842,8 +842,8 @@ public:
    // d.cfg will usually give /home/sh/pianocheetah or wherever initme picks
    { char *p;
      TStr  t;
-      if (typ == 'a')  return StrCp (s, CC("/app/bin"));
-      if (typ == 'c')  return StrCp (s, CC("/var/config"));
+      if (typ == 'a')  return StrCp (s, "/app/bin");
+      if (typ == 'c')  return StrCp (s, "/var/config");
       if (typ == 'h') {
          if (! (p = getenv ("HOME")))
             {DBG("getenv HOME failed");   *s = '\0';   return s;}
@@ -853,13 +853,16 @@ public:
       return CfgGet (t, s);
    }
 
-   char *CfgGet (char *fn, char *s, ubyt4 max = 0)
+   char *CfgGet (const char *fn, char *s, ubyt4 max = 0)
+   {  return CfgGet (CC(fn), s, max);  }
+
+   char *CfgGet (      char *fn, char *s, ubyt4 max = 0)
    { TStr  p, q;
      File  f;
      ubyt4 l;
       StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
       l = f.Load (p, s, max ? max : MAX_PATH);
-      if ((l == 0) && StrCm (fn, CC("trc")))     // might be not be initme'd !
+      if ((l == 0) && StrCm (fn, "trc"))    // might be not be initme'd !
          DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
       if (max == 0) {
          s [l] = '\0';
@@ -868,7 +871,10 @@ public:
       return s;
    }
 
-   void  CfgPut (char *fn, char *s, ubyt4 len = 0)
+   void  CfgPut (const char *fn, char *s, ubyt4 len = 0)
+   {  CfgPut (CC(fn), s, len);  }
+
+   void  CfgPut (      char *fn, char *s, ubyt4 len = 0)
    { TStr p, q;
      File f;
       StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
@@ -876,7 +882,7 @@ public:
    }
 
    void TrcPut (bool tf)
-   {  trc = tf;   CfgPut (CC("trc"), CC(tf?"y":"n"));  }
+   {  trc = tf;   CfgPut ("trc", CC(tf?"y":"n"));  }
 /*
    void Run (char *cmd, ubyte narg)
    { pid_t p;
@@ -893,7 +899,8 @@ public:
    }
 
 */
-   void Spinoff (char *cmd)
+   void Spinoff (const char *cmd)  {Spinoff (CC(cmd));}
+   void Spinoff (      char *cmd)
    // spin it off in another session totally in parallel
    { BStr a, t;
      int  rc;
@@ -902,7 +909,8 @@ public:
       if ((rc = system (a)))  DBG("Spinoff `s died rc=`d", a, rc);
    }
 
-   void Run (char *cmd)
+   void Run (const char *cmd)  {Run (CC(cmd));}
+   void Run (      char *cmd)
    // run n wait for cmd
    { int rc;
       if ((rc = system (cmd)))  DBG("`s died rc=`d", cmd, rc);
