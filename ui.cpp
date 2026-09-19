@@ -143,14 +143,26 @@ bool QtEr::AskW (char *name, char const *titl)
    return true;
 }
 
+bool QtEr::AskDirX (char *name, char const *titl)
+{ QString dir = QDir::homePath ();
+   if (*name)  dir = name;
+DBG("AskDirX given=`s", UnQS (dir));
+   dir = QFileDialog::getExistingDirectory (
+      _w, titl, dir, QFileDialog::ShowDirsOnly |
+                     QFileDialog::DontResolveSymlinks |
+                     QFileDialog::DontUseNativeDialog);
+DBG("AskDirX got=`s", UnQS (dir));
+   if (dir.isEmpty ())  return false;
+   StrCp (name, CC(UnQS (dir)));
+   return true;
+}
+
 bool QtEr::AskDir (char *name, char const *titl)
 { QString dir = QDir::homePath ();
    if (*name)  dir = name;
 DBG("AskDir given=`s", UnQS (dir));
    dir = QFileDialog::getExistingDirectory (
-      _w, titl, dir, QFileDialog::ShowDirsOnly |
-                     QFileDialog::DontResolveSymlinks |
-                     QFileDialog::DontUseNativeDialog);
+      _w, titl, dir, QFileDialog::ShowDirsOnly);
 DBG("AskDir got=`s", UnQS (dir));
    if (dir.isEmpty ())  return false;
    StrCp (name, CC(UnQS (dir)));
@@ -227,10 +239,10 @@ void QtEr::WinSave (QSplitter *spl)
    s.setValue ("scr",  _w->windowHandle ()->screen ()->name ());
 }
 
-void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl, char d2,
-                 char fixw)
-{  _a = a;   _w = w;   StrCp (_ttl, ttl);   _fixw = fixw;  _d = d2;
-   _q = false;
+void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl,
+                 char d2, char fixw)
+{  _a = a;   _w = w;   StrCp (_ttl, ttl);
+   _fixw = fixw;  _d = d2;   _q = false;
    _ico  =      QIcon (":/app");
    _icoD = _d ? QIcon (":/app_d") : QIcon ();
 }
