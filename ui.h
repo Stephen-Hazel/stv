@@ -110,9 +110,10 @@ public:
 
    void  Hey (char const *msg);        // usual dialogs
    bool  YNo (char const *msg);
-   bool  AskR   (char *name, char const *titl);
-   bool  AskW   (char *name, char const *titl);
-   bool  AskDir (char *name, char const *titl);
+   bool  AskR    (char *name, char const *titl);
+   bool  AskW    (char *name, char const *titl);
+   bool  AskDirX (char *name, char const *titl); // outside portal needs fs=host
+   bool  AskDir  (char *name, char const *titl); // within portal
                                        // fer main
    ubyt2 FontH ();
    bool  Dark  ();
