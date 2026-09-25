@@ -376,7 +376,9 @@ private:
 
 class Path {
 public:
-   bool Empty (char *dir)
+   bool Empty (const char *dir)  {return Empty (CC(dir));}
+
+   bool Empty (      char *dir)
    // exists AND empty - kinda tricky :(
    { FDir d;
      TStr fn;
@@ -386,7 +388,10 @@ public:
    }
 
 // ez-er than Open/Next/Shut
-   ubyt2 FLst (char *dir, TStr *lst, ubyt2 max)
+   ubyt2 FLst (const char *dir, TStr *lst, ubyt2 max)
+   {  return FLst (CC(dir), lst, max);}
+
+   ubyt2 FLst (      char *dir, TStr *lst, ubyt2 max)
    // get (just) files (nonrecursively) in dir matching pat
    { ubyt2 len = 0;
      FDir  d;
@@ -404,7 +409,10 @@ public:
       return len;
    }
 
-   ubyt2 DLst (char *dir, TStr *lst, ubyt2 max)
+   ubyt2 DLst (const char *dir, TStr *lst, ubyt2 max)
+   {  return DLst (CC(dir), lst, max);  }
+
+   ubyt2 DLst (      char *dir, TStr *lst, ubyt2 max)
    // get subdirs of dir
    { ubyt2 len = 0;
      FDir  d;
@@ -423,9 +431,17 @@ public:
    }
 
 // path level "dos" ops
-   bool Make (char *dir, ubyt2 perm = 0755);
-   bool Kill (char *dir);
-   bool Copy (char *from, char *to);
+   bool Make (const char *dir, ubyt2 perm = 0755)
+   {  return Make (CC(dir), perm);  }
+
+   bool Make (      char *dir, ubyt2 perm = 0755);
+
+   bool Kill (const char *dir)  {return Kill (CC(dir));}
+   bool Kill (      char *dir);
+
+   bool Copy (const char *from, const char *to)
+   {  return Copy (CC(from), CC(to));  }
+   bool Copy (      char *from,       char *to);
 };
 
 
@@ -828,18 +844,21 @@ private:
 struct AppBase {
 public:
    void Init ()
+   // trc.cfg is whether we debug stuff and a signal to build our data dir
    { TStr s;   CfgGet ("trc", s);
       if (*s)  trc = (*s == 'y') ? true : false;
-      else {                           // uh oh !  kick initme !
-         CfgPut ("trc", CC("n"));      // skip this?  initme infinite loop :)
-         Run ("initme");
-         trc = true;
+      else {                           // missing trc.cfg means init our data
+         CfgPut ("trc", CC("n"));
+        ::Path p;
+         p.Copy ("/app/share/init", "/var");
+         trc = true;                   // on very 1st run, let's just show it
       }
    }
 
    char *Path (char *s, char typ = 'a')
    // [a]pp, [c]fg, [h]ome, else read [c]/s.cfg  (usually d.cfg)
-   // d.cfg will usually give /home/sh/pianocheetah or wherever initme picks
+   // d.cfg will give /var/data/top_app_data_dir (like /var/data/pianocheetah)
+   //                 unless changed by user
    { char *p;
      TStr  t;
       if (typ == 'a')  return StrCp (s, "/app/bin");
@@ -883,22 +902,7 @@ public:
 
    void TrcPut (bool tf)
    {  trc = tf;   CfgPut ("trc", CC(tf?"y":"n"));  }
-/*
-   void Run (char *cmd, ubyte narg)
-   { pid_t p;
-      p = fork ();
-      if (p <  0) {DBG("fork error for `s", cmd);   return;}
-      if (p == 0) {
-        BStr a;
-         Path (a);
-        ColSep cs (cmd, narg);
-         cs.Col [narg] = nullptr;
-         execv (a, cs.Col);
-      }
-      return;
-   }
 
-*/
    void Spinoff (const char *cmd)  {Spinoff (CC(cmd));}
    void Spinoff (      char *cmd)
    // spin it off in another session totally in parallel
