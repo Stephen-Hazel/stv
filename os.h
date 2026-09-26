@@ -853,6 +853,12 @@ public:
         ::Path p;
          p.Copy ("/app/share/init", "/var");
          trc = true;                   // on very 1st run, let's just show it
+         CfgGet ("run_one", s);        // any init app to kick ?
+         if (*s) {
+           TStr p;
+            StrFmt (p, "/app/bin/`s", s);
+            execlp (p, s, nullptr);    // bye me;  hello run_one
+         }
       }
    }
 
