@@ -101,8 +101,8 @@ sbyt4 Str2Int (char *Str, char **p = nullptr);
 ubyt4 StX2Int (char *s);
 char *StrFmt  (char *s, char const *fmt, ...);   // my sprintf replacement
 
-void  DBGTH   (char const *s);
-void  DBG     (char const *fmt, ...);
+void  DBGTH   (char const *s);                   // name my thread
+void  DBG     (char const *fmt, ...);            // strfmt to dbg.txt (always)
 void  DbgX    (char *s, char zz = '\0');
 #define TRC(...)  if(App.trc)DBG(__VA_ARGS__)    // DBG but only if tracing on
 
@@ -844,11 +844,12 @@ private:
 struct AppBase {
 public:
    void Init ()
-   // trc.cfg is whether we debug stuff and a signal to build our data dir
-   { TStr s;   CfgGet ("trc", s);
+   // dbg.cfg is whether TRC goes to dbg.txt AND a signal to build our data dir
+   { TStr s;
+      CfgGet ("dbg", s);
       if (*s)  trc = (*s == 'y') ? true : false;
       else {                           // missing trc.cfg means init our data
-         CfgPut ("trc", CC("n"));
+         CfgPut ("dbg", CC("n"));
         ::Path p;
          p.Copy ("/app/share/init", "/var");
          trc = true;                   // on very 1st run, let's just show it
@@ -856,33 +857,28 @@ public:
    }
 
    char *Path (char *s, char typ = 'a')
-   // [a]pp, [c]fg, [h]ome, else read [c]/s.cfg  (usually d.cfg)
-   // d.cfg will give /var/data/top_app_data_dir (like /var/data/pianocheetah)
-   //                 unless changed by user
+   // return [a]pp, [c]fg, [d]ata, [h]ome path
    { char *p;
-     TStr  t;
-      if (typ == 'a')  return StrCp (s, "/app/bin");
-      if (typ == 'c')  return StrCp (s, "/var/config");
-      if (typ == 'h') {
-         if (! (p = getenv ("HOME")))
-            {DBG("getenv HOME failed");   *s = '\0';   return s;}
-         StrCp (s, p);   return s;
-      }
-      t [0] = typ;   t [1] = '\0';
-      return CfgGet (t, s);
+      if (typ == 'a')    return StrCp  (s, "/app/bin");
+      if (typ == 'c')    return StrCp  (s, "/var/config");
+      if (typ == 'd')    return CfgGet ("data_path", s);   // maybe inside
+   // iz         'h'                                       // maybe outside
+      if ((p = getenv ("HOME")))  return StrCp (s, p);
+DBG("getenv HOME failed");   *s = '\0';   return s;
    }
 
    char *CfgGet (const char *fn, char *s, ubyt4 max = 0)
-   {  return CfgGet (CC(fn), s, max);  }
+   {  return CfgGet (fn, CC(s), max);  }
 
    char *CfgGet (      char *fn, char *s, ubyt4 max = 0)
+   // load n return /var/config/fn.cfg
    { TStr  p, q;
      File  f;
      ubyt4 l;
-      StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
+      StrFmt (p, "/var/config/`s.cfg", fn);
       l = f.Load (p, s, max ? max : MAX_PATH);
-      if ((l == 0) && StrCm (fn, "trc"))    // might be not be initme'd !
-         DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
+      if ((l == 0) && StrCm (fn, "debug"))  // might be not be initme'd !
+DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
       if (max == 0) {
          s [l] = '\0';
          if (l && (s [l-1] == '\n'))  s [--l] = '\0';      // no \n at end !!
@@ -894,22 +890,22 @@ public:
    {  CfgPut (CC(fn), s, len);  }
 
    void  CfgPut (      char *fn, char *s, ubyt4 len = 0)
-   { TStr p, q;
+   // save /var/config/fn.cfg
+   { TStr p;
      File f;
-      StrFmt (p, "`s/`s.cfg", Path (q, 'c'), fn);
+      StrFmt (p, "/var/config/`s.cfg", fn);
       f.Save (p, s, len ? len : StrLn (s));
    }
 
    void TrcPut (bool tf)
-   {  trc = tf;   CfgPut ("trc", CC(tf?"y":"n"));  }
+   {  trc = tf;   CfgPut ("debug", CC(tf?"y":"n"));  }
 
    void Spinoff (const char *cmd)  {Spinoff (CC(cmd));}
    void Spinoff (      char *cmd)
    // spin it off in another session totally in parallel
    { BStr a, t;
      int  rc;
-      StrFmt (a, "`s/`s </dev/null >/dev/null 2>/dev/null &",
-              Path (t), cmd);
+      StrFmt (a, "/app/bin/`s </dev/null >/dev/null 2>/dev/null &", cmd);
       if ((rc = system (a)))  DBG("Spinoff `s died rc=`d", a, rc);
    }
 
