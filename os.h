@@ -848,7 +848,7 @@ public:
    { TStr s;
       CfgGet ("dbg", s);
       if (*s)  trc = (*s == 'y') ? true : false;
-      else {                           // missing trc.cfg means init our data
+      else {                           // missing dbg.cfg means init our data
          CfgPut ("dbg", CC("n"));
         ::Path p;
          p.Copy ("/app/share/init", "/var");
@@ -868,17 +868,17 @@ DBG("getenv HOME failed");   *s = '\0';   return s;
    }
 
    char *CfgGet (const char *fn, char *s, ubyt4 max = 0)
-   {  return CfgGet (fn, CC(s), max);  }
+   {  return CfgGet (CC(fn), s, max);  }
 
    char *CfgGet (      char *fn, char *s, ubyt4 max = 0)
    // load n return /var/config/fn.cfg
-   { TStr  p, q;
+   { TStr  p;
      File  f;
      ubyt4 l;
       StrFmt (p, "/var/config/`s.cfg", fn);
       l = f.Load (p, s, max ? max : MAX_PATH);
-      if ((l == 0) && StrCm (fn, "debug"))  // might be not be initme'd !
-DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
+      if ((l == 0) && StrCm (fn, "dbg"))    // might be not be initme'd !
+DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, p);
       if (max == 0) {
          s [l] = '\0';
          if (l && (s [l-1] == '\n'))  s [--l] = '\0';      // no \n at end !!
@@ -898,7 +898,7 @@ DBG("CfgGet(`s) got nothin :(  CfgPath=`s", fn, q);
    }
 
    void TrcPut (bool tf)
-   {  trc = tf;   CfgPut ("debug", CC(tf?"y":"n"));  }
+   {  trc = tf;   CfgPut ("dbg", CC(tf?"y":"n"));  }
 
    void Spinoff (const char *cmd)  {Spinoff (CC(cmd));}
    void Spinoff (      char *cmd)
