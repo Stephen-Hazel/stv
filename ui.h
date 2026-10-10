@@ -1,4 +1,4 @@
-//      ui.h - ui stuph like window controls, etc - all da Qt
+// ui.h - ui stuph like window controls, etc - all da Qt
 
 #pragma once
 #include "os.h"
@@ -192,6 +192,29 @@ void DumpSig ()
    } while ((mo = mo->superClass ()));
 }
 */
+
+
+//______________________________________________________________________________
+#include <QIconEngine>
+
+class SvgIco: public QIconEngine {     // svg w light Text color => cur Text
+public:                                // QIcon ic (new SvgIco (":/x/y"));
+   SvgIco (const char *fn);
+   SvgIco (const QByteArray &svg): _svg (svg)  {}
+
+   void     paint  (QPainter *p, const QRect &r, QIcon::Mode m,
+                    QIcon::State s) override;
+   QPixmap  pixmap (const QSize &sz, QIcon::Mode m,
+                    QIcon::State s) override;
+   QSize    actualSize (const QSize &sz, QIcon::Mode m,
+                        QIcon::State s) override;
+   QList<QSize> availableSizes (QIcon::Mode m, QIcon::State s) override;
+   QIconEngine *clone () const override  {return new SvgIco (_svg);}
+private:
+   QByteArray _svg;                    // raw svg bytes
+};
+
+QIcon SvgIcon (const char *fn);        // SvgIco if fn.svg, else QIcon (fn)
 
 
 //______________________________________________________________________________
