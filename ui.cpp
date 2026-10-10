@@ -243,7 +243,7 @@ void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl,
                  char d2, char fixw)
 {  _a = a;   _w = w;   StrCp (_ttl, ttl);
    _fixw = fixw;  _d = d2;   _q = false;
-   _ico  =      QIcon (":/app");
+   _ico  = _d ? QIcon (":/app") : SvgIcon (":/app");
    _icoD = _d ? QIcon (":/app_d") : QIcon ();
 }
 
@@ -419,11 +419,62 @@ void CtlTBar::Sep (ubyte b)
    _w->addSeparator ();
 }
 
+
+//______________________________________________________________________________
+#include <QSvgRenderer>
+#include <QPainter>
+#include <QFile>
+
+static const char *SvgTxt = "#232629"; // breeze light Text color in svgs
+
+SvgIco::SvgIco (const char *fn)
+{ QFile f (fn);
+   if (! f.open (QIODevice::ReadOnly)) {
+DBG("SvgIco `s not there", fn);  return;}
+   _svg = f.readAll ();
+}
+
+void SvgIco::paint (QPainter *p, const QRect &r, QIcon::Mode m, QIcon::State s)
+{ QPalette::ColorGroup g = (m == QIcon::Disabled) ? QPalette::Disabled
+                                                  : QPalette::Active;
+  QString t = QApplication::palette ().color (g, QPalette::Text).name ();
+  QString sv = QString::fromUtf8 (_svg);
+   (void)s;
+   sv.replace (SvgTxt, t, Qt::CaseInsensitive);
+  QSvgRenderer rn (sv.toUtf8 ());
+   rn.setAspectRatioMode (Qt::KeepAspectRatio);
+   rn.render (p, r);
+}
+
+QPixmap SvgIco::pixmap (const QSize &sz, QIcon::Mode m, QIcon::State s)
+{ QPixmap pm (sz);
+   pm.fill (Qt::transparent);
+  QPainter p (& pm);
+   paint (& p, QRect (QPoint (0, 0), sz), m, s);
+   return pm;
+}
+
+QSize SvgIco::actualSize (const QSize &sz, QIcon::Mode m, QIcon::State s)
+{  (void)m;   (void)s;   return sz;  }
+
+QList<QSize> SvgIco::availableSizes (QIcon::Mode m, QIcon::State s)
+{  (void)m;   (void)s;   return {QSize (64, 64)};  }
+
+QIcon SvgIcon (const char *fn)
+{ TStr s;
+   StrFmt (s, "`s.svg", fn);
+   if (QFile::exists (s))  return QIcon (new SvgIco (s));
+   return QIcon (fn);
+}
+
+
+//______________________________________________________________________________
 static bool icok (QIcon i)
 {  if (i.isNull ())                     {DBG("null");  return false;}
    if (i.availableSizes ().isEmpty ())  {DBG("empty"); return false;}
    return true;
 }
+
 
 void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
 { TStr ts, is;
@@ -447,7 +498,8 @@ void CtlTBar::Btn (ubyte b, char *tip, const char *ico, const char *key)
       }
    }
    else {
-      i = QIcon (StrFmt (is, ":/tbar/`s/`d", _nm, b));
+      StrFmt (is, ":/tbar/`s/`d", _nm, b);
+      i = (*ico == 'd') ? QIcon (is) : SvgIcon (is);
       if (! icok (i))
 DBG("icon `s didn't load!", is);
       bt->i [0] = i;
@@ -480,7 +532,8 @@ void CtlTBar::Ico (ubyte b, ubyte i, const char *ico)
    if (i >= BITS (_b->i))  {DBG("tooo many icons in Ico !");        return;}
 
    if (i >= bt->ni)  bt->ni = i + 1;
-   ic = QIcon (StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i));
+   StrFmt (is, ":/tbar/`s/`d_`d", _nm, b, i);
+   ic = (*ico == 'd') ? QIcon (is) : SvgIcon (is);
    if (! icok (ic))
 DBG("icon `s didn't load!", is);
    bt->i [i] = ic;
@@ -640,6 +693,8 @@ void  CtlTabl::Set (ubyt2 r, ubyte c, char *s, char *tip)
       else if (*s) {
          if ((_ju [c] == '*') && Gui.Dark ())
             it->setIcon (QIcon (StrFmt (ico, ":/`s/`s_d", _rc, s)));
+         else if (_ju [c] == '+')
+            it->setIcon (SvgIcon (StrFmt (ico, ":/`s/`s", _rc, s)));
          else
             it->setIcon (QIcon (StrFmt (ico, ":/`s/`s",   _rc, s)));
          it->setSizeHint (QSize (_ih, _ih));
@@ -692,6 +747,8 @@ void CtlTabl::Put (char **rp, char *tip)
                it->setText (++(*rp));
             else if ((_ju [c] == '*') && Gui.Dark ())
                it->setIcon (QIcon (StrFmt (ico, ":/`s/`s_d", _rc, *rp)));
+            else if (_ju [c] == '+')
+               it->setIcon (SvgIcon (StrFmt (ico, ":/`s/`s", _rc, *rp)));
             else
                it->setIcon (QIcon (StrFmt (ico, ":/`s/`s",   _rc, *rp)));
          }
