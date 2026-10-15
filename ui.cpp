@@ -244,6 +244,9 @@ void QtEr::Init (QApplication *a, QMainWindow *w, const char *ttl,
 {  _a = a;   _w = w;   StrCp (_ttl, ttl);
    _fixw = fixw;  _d = d2;   _q = false;
    _ico  = _d ? QIcon (":/app") : SvgIcon (":/app");
+  QString dn = QGuiApplication::desktopFileName ();
+   if ((! _d) && (! dn.isEmpty ()))    // themed icon so kwin draws it itself
+      _ico = QIcon::fromTheme (dn, _ico);   // (pixmap path mangles alpha)
    _icoD = _d ? QIcon (":/app_d") : QIcon ();
 }
 
@@ -434,12 +437,12 @@ DBG("SvgIco `s not there", fn);  return;}
    _svg = f.readAll ();
 }
 
-void SvgIco::paint (QPainter *p, const QRect &r, QIcon::Mode m, QIcon::State s)
+void SvgIco::paint (QPainter *p, const QRect &r, QIcon::Mode m,
+                                                 QIcon::State /*s*/)
 { QPalette::ColorGroup g = (m == QIcon::Disabled) ? QPalette::Disabled
                                                   : QPalette::Active;
   QString t = QApplication::palette ().color (g, QPalette::Text).name ();
   QString sv = QString::fromUtf8 (_svg);
-   (void)s;
    sv.replace (SvgTxt, t, Qt::CaseInsensitive);
   QSvgRenderer rn (sv.toUtf8 ());
    rn.setAspectRatioMode (Qt::KeepAspectRatio);
@@ -454,11 +457,12 @@ QPixmap SvgIco::pixmap (const QSize &sz, QIcon::Mode m, QIcon::State s)
    return pm;
 }
 
-QSize SvgIco::actualSize (const QSize &sz, QIcon::Mode m, QIcon::State s)
-{  (void)m;   (void)s;   return sz;  }
+QSize SvgIco::actualSize (const QSize &sz, QIcon::Mode /*m*/,
+                                           QIcon::State /*s*/)
+{  return sz;  }
 
-QList<QSize> SvgIco::availableSizes (QIcon::Mode m, QIcon::State s)
-{  (void)m;   (void)s;   return {QSize (64, 64)};  }
+QList<QSize> SvgIco::availableSizes (QIcon::Mode /*m*/, QIcon::State /*s*/)
+{  return {QSize (64, 64)};  }
 
 QIcon SvgIcon (const char *fn)
 { TStr s;
