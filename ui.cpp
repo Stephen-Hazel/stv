@@ -404,8 +404,11 @@ void CtlTBar::Init (QMainWindow *w, const char *nm)
 void CtlTBar::Init (QDialog *d, const char *nm)
 // for dialogs, pass in main layout instead of mainwindow
 { QToolBar *tb = new QToolBar (nm);
+  QMargins  m  = d->layout ()->contentsMargins ();
    _w = tb;   StrCp (_nm, (char *)nm);
    d->layout ()->setMenuBar (_w);
+   m.setTop (0);                       // else breeze paints top margin in
+   d->layout ()->setContentsMargins (m);    // (stale) header color
    _w->setIconSize (QSize (32, 32));
    _w->setMovable (false);
    _nb = 0;
@@ -572,10 +575,30 @@ void CtlTBar::Set (ubyte b, ubyte i)
 
 void CtlTBar::ReDo ()
 { TStr s, t;
+   if (! _w)  return;
    for (ubyte b = 0;  b < _nb;  b++)  Set (b, _b [b].ic);
 //DBG("tbar bg=`s", ColRGB (t, Color ("bg"), 'd'));
    _w->setStyleSheet (StrFmt (s, "QToolBar{background-color:`s;}",
                                  ColRGB (t, Color ("bg"))));
+}
+
+
+//______________________________________________________________________________
+void Dlg::Init ()  {Gui.DlgLoad (this, _nm);}
+void Dlg::Quit ()  {Gui.DlgSave (this, _nm);}
+void Dlg::Open ()  {show ();   raise ();   activateWindow ();}
+void Dlg::Shut ()  {done (true);   lower ();   hide ();}
+
+void Dlg::changeEvent (QEvent *e)      // dark/light switch => redo tbar
+{  QDialog::changeEvent (e);
+   if (e->type () == QEvent::ApplicationPaletteChange ||
+       e->type () == QEvent::PaletteChange)  _tb.ReDo ();
+}
+
+void Dlg::paintEvent (QPaintEvent */*e*/)
+// cover breeze's tools area header n separator (stale in flatpak)
+{ QPainter p (this);
+   p.fillRect (rect (), palette ().window ());
 }
 
 

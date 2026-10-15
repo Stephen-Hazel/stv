@@ -227,7 +227,7 @@ struct CtlBtn {
 
 class CtlTBar {
 public:
-   CtlTBar ()  {}
+   CtlTBar (): _w (nullptr), _nb (0)  {}
   ~CtlTBar ()  {}
 
    void Init (QMainWindow *w, const char *nm);
@@ -246,6 +246,27 @@ private:
    TStr      _nm;                      // tbar name
    ubyte     _nb;                      // num buttons in toolbar
    CtlBtn    _b [48];
+};
+
+
+class Dlg: public QDialog {            // dialog boilerplate - derive from me
+public:                                // nm is QSettings key for size/pos
+   Dlg (QWidget *par, const char *nm): QDialog (par)
+   {  StrCp (_nm, (char *)nm);  }
+   virtual ~Dlg ()  {}
+
+   virtual void Init ();               // load size/pos (call me 1st)
+   virtual void Quit ();               // save size/pos
+   virtual void Open ();               // show,raise,activate
+   virtual void Shut ();               // done,lower,hide
+
+protected:
+   void closeEvent  (QCloseEvent */*e*/) override  {Shut ();}
+   void changeEvent (QEvent      *e)     override;
+   void paintEvent  (QPaintEvent */*e*/) override;
+
+   WStr    _nm;
+   CtlTBar _tb;                        // _tb.Init (this, "x") if ya want one
 };
 
 
