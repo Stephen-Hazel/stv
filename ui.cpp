@@ -426,6 +426,13 @@ void CtlTBar::Sep (ubyte b)
 }
 
 
+void CtlTBar::Spc ()                   // eat empty space => push rest right
+{ QWidget *w = new QWidget (_w);
+   w->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
+   _w->addWidget (w);
+}
+
+
 //______________________________________________________________________________
 #include <QSvgRenderer>
 #include <QPainter>
