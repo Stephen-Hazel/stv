@@ -238,6 +238,7 @@ public:
                                   const char *ico = "", const char *key = "");
    QAction *Act (ubyte b)  {return _b [b].ac;}
    void Sep  (ubyte b);                                 // seperator
+   void Spc  ();                                        // spacer=>push right
    void Ico  (ubyte b, ubyte i, const char *ico = "");  // extra ico(s)
    void Set  (ubyte b, ubyte i);                        // set which ico
    void ReDo ();                                        // redraw on Gui.Dark?
