@@ -662,9 +662,8 @@ public:
       return true;
    }
 
-   static char *DoRec (char *ibuf, ubyt2 len, ubyt4 pos, void *ptr)
+   static char *DoRec (char *ibuf, ubyt2 /*len*/, ubyt4 /*pos*/, void *ptr)
    { StrArr *t = (StrArr *)ptr;
-      (void)pos;   (void)len;          // modern DUMB standards
       if (t->quit && (! MemCm (ibuf, t->quit, StrLn (t->quit))))
          return CC("quit");
       if ((t->skip == nullptr) || MemCm (ibuf, t->skip, StrLn (t->skip)))

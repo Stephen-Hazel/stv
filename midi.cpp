@@ -15,11 +15,10 @@ char MKeyStr  [12][3] =
 //______________________________________________________________________________
 MidiDevLst Midi;
 
-char *MidiDevLst::DoRec (char *buf, ubyt2 len, ubyt4 pos, void *ptr)
+char *MidiDevLst::DoRec (char *buf, ubyt2 /*len*/, ubyt4 pos, void *ptr)
 { static char spot;
   static TStr err;
   MidiDevLst *m = (MidiDevLst *)ptr;
-   (void)len;
 // find initial, MidiIn: n MidiOut: spots
    if (pos == 0)                          spot = ' ';
    if (MemCm (buf, "MidiIn:",  7) == 0)  {spot = 'i';   return NULL;}
