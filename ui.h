@@ -634,8 +634,8 @@ private:
 
 class CtlTablDDr: public CtlTabl {     // CtlTabl w drag n drop row move
 public:
-   void  Init    (QTableWidget *t, const char *hdr, const char *rc = "",
-                  pmov mov = nullptr, ppop pop = nullptr, char wrap = '\0');
+   void Init (QTableWidget *t, const char *hdr, const char *rc = "",
+              pmov mov = nullptr, ppop pop = nullptr, char wrap = '\0');
 };
 
 
