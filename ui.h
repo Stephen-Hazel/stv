@@ -570,7 +570,7 @@ public slots:
 //______________________________________________________________________________
 class CtlTabl {                        // ez outsidea droppin a combo :/
 public:
-   CtlTabl ()  {_t = nullptr;   _nr = _tr = _ih = _tc = 0;}
+   CtlTabl ()  {_t = nullptr;   _nr = _tr = _ih = _tc = 0;   _dd = false;}
   ~CtlTabl ()  {}
 
 // hdr is zz string of labels
@@ -611,6 +611,31 @@ private:
    ubyt2 _nr, _tr, _ih;
    ubyte      _tc;
    bool  _wr;
+protected:
+   bool  _dd;                          // CtlTablDDr => no drop ON items
+};
+
+
+//______________________________________________________________________________
+// callback so app can move row fr to row to in its data
+typedef void (*pmov)(ubyt2 fr, ubyt2 to);
+
+class CtlTDDrEvF: public QObject {     // catches drop on CtlTablDDr viewport
+   Q_OBJECT
+public:
+   CtlTDDrEvF (QTableWidget *t, pmov mov)
+   : QObject (t)  {_t = t;   _mov = mov;}
+protected:
+   bool eventFilter (QObject *ob, QEvent *ev) override;
+private:
+   QTableWidget *_t;
+   pmov          _mov;
+};
+
+class CtlTablDDr: public CtlTabl {     // CtlTabl w drag n drop row move
+public:
+   void  Init    (QTableWidget *t, const char *hdr, const char *rc = "",
+                  pmov mov = nullptr, ppop pop = nullptr, char wrap = '\0');
 };
 
 
