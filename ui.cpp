@@ -775,6 +775,7 @@ void CtlTabl::Put (char **rp, char *tip)
                _t->setItem (_nr, c, it = new QTableWidgetItem);
       if (_ed [c])  it->setFlags (it->flags () |  Qt::ItemIsEditable);
       else          it->setFlags (it->flags () & ~Qt::ItemIsEditable);
+      if (_dd)      it->setFlags (it->flags () & ~Qt::ItemIsDropEnabled);
       if ((_ju [c] == '+') || (_ju [c] == '*')) {
          if (**rp) {
             if      (**rp == '*')
@@ -813,4 +814,55 @@ void CtlTabl::Shut (bool rehop)
 //DBG("CtlTabl::Shut blockSignals(false)");
    _t->blockSignals (false);
 //DBG("CtlTabl::Shut end");
+}
+
+
+//______________________________________________________________________________
+void CtlTablDDr::Init (QTableWidget *t, const char *hdr, const char *rc,
+                       pmov mov, ppop pop, char wrap)
+// not InternalMove cuz it strips CopyAction (see eventFilter)
+{  CtlTabl::Init (t, hdr, rc, pop, "single", "row", wrap);
+   _dd = true;                         // Put clears ItemIsDropEnabled
+   t->setDragEnabled (true);
+   t->setAcceptDrops (true);
+   t->setDragDropMode (QAbstractItemView::DragDrop);
+   t->setDefaultDropAction (Qt::MoveAction);
+   t->setDragDropOverwriteMode (false);
+   t->setDropIndicatorShown (true);
+   t->viewport ()->installEventFilter (new CtlTDDrEvF (t, mov));
+}
+
+bool CtlTDDrEvF::eventFilter (QObject */*ob*/, QEvent *ev)
+// on drop:  bubble row fr to row to, select it, tell app.
+// accept as CopyAction so QAbstractItemView::startDrag doesn't
+// clearOrRemove () our moved row (it only does that on MoveAction)
+{ int fr, to, st, r, c;
+   if (ev->type () != QEvent::Drop)  return false;
+
+  QDropEvent *e = static_cast<QDropEvent *>(ev);
+   if (e->source () != _t)  {e->ignore ();   return true;}
+
+// to is spot of indicator line (above or below row's middle)
+  QPoint      p = e->position ().toPoint ();
+  QModelIndex i = _t->indexAt (p);
+   fr = _t->currentRow ();
+   to = i.isValid () ? i.row () : _t->rowCount ();
+   if (i.isValid () && (p.y () > _t->visualRect (i).center ().y ()))  to++;
+   if (fr < to)  to--;                 // line's below fr so shift up 1
+   if ((fr < 0) || (fr == to))  {e->ignore ();   return true;}
+
+   _t->blockSignals (true);
+   st = (fr < to) ? 1 : -1;
+   for (r = fr;  r != to;  r += st)
+      for (c = 0;  c < _t->columnCount ();  c++) {
+        QTableWidgetItem *a = _t->takeItem (r,      c);
+        QTableWidgetItem *b = _t->takeItem (r + st, c);
+         _t->setItem (r,      c, b);
+         _t->setItem (r + st, c, a);
+      }
+   _t->selectRow (to);
+   _t->blockSignals (false);
+   if (_mov)  _mov ((ubyt2)fr, (ubyt2)to);
+   e->setDropAction (Qt::CopyAction);   e->accept ();
+   return true;
 }
