@@ -540,7 +540,7 @@ static ubyt4 Rnd ()
 }
 
 ubyt4 Rand (ubyt4 n)                   // return 0..n-1
-{ ubyt4 r = Rnd ();   return (ubyt4)((ubyt8)r * n / 4294967295u);  }
+{ ubyt4 r = Rnd ();   return (ubyt4)(((ubyt8)r * n) >> 31);  }  // r is 31 bit
 
 
 /* copied from ms crt src ;)
