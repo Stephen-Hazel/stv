@@ -434,10 +434,6 @@ void CtlTBar::Spc ()                   // eat empty space => push rest right
 
 
 //______________________________________________________________________________
-#include <QSvgRenderer>
-#include <QPainter>
-#include <QFile>
-
 static const char *SvgTxt = "#232629"; // breeze light Text color in svgs
 
 SvgIco::SvgIco (const char *fn)
@@ -479,6 +475,20 @@ QIcon SvgIcon (const char *fn)
    StrFmt (s, "`s.svg", fn);
    if (QFile::exists (s))  return QIcon (new SvgIco (s));
    return QIcon (fn);
+}
+
+QPixmap *SvgPix (const char *fn, ubyt2 w, ubyt2 h)
+// render svg once at exact w x h so blits are 1:1 (no pixmap rescale)
+{ QPixmap *pm = new QPixmap (w, h);
+   pm->fill (Qt::transparent);
+  QSvgRenderer rn (QString::fromUtf8 (fn));
+   if (! rn.isValid ()) {
+DBG("SvgPix `s not there", fn);  return pm;}
+  QPainter p (pm);
+   p.setRenderHint (QPainter::Antialiasing);
+   p.setRenderHint (QPainter::SmoothPixmapTransform);
+   rn.render (& p);                    // default stretches viewBox to pm
+   return pm;
 }
 
 
@@ -581,12 +591,29 @@ void CtlTBar::Set (ubyte b, ubyte i)
 
 
 void CtlTBar::ReDo ()
-{ TStr s, t;
+// defer til palette events (n breeze's stale header palette) are all done
+{  if (! _w)  return;
+   QTimer::singleShot (0, _w, [this] () {ReDoNow ();});
+}
+
+
+void CtlTBar::ReDoNow ()
+{ TStr     s, t, u;
+  QPalette a = QApplication::palette (), p;
    if (! _w)  return;
    for (ubyte b = 0;  b < _nb;  b++)  Set (b, _b [b].ic);
-//DBG("tbar bg=`s", ColRGB (t, Color ("bg"), 'd'));
+   _w->setStyleSheet ("");             // drop stylesheet's saved palette
+   p = _w->palette ();                 // override breeze's header palette
+   for (auto r : {QPalette::Window,     QPalette::Button,
+                  QPalette::WindowText, QPalette::ButtonText})
+      for (auto g : {QPalette::Active, QPalette::Inactive,
+                     QPalette::Disabled})
+         p.setBrush (g, r, a.brush (g, r));
+   _w->setPalette (p);
    _w->setStyleSheet (StrFmt (s, "QToolBar{background-color:`s;}",
                                  ColRGB (t, Color ("bg"))));
+DBG("tbar `s bg=`s pal=`s", _nm, ColRGB (t, Color ("bg"), 'd'),
+    ColRGB (u, _w->palette ().color (QPalette::Window), 'd'));
 }
 
 
