@@ -196,6 +196,9 @@ void DumpSig ()
 
 //______________________________________________________________________________
 #include <QIconEngine>
+#include <QSvgRenderer>
+#include <QPainter>
+#include <QFile>
 
 class SvgIco: public QIconEngine {     // svg w light Text color => cur Text
 public:                                // QIcon ic (new SvgIco (":/x/y"));
@@ -214,7 +217,8 @@ private:
    QByteArray _svg;                    // raw svg bytes
 };
 
-QIcon SvgIcon (const char *fn);        // SvgIco if fn.svg, else QIcon (fn)
+QIcon    SvgIcon (const char *fn);     // SvgIco if fn.svg, else QIcon (fn)
+QPixmap *SvgPix  (const char *fn, ubyt2 w, ubyt2 h);  // smooth stretched to w,h
 
 
 //______________________________________________________________________________
@@ -243,6 +247,7 @@ public:
    void Set  (ubyte b, ubyte i);                        // set which ico
    void ReDo ();                                        // redraw on Gui.Dark?
 private:
+   void ReDoNow ();                                     // ReDo after evs
    QToolBar *_w;
    TStr      _nm;                      // tbar name
    ubyte     _nb;                      // num buttons in toolbar
